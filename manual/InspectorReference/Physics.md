@@ -1,0 +1,311 @@
+# Wheels, contact and damage
+
+[Back to the complete Inspector reference](../InspectorReference.md).
+
+| Component or data block | Settings declared here |
+| --- | --- |
+| [Coasting](#coasting) | 3 |
+| [Collisions](#collisions) | 28 |
+| [Damage](#damage) | 9 |
+| [DamageCollisionRelay](#damagecollisionrelay) | 0 |
+| [DynamicObstacle](#dynamicobstacle) | 5 |
+| [Friction](#friction) | 1 |
+| [PhysicsModule](#physicsmodule) | 0 |
+| [Stabilization](#stabilization) | 18 |
+| [Surface](#surface) | 1 |
+| [TireCollision](#tirecollision) | 4 |
+| [VehicleMeshDeformation](#vehiclemeshdeformation) | 5 |
+| [Wheel](#wheel) | 16 |
+| [WheelDynamics](#wheeldynamics) | 1 |
+| [WheelLift](#wheellift) | 24 |
+| [WheelSetup](#wheelsetup) | 17 |
+
+## Coasting
+
+Configuration/implementation type for coasting within wheel definitions and contact.
+
+**Source:** `Runtime/Physics/Wheels/Coasting.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `contactReleaseTorque` | `float` | Tiny intent torque in N·m. It releases native static tire constraints, not engine propulsion. | `.01`; Minimum: .0001f |
+| `minimumSlopeDegrees` | `float` | Smallest downhill slope that should release stationary tire contact. Increase to prevent creeping on nearly level surfaces; decrease to allow gentler slopes to start the vehicle rolling. | `1`; Range: 0 to 10 |
+| `releaseBelowRpm` | `float` | Wheel RPM below which the small release torque may be applied to let a stationary tire start rolling downhill. Above this speed the module leaves the spinning wheel alone. | `15`; Minimum: 0 |
+
+## Collisions
+
+See [Collisions and stabilization](../CollisionsAndStabilization.md) for tuning and contact policy.
+
+**Source:** `Runtime/Physics/Stability/Collisions.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule).
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `bodyFriction` | `float` | Additional body friction coefficient, limited by the normal contact impulse. | `.8f`; Range(0, 1) |
+| `coordinateLandingResponse` | `bool` | Coordinate grip loss and sway with active smooth suspension landing: retain the impact speed before absorption and wait briefly for all tires to carry load. When suspension landing is disabled, use the ordinary immediate response. | `true` |
+| `crashDamperMultiplier` | `float` | Fraction of normal suspension damping retained just after a hard crash. Recovers smoothly through the suspension response window. | `.25f` |
+| `crashMaximumRotation` | `float` | Maximum additional chassis rotation rate in degrees/s per crash. | `100` |
+| `crashMinimumLeverage` | `float` | Minimum effective pitch/roll leverage in severe supported impacts. | `.6f` |
+| `crashGroundPivot` | `float` | Blend severe-crash direction toward the struck-end ground pivot; zero follows the real contact lever. | `.8f` |
+| `crashMaximumLiftSpeed` | `float` | Maximum additional upward chassis speed in m/s; zero disables lift. | `2` |
+| `crashEnergyFraction` | `float` | Maximum fraction of normal impact energy for the additional rotation/lift, including a movable partner. | `.08f` |
+| `crashCentredYaw` | `float` | Optional yaw target in degrees/s for severe near-centred impacts; alternates sides. Zero disables this presentation effect. | `12` |
+| `crashMinimumSpeed` | `float` | Normal collision speed in m/s required for chassis weight transfer. | `6` |
+| `crashRotationPerSpeed` | `float` | Pitch/roll target in degrees/s per m/s of closing speed, scaled by real normal impulse and contact leverage. Native rotation counts toward the target. | `4` |
+| `crashSuspensionRecovery` | `float` | Seconds for suspension damping to recover after the impact. | `.7f` |
+| `crashAttackTime` | `float` | Seconds to peak crash force; zero starts immediately on the next physics step. | `0` |
+| `crashReleaseTime` | `float` | Seconds for crash force to fade from peak to zero, without increasing impulse budget. | `.14f` |
+| `crashFromWheelImpacts` | `bool` | Include supported tire impacts into near-vertical obstacles in Crash Weight Transfer. Excludes wheel landings and ordinary ground contact; native tire restitution is unchanged. | `false` |
+| `crashWeightTransfer` | `bool` | Deliver a bounded pitch/roll response during a supported impact. Supported pitch/roll and lift response, with configurable ground-pivot bias. Native rotation counts toward the target. | `true` |
+| `crashYawVariation` | `float` | Maximum contact-directed yaw-rate target in degrees/s after a hard crash. Centred hits add no random yaw; zero disables it. | `3` |
+| `impactCooldown` | `float` | Minimum seconds between additional crash impulses. | `.12f`; Min(0) |
+| `impactResponse` | `bool` | Supply missing collision restitution after the native solver resolves the impact. | `true` |
+| `landingContactHoldTime` | `float` | Maximum seconds after first tire contact to hold grip recovery and defer the sway while the remaining tires acquire load. Zero disables the contact wait; pre-absorption impact strength is still retained. | `.45f` |
+| `landingForwardGrip` | `float` | Forward grip retained at full landing response, before other grip modifiers. | `.45f` |
+| `landingFullResponseSpeed` | `float` | Normal landing speed producing full grip loss and sway, in m/s. | `4.5f` |
+| `landingGripRecoveryTime` | `float` | Seconds for tire grip and stability assistance to smoothly recover. | `.85f` |
+| `landingLateralSway` | `float` | Maximum added sideways speed in m/s at a directional landing. Delivered over a short ground-contact push. | `.45f` |
+| `landingMinimumAirTime` | `float` | Minimum unsupported flight time before a wheel landing is eligible, in seconds. | `.15f` |
+| `landingMinimumSpeed` | `float` | Minimum normal landing speed relative to the surface, in m/s. | `1.5f` |
+| `landingRearGripBias` | `float` | Additional sideways grip reduction on wheels behind the centre of mass during recovery. | `.2f` |
+| `landingSidewaysGrip` | `float` | Sideways grip retained at full landing response, before other grip modifiers. | `.3f` |
+| `landingTractionLoss` | `bool` | Briefly reduce tire grip after an airborne wheel landing and allow a small directional sway. | `true` |
+| `landingYawSway` | `float` | Maximum additional yaw-rate change in degrees/s. Direction follows the landing's lateral motion, bank and first wheel contacts. | `7` |
+| `maximumAngularKick` | `float` | Maximum angular speed change per impact, in degrees/s. Off-centre contacts naturally pitch, yaw or roll. | `55`; Min(0) |
+| `maximumReboundSpeed` | `float` | Maximum additional separation speed, in m/s. | `3`; Min(0) |
+| `minimumBodyTilt` | `float` | Minimum gravity-relative tilt for additional body sliding friction. | `45`; Range(0, 180) |
+| `minimumImpactSpeed` | `float` | Normal closing speed required for an additional response, in m/s. | `4`; Min(0) |
+| `restitution` | `float` | Target separation speed as a fraction of normal closing speed. Existing PhysX bounce is counted. | `.12f`; Range(0, .5f) |
+
+## Damage
+
+Custom glass, lamps and audio behaviours subscribe to Hit without changing impact routing.
+
+**Source:** `Runtime/Physics/Damage/Damage.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `damageEnabled` | `bool` | Allows this module to accept damage. Turn off to stop its damage accumulation, mesh dents and damage-driven detachment. | `true` |
+| `damageMultiplier` | `float` | Multiplies accepted impact damage before it is applied to nearby parts. Higher values make the same collision damage parts more and reach detach thresholds sooner. | `1`; Minimum: 0 |
+| `deformationEnabled` | `bool` | Allows accepted impacts to bend the affected meshes through VehicleMeshDeformation. Turn off to retain damage and detachment while leaving mesh shapes unchanged. | `true` |
+| `detachmentEnabled` | `bool` | Allows damaged parts to break away when their detach threshold is reached. Turn off to keep parts attached even if they accumulate damage. | `true` |
+| `impactRadius` | `float` | Distance in metres around the hit point that can receive damage and dents. Damage falls off toward the edge; increase to spread a hit over a larger area. | `.9`; Minimum: .01f |
+| `minimumImpactSpeed` | `float` | Minimum relative collision speed in m/s required for collision-driven damage. | `3`; Minimum: 0 |
+| `parts` | `DamagePart[]` ([fields](Exterior.md#damagepart)) | Body parts that can accumulate damage, deform or detach. Only registered entries are processed; tune each part's damage response in its own settings. | `Empty list` |
+
+## DamageCollisionRelay
+
+Relays relevant native collisions into damage handling.
+
+**Source:** `Runtime/Physics/Damage/DamageCollisionRelay.cs`. Component / asset.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## DynamicObstacle
+
+Movable world obstacle native settings; applied on enable or ApplySettings and restored on disable. No per-frame work, forces or ordinary velocity clamps. Defaults preserve solver iteration counts.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `collisionDetection` | `CollisionDetectionMode` | Native contact detection; kinematic non-Discrete uses Speculative. | `CollisionDetectionMode.ContinuousSpeculative` |
+| `interpolation` | `RigidbodyInterpolation` | Native display interpolation. | `RigidbodyInterpolation.Interpolate` |
+| `maximumDepenetrationSpeed` | `float` | Native overlap recovery speed cap in m/s, retaining lower original. | `2` |
+| `solverIterations` | `int` | Optional minimum solver passes; zero preserves original, higher original retained. | `0` |
+| `solverVelocityIterations` | `int` | Optional minimum velocity solver passes; zero preserves original, higher original retained. | `0` |
+
+## Friction
+
+Reads physical grip and writes native tire friction behavior.
+
+**Source:** `Runtime/Physics/Friction/Friction.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `handbrakeLateralGrip` | `float` | Multiplier for sideways tire grip while the handbrake affects the wheel; lower values permit easier lateral sliding. | `0.55`; Range: 0.1f to 1 |
+
+## PhysicsModule
+
+Configuration/implementation type for physics module within module lifecycle and scheduling.
+
+**Source:** `Runtime/Physics/Core/PhysicsModule.cs`. Abstract base; settings are inherited by derived components.
+
+**Inherited settings:** [VehicleModule](Common.md#vehiclemodule). These settings also appear on this type.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## Stabilization
+
+See [Collisions and stabilization](../CollisionsAndStabilization.md) for tuning and contact policy.
+
+**Source:** `Runtime/Physics/Stability/Stabilization.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule).
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `affectOtherProfiles` | `bool` | Opt in for air/water/hover profiles. Normally only grounded profiles are supported. | `false` |
+| `airborneDamping` | `Vector3` | Local pitch/yaw/roll damping rates in 1/s while airborne. | `new Vector3(.65f, .2f, .65f)` |
+| `airborneDelay` | `float` | Wait after losing wheel support before applying damping, in seconds. | `.12f`; Min(0) |
+| `autoRighting` | `bool` | Smoothly push a slow vehicle on its side back onto its wheels using torque while the body touches the ground. | `false` |
+| `detectOverturn` | `bool` | Monitors chassis tilt and publishes overturn/recovery events. It does not itself right the vehicle or eject passengers. | `true` |
+| `maximumDeceleration` | `float` | Maximum angular deceleration in degrees/s squared. | `540`; Min(0) |
+| `maximumSpin` | `float` | Soft angular speed threshold in degrees/s; does not hard-clamp velocity. | `180`; Min(0) |
+| `overspeedDamping` | `float` | Additional damping above Maximum Spin, in 1/s. | `3`; Min(0) |
+| `overturnAngle` | `float` | Tilt from gravity-up, in degrees, that must persist for Overturn Delay before an overturn event is published. Lower values report overturn sooner. | `70`; Range: 10 to 180 |
+| `overturnDelay` | `float` | Time continuously tilted before reporting overturn, in seconds. | `.25`; Minimum: 0 |
+| `recoveryAngle` | `float` | Tilt below which an overturned vehicle is considered upright again and the event detector resets. Keep below Overturn Angle to avoid repeated state changes near the boundary. | `40`; Range: 0 to 170 |
+| `rightingDamping` | `float` | Angular damping in 1/s during recovery. | `7`; Min(0) |
+| `rightingDelay` | `float` | Seconds continuously overturned and touching the ground before recovery starts. | `1.5f`; Min(0) |
+| `rightingMaximumAcceleration` | `float` | Recovery angular acceleration limit in degrees/s squared. | `1440`; Min(0) |
+| `rightingMaximumSpeed` | `float` | Maximum chassis speed in m/s during assisted recovery. | `3`; Min(0) |
+| `rightingMaximumTilt` | `float` | Maximum tilt eligible for side recovery. Roof landings are excluded. | `125`; Range(90, 135) |
+| `rightingMinimumTilt` | `float` | Tilt in degrees required to begin recovery. | `55`; Range(1, 180) |
+| `rightingStrength` | `float` | Angular spring strength in 1/s squared. | `12`; Min(0) |
+
+## Surface
+
+Stores the physical grip multiplier on a contact collider.
+
+**Source:** `Runtime/Physics/Friction/Surface.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `grip` | `float` | Surface grip multiplier used when a wheel contacts this surface. | `1`; Range: 0.05f to 3 |
+
+## TireCollision
+
+Adds supplemental solid tire contacts.
+
+**Source:** `Runtime/Physics/Wheels/TireCollision.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `cylinderSides` | `int` | Number of sides in the supplemental tire collision shape. More sides make the shape rounder but add collision work; the implementation clamps this to 12–48. | `32`; Range: 12 to 48 |
+| `radiusScale` | `float` | Radius of the supplemental solid tire as a fraction of Wheel's radius. Values slightly below 1 keep it inside the rolling tire; larger values make side/obstacle contact occur earlier. | `.99`; Range: .9f to 1 |
+| `supportNormalThreshold` | `float` | Minimum alignment of a contact normal with the support direction for it to count as ground support. Higher values reject steeper side contacts rather than treating them as tread contact. | `.55`; Range: .1f to .95f |
+| `treadFriction` | `float` | Friction limit for supplemental tread contacts. Higher values resist sliding more strongly at those contacts; this is separate from the native WheelCollider friction curves. | `1`; Range: 0 to 2 |
+
+## VehicleMeshDeformation
+
+Owns readable mesh instances, dent buffers and geometry restoration.
+
+**Source:** `Runtime/Physics/Damage/VehicleMeshDeformation.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `damage` | `Damage` ([fields](Physics.md#damage)) | Accepted damage source. Empty resolves Damage on the same GameObject. | `None / unassigned` |
+| `dentPerDamage` | `float` | Visual displacement per accepted damage unit, in metres. | `.008`; Minimum: 0 |
+| `maximumDent` | `float` | Largest total vertex displacement from its rest pose, in metres. | `.35`; Minimum: 0 |
+| `meshUploadIntervalFrames` | `int` | Rendered LateUpdate calls with pending dents before uploading changed meshes. Higher values batch more impacts and normal rebuilds, but dents and DeformationChanged appear later. Damage calculation still runs for every hit. Default 1. | `1`; Range: 1 to 16 |
+| `recalculateNormals` | `bool` | Rebuild lighting normals when uploading dents. Disable to reduce mesh rebuild cost while retaining existing normals; deformed lighting becomes less accurate. Bounds are always updated. Default enabled. | `true` |
+
+## Wheel
+
+[Wheel contact](../API/WheelContact.md)
+
+**Source:** `Runtime/Physics/Wheels/Wheel.cs`. Component / asset.
+
+When registered in Vehicle Controller → Wheels → Wheel Setup, the copied geometry, roles and references are read-only here. Edit them in Wheel Setup and apply the configuration. Visual suspension smoothing remains local to Wheel.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `brake` | `bool` | Allows service-brake torque on this wheel. Disable for a wheel that should free-roll under the main brake pedal. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `true` |
+| `brakeMultiplier` | `float` | Multiplies this wheel's service-brake torque. Use lower front/rear values to tune brake balance; zero removes its service-brake contribution. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `1`; Minimum: 0 |
+| `caliper` | `Transform` | Optional brake-caliper visual; follows suspension and steering without spinning with the tire. | `None / unassigned` |
+| `caliperRotationOffset` | `Quaternion` | Rotation correcting the brake-caliper mesh's axes in the non-spinning hub frame. It aligns the visual without changing brake strength. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `Quaternion.identity` |
+| `driven` | `bool` | Includes this wheel among wheels receiving propulsion. Enable only on driven axles; Drive Weight controls its relative share of the base torque budget. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `true` |
+| `driveWeight` | `float` | Relative share of base motor torque among driven wheels. At 2 a wheel receives twice the weight of a wheel set to 1; zero excludes it from base allocation. Grip/differential logic can change the final split. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `1`; Minimum: 0 |
+| `handbrake` | `bool` | Allows handbrake/parking torque on this wheel. For a typical car, enable on the intended parking-brake axle rather than every wheel automatically. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `false` |
+| `mass` | `float` | Native wheel mass in kilograms used in wheel-spin calculations. For a registered wheel, edit this in Wheel Setup; it does not replace the chassis Rigidbody mass. | `25`; Minimum: 1 |
+| `radius` | `float` | Tire's rolling radius in metres, used by native wheel contact and wheel-speed calculations. Match half the outside tire diameter; registered wheels take this value from Wheel Setup. | `.34`; Minimum: .05f |
+| `showGizmos` | `bool` | Show this component's scene guides and editing handles. Does not change gameplay or physics. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
+| `steering` | `bool` | Allows this wheel to receive vehicle steering. Enable for steering axles; disable for fixed wheels. Steering Multiplier controls its direction and share of the angle. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `false` |
+| `steeringMultiplier` | `float` | Scales this wheel's steering angle. Negative values produce counter-steering. | `1` |
+| `visual` | `Transform` | Wheel visual transform moved to the solved hub pose and rotated for steering and tire spin. Keep it separate from the collider mount. | `None / unassigned` |
+| `visualRotationOffset` | `Quaternion` | Rotation correcting the tire mesh's axes relative to the solved wheel pose. Use it for imported meshes whose axle direction differs from the native wheel frame. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `Quaternion.identity` |
+| `visualSuspensionSmoothTime` | `float` | Visual suspension settling time in seconds. Zero follows the native hub directly; tire forces are unaffected. | `.045`; Minimum: 0 |
+| `width` | `float` | Full tire width in metres. Used by tire contact sampling, supplemental tire collisions and Scene previews. For a registered wheel, edit Width in Vehicle Controller → Wheels → Wheel Setup and apply configuration. | `.2`; Minimum: .02f |
+
+## WheelDynamics
+
+Applies wheel rotational behavior including airborne losses.
+
+**Source:** `Runtime/Physics/Wheels/WheelDynamics.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `airborneSpinHalfLife` | `float` | Seconds for an unpowered airborne wheel to lose half its spin speed from air damping. Increase to let lifted wheels spin longer; decrease to slow them sooner. | `2`; Minimum: .1f |
+
+## WheelLift
+
+Raises the selected front wheels and holds a configurable nose-up angle using bounded force and pitch feedback. It is an optional action: without a request, an idle module applies no force or torque.
+
+**Source:** `Runtime/Physics/Wheels/WheelLift.cs`. Component / asset.
+
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `angleDamping` | `float` | Damps pitch angular velocity while lifting and holding. Increase to reduce overshoot; excessive damping slows the response. | `18`; Minimum: 0 |
+| `angleStrength` | `float` | Pitch feedback gain. Higher values approach the target more quickly, subject to the force and acceleration limits. | `60`; Minimum: 0 |
+| `compensateGravity` | `bool` | Offsets the weight moment about the supporting axle while contact is available, reducing steady pitch error. | `true` |
+| `forceCurve` | `AnimationCurve` | Shapes normalized assistance during build-up and release. Its result is clamped to zero through one. | `AnimationCurve.EaseInOut(0, 0, 1, 1)` |
+| `groundContactGraceTime` | `float` | Seconds to retain the requested angle through brief support loss. After this interval the active controller levels the chassis for landing. No upward force is applied without support. | `.75`; Minimum: 0 |
+| `landingTime` | `float` | Seconds to smoothly lower the pitch target to zero after release or an activation guard. Pitch control and necessary weight support remain available through touchdown. | `1`; Minimum: .1f |
+| `landingTimeout` | `float` | Maximum lowering interval before assistance is cleared. The effective timeout is at least Landing Time. ResetState and disabling the component stop immediately. | `3`; Minimum: .1f |
+| `liftPoint` | `Transform` | Optional force point in world space. Overrides the average selected-wheel position. Place ahead of the supporting axle for front-wheel lift. | `None / unassigned` |
+| `localLiftPoint` | `Vector3` | Force point relative to the vehicle when no operational lift wheels are available and no Lift Point is assigned. | `new Vector3(0, 0, 1)` |
+| `maximumForce` | `float` | Maximum upward force in newtons. Maximum Lift Acceleration imposes an additional mass-dependent cap. | `12000`; Minimum: 0 |
+| `maximumLiftAcceleration` | `float` | Maximum upward assistance acceleration in m/s². Limits the force relative to chassis mass to help retain supporting-wheel contact. | `8`; Minimum: 0 |
+| `maximumRecoveryAcceleration` | `float` | Maximum corrective pitch acceleration in rad/s². Bounded torque arrests excessive rise or a forward dive without adding vertical force. | `300`; Minimum: 0 |
+| `maximumRoll` | `float` | Maximum lateral tilt for assistance, in degrees. Exceeding the guard clears assistance immediately. | `60`; Range: 0 to 89 |
+| `maximumSpeed` | `float` | Maximum absolute forward speed in m/s for lifting. Exceeding it initiates controlled lowering and requires releasing the held request before restarting. | `55`; Minimum: 0 |
+| `maximumSupportDampingAcceleration` | `float` | Maximum chassis acceleration from rebound damping at the supporting tires, in m/s². The contact impulse is also limited so it cannot reverse separation velocity. | `15`; Minimum: 0 |
+| `minimumSpeed` | `float` | Minimum absolute forward speed in m/s required for assistance. Zero permits lifting at rest. | `0`; Minimum: 0 |
+| `releaseTime` | `float` | Seconds for the held force request to fade after release. Zero clears that ramp immediately. Necessary support is retained until the front approaches the road; Landing Time controls lowering. | `.35`; Minimum: 0 |
+| `requireGroundContact` | `bool` | Requires an operational grounded wheel outside the lift selection to start and apply upward force. An already active action retains pitch control during contact loss and levels after Ground Contact Grace Time. | `true` |
+| `requireRunningEngine` | `bool` | Requires an enabled Engine with its engine-running state on. | `true` |
+| `riseTime` | `float` | Seconds for the normalized request ramp to build from zero to full. Force Curve shapes the response. | `.5`; Minimum: 0 |
+| `safetyAngle` | `float` | Absolute pitch limit in degrees. The effective target stays at least ten degrees below this limit. Excessive pitch stops assistance. | `75`; Range: 0 to 89 |
+| `supportReboundDamping` | `float` | Response in 1/s opposing upward separation at the supporting tire contact while Wheel Lift is active. Uses native and solid-tire contact normals and motion relative to the surface; airborne and descending motion are unchanged. Zero disables this damping. | `10`; Minimum: 0 |
+| `targetAngle` | `float` | Requested nose-up pitch relative to gravity, in degrees. Also bounded by the safety-angle margin. | `30`; Range: 0 to 75 |
+| `wheels` | `Wheel[]` | Wheels to lift; force acts at their average operational position. Empty selects steering wheels. Other grounded wheels provide support. Assign wheels owned by this vehicle. | `Empty list` |
+
+## WheelSetup
+
+Persists collider, geometry, visual and wheel-role authoring data.
+
+**Source:** `Runtime/Physics/Wheels/WheelSetup.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `brake` | `bool` | Allows service-brake torque on this wheel. Disable for a wheel that should free-roll under the main brake pedal. | `true` |
+| `brakeMultiplier` | `float` | Multiplies this wheel's service-brake torque. Use lower front/rear values to tune brake balance; zero removes its service-brake contribution. | `1`; Minimum: 0 |
+| `caliperRotationOffset` | `Quaternion` | Rotation correcting the brake-caliper mesh's axes in the non-spinning hub frame. It aligns the visual without changing brake strength. | `Quaternion.identity` |
+| `caliperTransform` | `Transform` | Optional brake caliper mesh. It follows suspension movement and steering but stays still while the tire spins. | `None / unassigned` |
+| `drive` | `bool` | Includes this wheel among wheels receiving propulsion. Enable only on driven axles; Drive Weight controls its relative share of the base torque budget. | `true` |
+| `driveWeight` | `float` | Relative share of base motor torque among driven wheels. At 2 a wheel receives twice the weight of a wheel set to 1; zero excludes it from base allocation. Grip/differential logic can change the final split. | `1`; Minimum: 0 |
+| `enabled` | `bool` | Includes this wheel in vehicle configuration and simulation. Turn off to disable this wheel entry without deleting its collider or saved settings. | `true` |
+| `handbrake` | `bool` | Allows handbrake/parking torque on this wheel. For a typical car, enable on the intended parking-brake axle rather than every wheel automatically. | `false` |
+| `label` | `string` | Readable wheel name in the controller's setup list, such as Front Left. It identifies the entry for editing and does not choose its physical side or drive role. | `"Wheel"` |
+| `mass` | `float` | Native wheel mass in kilograms, copied during configuration. It affects the wheel's rotational inertia/spin response; chassis mass is set separately in Vehicle Settings. | `25`; Minimum: 1 |
+| `radius` | `float` | Tire's rolling radius in metres, from axle centre to the outside tread. It sets native contact geometry and speed/torque conversion; it does not resize the visible mesh. | `.45`; Minimum: .05f |
+| `steer` | `bool` | Allows this wheel to receive vehicle steering. Enable for steering axles; disable for fixed wheels. Steering Multiplier controls its direction and share of the angle. | `false` |
+| `steeringMultiplier` | `float` | Use negative values for counter-steering axles. | `1` |
+| `wheelCollider` | `WheelCollider` | Native wheel collider providing this wheel's suspension, road contact, rotation and tire forces. Assign the collider at the wheel mount, separate from the rotating visual mesh. | `None / unassigned` |
+| `wheelRotationOffset` | `Quaternion` | Rotation correcting the tire mesh's axes relative to the solved wheel pose. Use it for imported meshes whose axle direction differs from the native wheel frame. | `Quaternion.identity` |
+| `wheelTransform` | `Transform` | Tire/rim mesh moved to the wheel's solved suspension position and rotated for steering and spin. Assign the visual, not the fixed collider mount. | `None / unassigned` |
+| `width` | `float` | Full tire width in metres copied to Wheel during configuration. Wider tires spread supplemental contact sampling and collision geometry farther sideways; this does not resize the visible tire mesh. | `.2`; Minimum: .02f |

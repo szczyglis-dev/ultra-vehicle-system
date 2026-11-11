@@ -1,0 +1,648 @@
+# Body, lights, wipers and aircraft equipment
+
+[Back to the complete Inspector reference](../InspectorReference.md).
+
+| Component or data block | Settings declared here |
+| --- | --- |
+| [AircraftControlMotion](#aircraftcontrolmotion) | 8 |
+| [AircraftControlSurface](#aircraftcontrolsurface) | 3 |
+| [AircraftControlSurfaces](#aircraftcontrolsurfaces) | 5 |
+| [Body](#body) | 2 |
+| [CustomLightGroup](#customlightgroup) | 4 |
+| [DamagePart](#damagepart) | 27 |
+| [ExteriorModule](#exteriormodule) | 0 |
+| [HoverVisuals](#hovervisuals) | 1 |
+| [HoverVisuals.TiltMount](#hovervisualstiltmount) | 2 |
+| [LandingGear](#landinggear) | 6 |
+| [LandingGearPart](#landinggearpart) | 4 |
+| [LandingGearSuspension](#landinggearsuspension) | 1 |
+| [LandingGearSuspensionPart](#landinggearsuspensionpart) | 11 |
+| [LightChannel](#lightchannel) | 7 |
+| [VehicleLampGlow](#vehiclelampglow) | 4 |
+| [Lights](#lights) | 17 |
+| [MovingPart](#movingpart) | 19 |
+| [PartMotionAudio](#partmotionaudio) | 9 |
+| [PartMotionEvents](#partmotionevents) | 4 |
+| [Propulsion](#propulsion) | 4 |
+| [Propulsion.Propeller](#propulsionpropeller) | 15 |
+| [SteeringPart](#steeringpart) | 9 |
+| [TrackPathBuilder](#trackpathbuilder) | 10 |
+| [TrackVisuals](#trackvisuals) | 3 |
+| [TrackVisuals.Belt](#trackvisualsbelt) | 4 |
+| [TrackVisuals.Roller](#trackvisualsroller) | 5 |
+| [VehicleBodyPart](#vehiclebodypart) | 24 |
+| [WheelPart](#wheelpart) | 4 |
+| [Wiper](#wiper) | 13 |
+| [WiperBlade](#wiperblade) | 5 |
+| [Wipers](#wipers) | 3 |
+| [WiperSwitchBinding](#wiperswitchbinding) | 3 |
+| [PedalDrive](#pedaldrive) | 10 |
+
+## AircraftControlMotion
+
+Shared rotation/translation mapping for exterior aircraft control surfaces and landing-gear parts. Add through **Component > UltraVehicleSystem > Exterior > Aircraft > Aircraft Control Motion** or **Tools > UltraVehicleSystem > Add Component > Exterior > Aircraft > Aircraft Control Motion**.
+
+**Source:** `Runtime/Exterior/Aircraft/AircraftControlMotion.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `anchor` | `Transform` | Independent hinge and local axis frame outside Moving Part. Preserves the authored neutral offset; translation follows its normalized local axis in metres. | `None / unassigned` |
+| `localAxis` | `Vector3` | Rotation or slide axis in Anchor's coordinates. For Rotation it is the hinge direction; for Translation it is the line the control moves along. | `Vector3.right` |
+| `maximum` | `float` | Upper deflection angle in degrees mapped to the selected aircraft control channel. | `20` |
+| `minimum` | `float` | Lower deflection angle in degrees mapped to the selected aircraft control channel. | `-20` |
+| `mode` | `AircraftControlMotionMode` | Rotation turns the part around the configured axis; Translation slides it along that axis. Motion endpoints are degrees for rotation and metres for translation. Options: `Rotation`, `Translation`. | `Rotation` |
+| `movingPart` | `Transform` | Control mesh moved relative to Anchor. Its pose is set by the current mapped control value; the anchor must remain independent of it. | `None / unassigned` |
+| `showGizmos` | `bool` | Show this component's scene guides and editing handles. Does not change gameplay or physics. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
+
+
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `reverse` | `bool` | Mirror motion around the neutral pose without changing input or travel limits. | `false` |
+
+## AircraftControlSurface
+
+Configuration/implementation type for aircraft control surface within flight and landing gear.
+
+**Source:** `Runtime/Exterior/Aircraft/AircraftControlSurface.cs`. Component / asset.
+
+**Inherited settings:** [AircraftControlMotion](Exterior.md#aircraftcontrolmotion). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `customMix` | `Vector3` | Pitch, roll and yaw mix for Custom; enables new airframe layouts without new controller code. | `Zero-initialized Vector3` |
+| `invert` | `bool` | Reverses the sign of the assigned control input before applying control-surface motion. | `false` |
+| `type` | `AircraftSurfaceType` | Chooses which flight command moves this surface. Rudder follows yaw, ailerons follow opposite roll directions, elevators follow pitch, and flap/airbrake follow their deployment commands. Custom uses the configured input mapping. Options: `Rudder`, `LeftAileron`, `RightAileron`, `Elevator`, `LeftElevator`, `RightElevator`, `Flap`, `Airbrake`, `Custom`. | `Rudder` |
+
+## AircraftControlSurfaces
+
+Presents the configured control-surface motion.
+
+**Source:** `Runtime/Exterior/Aircraft/AircraftControlSurfaces.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `airbrake` | `float` | Requested aerodynamic brake deployment from zero to one. | `0`; Range: 0 to 1 |
+| `externalControl` | `bool` | Uses explicit surface controls instead of the vehicle's current flight command. | `false` |
+| `flaps` | `float` | Requested flap deployment from zero retracted to one fully extended. | `0`; Range: 0 to 1 |
+| `response` | `float` | How quickly the visible control surfaces follow flight commands. Increase for immediate-looking aileron/rudder movement; decrease for slower actuator motion. | `5`; Minimum: 0 |
+| `surfaces` | `AircraftControlSurface[]` ([fields](Exterior.md#aircraftcontrolsurface)) | Visible rudders, ailerons, elevators, flaps and airbrakes updated from flight commands. Add a separate entry for each independently moving mesh. | `Empty list` |
+
+## Body
+
+Finds and operates authored `VehicleBodyPart` entries.
+
+**Source:** `Runtime/Exterior/Parts/Body.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `parts` | `VehicleBodyPart[]` ([fields](Exterior.md#vehiclebodypart)) | Doors, hood, trunk and other VehicleBodyPart components managed by this body module. Register parts here so body commands can find and operate them. | `Empty list` |
+
+`damageParts` is an additional DamagePart list (including WheelPart), merged into Damage.RefreshParts. It is separate from the opening Body.parts list.
+
+## CustomLightGroup
+
+An independently requested/blinking custom lighting group. Inherits all physical light and emission parameters and `LitChanged` from [LightChannel](../API/Lights.md#lightchannel).
+
+**Source:** `Runtime/Exterior/Lights/CustomLightGroup.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+**Inherited settings:** [LightChannel](Exterior.md#lightchannel). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `blinking` | `bool` | Enables the group's independent blink clock; a newly enabled request begins in the lit phase. | `false` |
+| `blinkInterval` | `float` | Duration of each on/off phase in seconds, clamped to at least 0.05. | `.45`; Minimum: .05f |
+| `id` | `string` | Unique, case-sensitive ID within this Lights component. | `None / unassigned` |
+| `on` | `bool` | Requested custom light state, independent of availability and the current blink phase. | `false` |
+
+## DamagePart
+
+A part may contain several meshes/colliders. Nested parts belong to their own damage boundary.
+
+**Source:** `Runtime/Exterior/Parts/DamagePart.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `damageEnabled` | `bool` | Accept routed/direct damage accumulation for this part. Explicit detach/full repair remain available. | `true` |
+| `debrisAngularDamping` | `float` | Angular drag per second after release. Reduces prolonged spinning of loose panels without changing their inherited release velocity. | `.5`; Minimum: 0 |
+| `debrisColliderMinimumThickness` | `float` | Minimum world-space thickness in metres for an automatically generated debris collider. | `.03f` |
+| `debrisContactAngularChange` | `float` | Additional angular speed allowance in degrees/s for moving-object contact impulses and the combined post-solver spin budget. | `180` |
+| `debrisContactSpeedChange` | `float` | Additional linear speed allowance in m/s for moving-object contacts and the combined post-solver contact budget. Stationary ground retains full support and stopping forces. | `4` |
+| `debrisDepenetrationSpeed` | `float` | Maximum speed in m/s used to separate released debris from overlapping colliders. Lower values soften recovery when a car traps a thin panel; this does not clamp ordinary impact velocity. | `2`; Minimum: 0 |
+| `debrisGroundPenetrationTolerance` | `float` | Ground overlap in metres tolerated before correcting a crushed part. | `.01f` |
+| `debrisGroundProjection` | `bool` | Correct deep solver penetration into stationary ground after a heavy vehicle crushes a thin part. Operates only at real ground contacts; free flight remains physical. | `true` |
+| `debrisGroundProjectionLimit` | `float` | Maximum ground penetration correction in metres per contact callback. | `.3f` |
+| `debrisMaximumAngularSpeed` | `float` | Native released-part angular speed limit in degrees/s with contact stabilization enabled. Detached Wheel Parts can raise this to preserve inherited tire RPM. | `720` |
+| `debrisSolverIterations` | `int` | Native position solver iterations on released debris. More iterations improve thin-panel support under a heavy vehicle. | `12` |
+| `debrisSurfaceSpeedMultiplier` | `float` | Multiplier of the impacting surface world speed used by the debris contact speed budget. Faster pre-solver debris motion is preserved; the contact speed-change allowance is added. | `1.25f` |
+| `debrisVelocitySolverIterations` | `int` | Native velocity solver iterations on released debris. | `4` |
+| `deformableMeshes` | `MeshFilter[]` | Readable MeshFilter meshes deformed by impacts on this damage part; assign only meshes that should visibly dent. | `Empty list` |
+| `deformationMultiplier` | `float` | Zero disables mesh dents. Does not affect detachment. | `1`; Minimum: 0 |
+| `detachedVehicleColliders` | `Collider[]` | Disabled solid chassis shapes enabled when this part detaches; keep outside detachable groups and assign each to one part before startup. Full repair restores captured enabled states. Empty disables the feature. See [exposed chassis setup](../Damage.md#protect-exposed-chassis-after-detachment). | `Empty list` |
+| `detachmentMultiplier` | `float` | Zero prevents collision detachment. | `1`; Minimum: 0 |
+| `detachThreshold` | `float` | Accumulated damage required to detach this group. | `30`; Minimum: 1 |
+| `excludeDebrisFromWheelSupport` | `bool` | Keep detached panels out of native wheel suspension support. Solid tire and chassis colliders still push the debris, without firing full wheel spring forces into a light panel. | `true` |
+| `generateMissingDebrisCollider` | `bool` | Generate a simple box from this part's mesh bounds on release if its damage boundary has no solid collider. Prevents detached lamps/glass from falling through the world. Authored colliders are retained. | `true` |
+| `mass` | `float` | Rigidbody mass in kilograms assigned to the part when released. Higher mass gives the detached piece more inertia; it does not directly set its damage threshold. | `15`; Minimum: .01f |
+| `material` | `PartMaterial` | Material category reported with this part's damage. Damage effects and sounds can use it to distinguish metal, glass, plastic, rubber and mechanical hits. Options: `Metal`, `Glass`, `Plastic`, `Rubber`, `Mechanical`, `Custom`. | `PartMaterial.Metal` |
+| `materialId` | `string` | Optional case-sensitive impact material key, e.g. carbon or wood. Matching custom profiles take priority over the enum response. | `None / unassigned` |
+| `partId` | `string` | Stable identifier for scripts and damage reactions. | `None / unassigned` |
+| `prewarmDebrisPhysics` | `bool` | Prepare the disabled debris contact helper and shared contact code during startup, reducing first-detachment allocation/JIT work. Does not create a Rigidbody or change attached collision geometry. | `true` |
+| `releasedCollisionDelay` | `float` | Minimum seconds to ignore former vehicle collisions after release. Overlapping pairs wait until separated. | `.5`; Minimum: 0 |
+| `stabilizeDebrisContacts` | `bool` | Limit solver contact impulses on released parts, preventing thin panels trapped under heavy vehicles from being explosively ejected. Does not clamp inherited release velocity. | `true` |
+
+## ExteriorModule
+
+Base integration with the vehicle module lifecycle.
+
+**Source:** `Runtime/Exterior/Core/ExteriorModule.cs`. Abstract base; settings are inherited by derived components.
+
+**Inherited settings:** [VehicleModule](Common.md#vehiclemodule). These settings also appear on this type.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## HoverVisuals
+
+Configuration/implementation type for hover visuals within flight and landing gear.
+
+**Source:** `Runtime/Exterior/Aircraft/HoverVisuals.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `tiltMounts` | `TiltMount[]` ([fields](Exterior.md#hovervisualstiltmount)) | Optional hover engine mounts. Uses folded-wheel thrust, turn and strafe tilt without the wheel-fold rotation. | `Empty list` |
+
+## HoverVisuals.TiltMount
+
+Configuration/implementation type for tilt mount within flight and landing gear.
+
+**Source:** `Runtime/Exterior/Aircraft/HoverVisuals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `restRotation` | `Quaternion` | Original local rotation of this mount before hover tilt is added. It preserves the model's alignment as the mount transitions between movement poses. | `Quaternion.identity` |
+| `transform` | `Transform` | Part rotated when changing between wheel-driving and hover poses. Assign the independent wheel/engine mount that should tilt with this transition. | `None / unassigned` |
+
+## LandingGear
+
+Owns deployment sequencing and physical gear-contact availability.
+
+**Source:** `Runtime/Exterior/Aircraft/LandingGear.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `groundClearanceLock` | `float` | Downward probe length in metres from the vehicle centre of mass used to block unsafe retraction near the ground. A larger value keeps the gear locked down farther above the surface. | `.6`; Minimum: 0 |
+| `groundMask` | `LayerMask` | Layers checked by the ground-clearance retraction lock. Include runways/terrain that should prevent folding the gear while too close to the ground. | `~0` |
+| `initiallyDeployed` | `bool` | Starts the landing gear deployed when checked, or retracted when unchecked. | `true` |
+| `parts` | `LandingGearPart[]` ([fields](Exterior.md#landinggearpart)) | Moving struts, doors and links involved in deploying or retracting the landing gear. Each part supplies its own motion and timing. | `Empty list` |
+| `preventGroundRetraction` | `bool` | Prevent retraction while tires touch the ground or the hull is within Ground Clearance Lock. | `true` |
+| `wheels` | `WheelCollider[]` | Native wheel colliders belonging to the retractable landing gear. Their availability follows gear deployment so retracted wheels do not keep supporting the aircraft. | `Empty list` |
+
+## LandingGearPart
+
+Maps deployment progress to a door/strut pose.
+
+**Source:** `Runtime/Exterior/Aircraft/LandingGearPart.cs`. Component / asset.
+
+**Inherited settings:** [AircraftControlMotion](Exterior.md#aircraftcontrolmotion). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `duration` | `float` | Seconds this part takes to move between extended and retracted poses, after its direction-specific delay. Different values let doors and struts move at different speeds. | `2`; Minimum: .01f |
+| `extendDelay` | `float` | Delay before this gear part starts extension, in seconds. | `0`; Minimum: 0 |
+| `retractDelay` | `float` | Delay before this gear part starts retraction, in seconds. | `0`; Minimum: 0 |
+| `type` | `LandingGearPartType` | Identifies this piece as a strut, door, link or custom part for landing-gear setup. Its actual movement still comes from this part's configured poses and timing. Options: `Strut`, `Door`, `Link`, `Custom`. | `Strut` |
+
+## LandingGearSuspension
+
+Configuration/implementation type for landing gear suspension within flight and landing gear.
+
+**Source:** `Runtime/Exterior/Aircraft/LandingGearSuspension.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `parts` | `LandingGearSuspensionPart[]` ([fields](Exterior.md#landinggearsuspensionpart)) | Gear legs that receive additional loaded suspension motion. Each entry connects a landing-gear part with the wheel and its load response. | `Empty list` |
+
+## LandingGearSuspensionPart
+
+Describes load-driven hinge response for a gear part.
+
+**Source:** `Runtime/Exterior/Aircraft/LandingGearSuspensionPart.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `angularInertia` | `float` | Effective angular inertia used when converting the suspension response into hinge motion. | `500`; Minimum: 1 |
+| `authoredAngle` | `float` | Angle already present in the authored deployed mesh, in degrees. | `28` |
+| `dampingTorque` | `float` | Strength of the torque opposing the leg's suspension rotation. Increase to settle the gear faster after a load change; reduce to allow more oscillation. | `3500`; Minimum: 0 |
+| `gearPart` | `LandingGearPart` ([fields](Exterior.md#landinggearpart)) | Deployable gear part whose pose receives the suspension compression offset. Assign the leg rather than a fixed chassis object. | `None / unassigned` |
+| `localAxis` | `Vector3` | Local axis around which this gear part rotates under suspension load. Match it to the leg's compression hinge direction. | `Vector3.forward` |
+| `maximumAngle` | `float` | Maximum additional suspension rotation in degrees for this gear leg. Increase for more visible compression travel under load. | `28`; Range: -80 to 80 |
+| `showGizmos` | `bool` | Show this component's scene guides and editing handles. Does not change gameplay or physics. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
+| `springTorque` | `float` | Strength of the rotational spring returning the loaded gear leg toward its uncompressed pose. Increase for a firmer leg; Damping Torque controls how much it oscillates. | `18000`; Minimum: 1 |
+| `wheel` | `WheelCollider` | Wheel collider providing ground contact and load information for this leg. The additional suspension response follows this wheel's state. | `None / unassigned` |
+
+
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `reverse` | `bool` | Mirror motion around the neutral pose without changing input or travel limits. | `false` |
+| `anchor` | `Transform` | Optional independent suspension spring hinge and local axis frame. Empty uses Gear Part > Anchor. Drives visible motion, wheel mount and spring-load torque. | `None / unassigned` |
+
+## LightChannel
+
+One lamp/emission output channel, including lit output state and its output notification.
+
+**Source:** `Runtime/Exterior/Lights/LightChannel.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `color` | `Color` | Colour assigned to this channel's Unity lights and lens-emission tint. It changes both the cast light and the visible illuminated lamp colour. | `Color.white` |
+| `emission` | `float` | Emission multiplier applied to the channel lens materials when active. | `2`; Minimum: 0 |
+| `enabled` | `bool` | Allows this lamp group to light when requested. Turn off to make the group unavailable without clearing its Light and lens assignments. | `true` |
+| `intensity` | `float` | Light intensity applied to the channel light sources when active. | `4`; Minimum: 0 |
+| `lenses` | `Renderer[]` | Renderers whose emission is changed to show illuminated lamp glass. This makes the lamp look lit even when it uses no Unity Light. | `Empty list` |
+| `glows` | `VehicleLampGlow[]` | Saved lens halos. Create and connect them through **Lights > component menu > Add lamp glows**. Halo brightness is independent of **Intensity**. | Empty |
+| `lights` | `Light[]` | Unity Light components switched together by this channel. Use these for the light cast onto the world; lens glow is configured separately. | `Empty list` |
+
+## Lights
+
+Owns beam/indicator requests, automatic outputs and timing.
+
+**Source:** `Runtime/Exterior/Lights/Lights.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `automaticBrakeLights` | `bool` | Derives brake-light activation from the vehicle brake request unless overridden through the light API. | `true` |
+| `automaticReverseLights` | `bool` | Derives reverse-light activation from the vehicle drivetrain direction unless overridden through the light API. | `true` |
+| `blinkInterval` | `float` | Seconds between the lit and unlit phases of an indicator. A full on/off cycle takes twice this time; increase for slower blinking. | `.45`; Minimum: .05f |
+| `brakeLights` | `LightChannel` ([fields](Exterior.md#lightchannel)) | Optional Light sources and emissive renderers for the service brake. | `new LightChannel{color = Color.red, intensity = .12}` |
+| `brakeLightThreshold` | `float` | Minimum applied service brake that turns on stop lamps. Includes progressive and analog braking. | `.01`; Range: 0 to 1 |
+| `customLights` | `List<CustomLightGroup>` ([fields](Exterior.md#customlightgroup)) | Optional custom light groups. Each group has the same Light sources, emissive lenses, color, intensity, emission and availability controls as a built-in channel. | `Empty list` |
+| `engine` | `Engine` ([fields](Engine.md#engine)) | Engine used to determine reverse gear for reverse lamps. Setup finds the vehicle's Engine when empty; movement/drive demand provides a fallback when no gearbox is active. | `None / unassigned` |
+| `handbrakeActivatesBrakeLights` | `bool` | Includes an applied handbrake in the automatic brake-light request. | `false` |
+| `headlights` | `LightChannel` ([fields](Exterior.md#lightchannel)) | Low-beam lamp group: its Unity lights, glowing lens renderers and emission settings. Updated by the headlight request. | `new LightChannel()` |
+| `headlightsOn` | `bool` | Initial/requested low-beam headlight state. | `false` |
+| `highBeams` | `LightChannel` ([fields](Exterior.md#lightchannel)) | High-beam lamp group, configured separately from the normal headlights. Assign only the lights/lenses that should respond to the high-beam request. | `new LightChannel()` |
+| `highBeamsOn` | `bool` | Initial/requested high-beam state. | `false` |
+| `indicators` | `IndicatorState` | Starts with indicators off, blinking on the left, blinking on the right, or blinking on both sides as hazards. Control commands can change this state during play. Options: `Off`, `Left`, `Right`, `Hazard`. | `Off` |
+| `leftIndicators` | `LightChannel` ([fields](Exterior.md#lightchannel)) | Lamps and lens renderers blinking for a left turn or hazards. The blink interval is shared with the right side. | `new LightChannel{color = new Color(1, .4, 0), intensity = .1}` |
+| `reverseLights` | `LightChannel` ([fields](Exterior.md#lightchannel)) | Optional Light sources and emissive renderers for selected reverse gear / direct reverse drive. | `new LightChannel{intensity = .25}` |
+| `rightIndicators` | `LightChannel` ([fields](Exterior.md#lightchannel)) | Lamps and lens renderers blinking for a right turn or hazards. Keep the left lamps in Left Indicators so single-side requests work correctly. | `new LightChannel{color = new Color(1, .4, 0), intensity = .1}` |
+| `tailLights` | `LightChannel` ([fields](Exterior.md#lightchannel)) | Rear position-lamp channel following headlights unless overridden. | `new LightChannel{color = Color.red, intensity = .04}` |
+
+## MovingPart
+
+Owns rotation/translation requests, constraints and scheduled motion.
+
+**Source:** `Runtime/Exterior/Parts/MovingPart.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `anchor` | `Transform` | Optional independent hinge and local axis frame. Rotation uses its pivot and axes; Part-space translation uses its axes while preserving the neutral mesh pose. | `None / unassigned` |
+| `angleLimits` | `Vector2` | Minimum and maximum rotation in degrees relative to the captured neutral pose. Used when Limit Rotation is on and to map normalized position commands to angles. | `new Vector2(-45, 45)` |
+| `decreasingMotionCurve` | `AnimationCurve` | Normalized elapsed time to travel progress toward a lower angle/position. Independent of the increasing curve. Speed sets average travel speed; target changes restart from the current pose. | `AnimationCurve.Linear(0, 0, 1, 1)` |
+| `increasingIsOpening` | `bool` | Increasing angle/position plays Opening Clips when enabled; disable to reverse the sound directions. | `true` |
+| `increasingMotionCurve` | `AnimationCurve` | Normalized elapsed time to travel progress toward a higher angle/position. Linear preserves constant speed; flatten near the end to slow down. Applies to fixed targets, not rate input or aiming. | `AnimationCurve.Linear(0, 0, 1, 1)` |
+| `limitRotation` | `bool` | Restricts rotation to Angle Limits. Turn off for continuous rotation, such as a turret that can turn through a full circle. | `true` |
+| `localAxis` | `Vector3` | Local rotation axis for rotational movement, or base travel direction for translation. Use a nonzero vector aligned with the model's intended hinge/slide direction. | `Vector3.up` |
+| `localForward` | `Vector3` | Direction treated as the part's forward/aiming direction when calculating a target angle. Change it for a mesh whose visible forward direction is not local Z. | `Vector3.forward` |
+| `motion` | `MovingPartMotion` | Rotation turns around Local Axis; Translation slides along the chosen translation frame. Selecting the mode changes whether Angle Limits or Translation Limits define the travel. Options: `Rotation`, `Translation`. | `Rotation` |
+| `motionEnabled` | `bool` | Allows rotation and translation commands to move this part. Turn off to freeze the motion without deleting its references or limits. | `true` |
+| `motionEvents` | `PartMotionEvents` | Empty callbacks | Inspector UnityEvent callbacks for the same four operation notifications; also accessible through GetEvent. |
+| `part` | `Transform` | Transform moved by rotation/translation commands. If empty, the component's own transform is used. Assign the moving mesh, keeping any fixed anchor outside its hierarchy. | `None / unassigned` |
+| `speed` | `float` | Angular rate in degrees per second for input/aiming, or average travel speed for a fixed target shaped by the direction curve. | `35`; Minimum: 0 |
+| `translationAnchor` | `Transform` | Optional direction override in Anchor translation space. Empty uses Anchor; invalid references fall back to the neutral part frame. | `None / unassigned` |
+| `translationDirectionAngles` | `Vector3` | Additional Euler rotation of the travel axis in the selected coordinate space, in degrees. | `Zero-initialized Vector3` |
+| `translationLimits` | `Vector2` | Translation travel in metres, measured from the authored neutral pose. | `new Vector2(0, .35)` |
+| `translationSpace` | `MovingPartSpace` | Frame used for translation: Part follows the part's neutral axes, Parent follows its parent, World uses world axes, and Anchor uses the assigned fixed reference. Choose the frame in which the slide should remain aligned. Options: `Part`, `Parent`, `World`, `Anchor`. | `Part` |
+| `translationSpeed` | `float` | Translation rate in metres per second for input, or average travel speed for a fixed target shaped by the direction curve. | `.2`; Minimum: 0 |
+
+
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `reverse` | `bool` | Mirror motion around the neutral pose without changing input or travel limits. | `false` |
+
+## PartMotionAudio
+
+**Source:** `Runtime/Exterior/Parts/PartMotionAudio.cs`. PartMotionAudio nested configuration. See [motion events and audio](../MovingParts.md#motion-events-and-four-audio-cues).
+
+Expand Audio Settings for shared playback and source configuration.
+
+| Field | Type | Behavior |
+| --- | --- | --- |
+| `closingClips` | `AudioClip[]` | Random clips for ClosingStarted. Empty lists remain silent and create no sources. |
+| `closingCompleted` | `AudioSettingsOverride` | Optional independent audio settings for closing arrival; enable Override Settings to use them. |
+| `closingCompletedClips` | `AudioClip[]` | Random clips for actual closing arrival; separate from the closing request/start cue. |
+| `closingStarted` | `AudioSettingsOverride` | Optional independent audio settings for closing start; enable Override Settings to use them. |
+| `openingClips` | `AudioClip[]` | Random clips for OpeningStarted. Null entries are skipped. |
+| `openingCompleted` | `AudioSettingsOverride` | Optional independent audio settings for opening arrival; enable Override Settings to use them. |
+| `openingCompletedClips` | `AudioClip[]` | Random clips for actual opening arrival; separate from the opening request/start cue. |
+| `openingStarted` | `AudioSettingsOverride` | Optional independent audio settings for opening start; enable Override Settings to use them. |
+
+
+### Audio Settings groups
+
+| Field | Type | Behavior |
+| --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
+
+## PartMotionEvents
+
+**Source:** `Runtime/Exterior/Parts/PartMotionEvents.cs`. PartMotionEvents nested configuration. See [motion events and audio](../MovingParts.md#motion-events-and-four-audio-cues).
+
+| Field | Type | Behavior |
+| --- | --- | --- |
+| `closingCompleted` | Optional independent audio settings for closing arrival; enable Override Settings to use them. |
+| `closingStarted` | Optional independent audio settings for closing start; enable Override Settings to use them. |
+| `openingCompleted` | Optional independent audio settings for opening arrival; enable Override Settings to use them. |
+| `openingStarted` | Optional independent audio settings for opening start; enable Override Settings to use them. |
+
+## PedalDrive
+
+**Source:** `Runtime/Exterior/Bicycle/PedalDrive.cs`. Vehicle component.
+
+Inherited settings are documented with `ExteriorModule`, `IVehicleResetHandler`.
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `rider` | `BalanceRider` | Rider whose occupied seat and riding blend enable pedalling. | `Unassigned` |
+| `crank` | `Transform` | Crank pivot; its local axis follows the wheel axle. | `Unassigned` |
+| `leftPedal` | `Transform` | Independent pedal pivot counter-rotated to keep the left foot platform level. | `Unassigned` |
+| `rightPedal` | `Transform` | Independent pedal pivot counter-rotated to keep the right foot platform level. | `Unassigned` |
+| `localAxis` | `Vector3` | Crank rotation axis in the pivot's initial local frame. | `Vector3.right` |
+| `driveRatio` | `float` | Driven-wheel revolutions per crank revolution. | `2.8f` |
+| `minimumCadence` | `float` | Minimum cadence while actively pedalling, in revolutions/minute. | `20` |
+| `maximumCadence` | `float` | Maximum cadence in revolutions/minute. | `110` |
+| `cadenceResponse` | `float` | Cadence acceleration/deceleration in RPM per second. | `180` |
+| `pedalWhileCoasting` | `bool` | Keep rotating while coasting forward. Otherwise requires forward throttle. | `false` |
+
+## Propulsion
+
+Animates propellers and rotors for aircraft, boats and submarines.
+
+**Source:** `Runtime/Exterior/Aircraft/Propulsion.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `engine` | `Engine` ([fields](Engine.md#engine)) | Engine supplying running state and, when selected, RPM for visible propeller/rotor rotation. The component finds the vehicle's Engine during setup when empty. | `None / unassigned` |
+| `propellers` | `Propeller[]` ([fields](Exterior.md#propulsionpropeller)) | Independently rotating propellers or rotors. Each entry chooses its mesh, rotation axis and whether spin follows engine RPM or control demand. | `Empty list` |
+| `spinDownSeconds` | `float` | Seconds for spool or a smoothed shaft demand to fall toward zero. Longer values let the propeller coast visibly after power is removed. | `2.4`; Minimum: .01f |
+| `spinUpSeconds` | `float` | Seconds for engine spool or a smoothed shaft demand to rise toward full speed. Longer values make the rotor take longer to get going after startup or increased demand. | `1.8`; Minimum: .01f |
+
+## Propulsion.Propeller
+
+Configuration/implementation type for propeller within flight and landing gear.
+
+**Source:** `Runtime/Exterior/Aircraft/Propulsion.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `degreesPerSecond` | `float` | Visible propeller/rotor spin speed at full requested output, in degrees per second. | `900` |
+| `instantThrustResponse` | `bool` | Bypass smoothing of control-driven shaft demand to match immediate thrust forces. Engine-only rotation keeps its engine spool. | `false` |
+| `localAxis` | `Vector3` | Axis in the propeller mesh's local coordinates around which it spins. Set it along the shaft, with the mesh pivot at the rotation centre. | `Vector3.up` |
+| `maneuverSpeed` | `float` | Shaft speed at full steering, lift or pitch demand; throttle can request a higher speed. | `.5`; Range: 0 to 1 |
+| `onlyInWater` | `bool` | Require an enabled water provider/fallback and at least partial hull immersion. A dry hull stops shaft rotation. | `false` |
+| `onlyWithThrust` | `bool` | Scale rotation by throttle and enabled maneuver demands. No demand stops the shaft. Works with fixed speed or engine RPM. | `false` |
+| `reverseWithThrust` | `bool` | Reverse rotation for negative throttle. Independent of Only With Thrust and Use Engine Rpm. | `false` |
+| `rpmRatio` | `float` | Rotor RPM / engine RPM. Negative values reverse rotation. | `1` |
+| `spinWithLift` | `bool` | Include vertical Lift demand in shaft rotation. | `false` |
+| `spinWithPitch` | `bool` | Include Pitch demand in shaft rotation. | `false` |
+| `spinWithSteering` | `bool` | Include combined Steering/Yaw demand, including turning at rest. Forward/reverse throttle determines shaft direction. | `false` |
+| `transform` | `Transform` | Mesh rotated for this propeller or rotor. Assign a transform whose pivot is at the shaft centre so it spins in place. | `None / unassigned` |
+| `physicsRotation` | `bool` | Advance collidable blades on the physics clock. | Off |
+| `useEngineRpm` | `bool` | Derive rotor speed from engine RPM instead of fixed degrees per second. | `false` |
+
+
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `reverse` | `bool` | Reverse the visible shaft rotation. | `false` |
+| `anchor` | `Transform` | Optional independent shaft pivot and local axis frame outside the rotating mesh. Empty keeps mesh-local rotation. | `None / unassigned` |
+
+## SteeringPart
+
+Rotates a rudder, outboard motor or another steering pivot from a scalar source.
+
+**Source:** `Runtime/Exterior/Parts/SteeringPart.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule).
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `inputSource` | `MonoBehaviour` | Optional Steering Source or another IInteriorValueSource. Empty uses the vehicle steering command; disabled or invalid sources produce zero. | `None / unassigned` |
+| `localAxis` | `Vector3` | Rotation axis in the part neutral local frame. | `Vector3.up` |
+| `multiplier` | `float` | Scales steering travel; zero stops rotation. | `1` |
+| `part` | `Transform` | Rudder, outboard motor or other steering pivot. Initial local rotation is neutral. | `None / unassigned` |
+| `response` | `float` | Steering response per second; zero follows the source immediately. | `8`; Minimum: 0 |
+| `reverse` | `bool` | Reverses visible steering rotation. | `false` |
+| `steeringAngle` | `float` | Angle in degrees at full steering before Multiplier and Reverse. | `30`; Minimum: 0 |
+| `vehicle` | `VehicleController` | Optional fallback vehicle; finds the parent vehicle when empty. | `None / unassigned` |
+| `anchor` | `Transform` | Optional independent steering pivot and local axis frame. Empty retains the original rest-local mesh rotation. | `None / unassigned` |
+
+## TrackPathBuilder
+
+Prepares reusable closed paths during authoring.
+
+**Source:** `Runtime/Exterior/TrackPathBuilder.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `explicitLinks` | `Transform[]` | Additional links, or the complete list when Links Parent is empty. Duplicates are removed. | `Empty list` |
+| `leftBelt` | `bool` | Marks this path as the left track belt; unchecked configures the right belt. | `true` |
+| `linksParent` | `Transform` | Collect mesh objects recursively from this parent. Leave empty to use only Explicit Links. | `None / unassigned` |
+| `order` | `LinkOrder` | AroundBelt sorts the selected track links around the belt; InputOrder keeps the supplied order. Use InputOrder when the model already has a correctly sequenced chain. Options: `AroundBelt`, `InputOrder`. | `LinkOrder.AroundBelt` |
+| `pathParent` | `Transform` | Optional destination. If empty, a dedicated Path object is created beside this builder. | `None / unassigned` |
+| `position` | `LinkPosition` | Chooses whether generated path points use each link's mesh-bounds centre or transform pivot. Use mesh centres when imported pivots are displaced from the visible links. Options: `MeshBoundsCenter`, `TransformPivot`. | `LinkPosition.MeshBoundsCenter` |
+| `reverseOrder` | `bool` | Reverse the node order and matching links together. | `false` |
+| `showGizmos` | `bool` | Show this component's scene guides and editing handles. Does not change gameplay or physics. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
+| `travelDirection` | `float` | Direction relative to positive wheel rim speed; default matches clockwise ordering in vehicle Y/Z. | `-1` |
+| `visuals` | `TrackVisuals` ([fields](Exterior.md#trackvisuals)) | Assign the vehicle's TrackVisuals. Automatically found in parents when available. | `None / unassigned` |
+
+## TrackVisuals
+
+Moves visible links and rollers from wheel motion.
+
+**Source:** `Runtime/Exterior/TrackVisuals.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `leftBelt` | `Belt` ([fields](Exterior.md#trackvisualsbelt)) | Path and moving link meshes for the left track. Its links advance at the measured left-side track speed. | `new Belt()` |
+| `rightBelt` | `Belt` ([fields](Exterior.md#trackvisualsbelt)) | Path and moving link meshes for the right track. Keeping it separate lets opposite track speeds show turning on the spot. | `new Belt()` |
+| `rollers` | `Roller[]` ([fields](Exterior.md#trackvisualsroller)) | Road wheels, return rollers or sprockets to spin with a track. Each entry chooses a side, mesh axis and radius used to convert belt speed to rotation. | `Empty list` |
+
+## TrackVisuals.Belt
+
+Configuration/implementation type for belt within tracked movement.
+
+**Source:** `Runtime/Exterior/TrackVisuals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `links` | `Transform[]` | Visible track links, one per path point in matching order. Their initial offsets/orientations are retained while they move around the captured loop. | `Empty list` |
+| `path` | `Transform[]` | Ordered points forming the closed belt loop, with at least three entries. Their initial positions are captured as the fixed path the links travel along. | `Empty list` |
+| `travelDirection` | `float` | Path travel direction relative to positive wheel rim speed. | `-1` |
+
+
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `reverse` | `bool` | Reverse belt travel along its authored path. | `false` |
+
+## TrackVisuals.Roller
+
+Configuration/implementation type for roller within tracked movement.
+
+**Source:** `Runtime/Exterior/TrackVisuals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `left` | `bool` | Uses the left belt speed rather than the right when rotating this visible roller. | `false` |
+| `localAxis` | `Vector3` | Roller mesh's local axle direction. The mesh rotates around this axis at a speed calculated from belt speed and Radius. | `Vector3.right` |
+| `radius` | `float` | Roller radius in metres used to turn belt speed into angular speed. A smaller roller must spin faster to match the same moving track. | `.5`; Minimum: .01f |
+| `transform` | `Transform` | Roller or sprocket mesh rotated by the selected track's speed. Put its pivot on the axle so the mesh spins without orbiting. | `None / unassigned` |
+
+
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `reverse` | `bool` | Reverse the visible roller spin. | `false` |
+
+## VehicleBodyPart
+
+Defines a named opening/moving body element.
+
+**Source:** `Runtime/Exterior/Parts/VehicleBodyPart.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `closingMotionCurve` | `AnimationCurve` | Normalized elapsed time to closing progress, independently of opening. Speed determines average commanded degrees per second. | `AnimationCurve.Linear(0, 0, 1, 1)` |
+| `completionTolerance` | `float` | 1 degree | Actual hinge angle tolerance in degrees for completion, default 1. Applies to animated and physical VehicleBodyPart. |
+| `damper` | `float` | Physical hinge damping resisting door/panel swing. Increase to reduce bouncing at the requested angle; it does not change the target opening angle. | `50`; Minimum: 0 |
+| `hingeAnchor` | `Vector3` | Hinge position in this transform's local mesh coordinates. Zero uses its origin. | `Zero-initialized Vector3` |
+| `hingeAxis` | `Vector3` | Rotation axis in the part's local coordinates. Place the transform pivot at the hinge; changing this vector changes the direction the door or panel swings. | `Vector3.up` |
+| `mass` | `float` | Mass in kilograms of this physical hinged or released panel. More mass makes it harder for the hinge spring and collisions to accelerate the part. | `15`; Minimum: .01f |
+| `minimumUnlatchForce` | `float` | Minimum average contact force in newtons: collision impulse divided by the fixed timestep. | `4000`; Minimum: 0 |
+| `minimumUnlatchSpeed` | `float` | Minimum impact speed into the contact normal in m/s. Rejects ordinary sliding along a panel. | `1`; Minimum: 0 |
+| `motionEvents` | `PartMotionEvents` | Empty callbacks | Inspector UnityEvent callbacks for the same four operation notifications; also accessible through GetEvent. |
+| `openAngle` | `float` | Signed angle in degrees from closed to fully open. The sign chooses the opening direction; the magnitude sets the swing range and physical hinge limits. | `70`; Range: -170 to 170 |
+| `openingMotionCurve` | `AnimationCurve` | Normalized elapsed time to opening progress. Linear gives constant commanded speed; flatten the end to slow before fully open. Physical hinges follow this spring target under load. | `AnimationCurve.Linear(0, 0, 1, 1)` |
+| `partId` | `string` | Name used by scripts and body/access bindings to find this particular part. Give separate doors distinct IDs when commands must address them individually. | `None / unassigned` |
+| `partType` | `PartType` | Labels this part as a door, hood, trunk, tailgate or other piece. Body commands can use the category to operate matching parts together. Options: `Door`, `Hood`, `Trunk`, `Tailgate`, `Other`. | `Door` |
+| `permanentImpactUnlatch` | `bool` | Keep the damaged latch open until Close/SetOpen(false) is explicitly called. Otherwise it can latch again after returning to its closed pose. | `false` |
+| `releasedCollisionDelay` | `float` | Minimum seconds to ignore former vehicle collisions after release. Overlapping pairs wait until separated. | `.5`; Minimum: 0 |
+| `speed` | `float` | Average commanded angular speed in degrees per second. Opening/closing curves redistribute travel over time. In physical mode this moves the spring target; load, Spring and Damper determine actual movement. | `100`; Minimum: 1 |
+| `spring` | `float` | Physical hinge spring pulling the door/panel toward its requested angle when Use Physics is on. Increase for stronger opening/closing force. | `300`; Minimum: 0 |
+| `temporaryUnlatchDelay` | `float` | Minimum seconds before a temporary released latch may engage again near the closed pose. | `.25`; Minimum: 0 |
+| `unlatchedDamperMultiplier` | `float` | Hinge damping multiplier while collision-unlatched. Lower values allow longer swinging. | `1`; Range: 0 to 1 |
+| `unlatchedSpringMultiplier` | `float` | Closing spring multiplier while collision-unlatched. Zero lets the panel swing freely; one keeps its normal spring. | `1`; Range: 0 to 1 |
+| `unlatchOnImpact` | `bool` | Allow a physical collision or damage impact to release the closed latch. Both impact thresholds must be met. | `true` |
+| `usePhysics` | `bool` | Uses a physical hinge instead of directly animating the part transform. | `false` |
+
+
+
+| Setting | Type | Description | Declared default |
+| --- | --- | --- | --- |
+| `reverse` | `bool` | Mirror motion around the neutral pose without changing input or travel limits. | `false` |
+| `anchor` | `Transform` | Optional independent hinge. Its position replaces Hinge Anchor and its local axes define Hinge Axis for animation and physical joints. | `None / unassigned` |
+
+## VehicleLampGlow
+
+**Source:** `Runtime/Exterior/Lights/VehicleLampGlow.cs`.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `glowRenderer` | `Renderer` | Renderer using the bundled Lamp Glow material; local Z points outward. | None |
+| `radius` | `float` | Halo radius in world metres. | 0.12, range 0.005–0.5 |
+| `brightness` | `float` | Visible lamp brightness, independent of world illumination. | 2, minimum 0 |
+| `directional` | `bool` | Fade when viewed from behind the lens. | true |
+
+## WheelPart
+
+DamagePart subclass for a visual wheel root. Inherits the [DamagePart](Exterior.md#damagepart) fields and uses the same damage registry/material/repair lifecycle. Add through Component or Tools > UltraVehicleSystem > Add Component > Exterior > Parts > Wheel Part.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `colliderSegments` | `int` | `20`, range 8–32 | Tire proxy resolution; radius/width read the wheel geometry. |
+| `debrisMaterial` | `PhysicsMaterial` | Unassigned | Optional detached tire friction/bounce material; otherwise runtime rubber-like material. |
+| `generateRollingCollider` | `bool` | `true` | Convex cylindrical debris tire collider; active only after detachment. |
+| `wheel` | `Wheel` | Unassigned | Adapter on the separate WheelCollider mount; its Visual must belong to this group. |
+
+## Wiper
+
+Configuration/implementation type for wiper within exterior wipers.
+
+**Source:** `Runtime/Exterior/Wipers/Wipers.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `anchor` | `Transform` | Optional reference positioning the fallback blade at Anchor Local Position. Use it when the blade should follow an attachment separate from its own pivot. | `None / unassigned` |
+| `anchorLocalPosition` | `Vector3` | Blade position expressed relative to the optional anchor, in metres. | `Zero-initialized Vector3` |
+| `blade` | `Transform` | Blade transform rotated by the fallback sweep animation when no Helper is assigned. Its resting local rotation is captured before motion starts. | `None / unassigned` |
+| `cyclesPerMinute` | `float` | Complete out-and-back cycles per minute. On an entry, used when independentSettings is enabled; zero pauses motion. | `45`; Minimum: 0 |
+| `helper` | `WiperBlade` ([fields](Exterior.md#wiperblade)) | Optional WiperBlade component owning this blade's anchored motion. When assigned, it receives the sweep value instead of the raw Blade/Anchor fallback. | `None / unassigned` |
+| `id` | `string` | Unique, case-sensitive ID within this Wipers component. | `None / unassigned` |
+| `independentSettings` | `bool` | Use this entry's running state and speed instead of the shared defaults. | `false` |
+| `localAxis` | `Vector3` | Axis in the fallback blade's local frame around which the wipe rotates. Set it along the wiper spindle so the blade sweeps across the glass. | `Vector3.forward` |
+| `parkedAngle` | `float` | Resting blade angle in degrees added to its captured local rotation. Adjust it to place the blade at the bottom of the glass when stopped. | `0` |
+| `reverse` | `bool` | Reverses the authored sweep direction for this wiper. | `false` |
+| `running` | `bool` | Requests this individual wiper to run. | `false` |
+| `sweepAngle` | `float` | Total angular travel in degrees from the parked pose to the far end of a wipe. Increase to cover a larger part of the glass; Reverse flips the sweep direction. | `75` |
+| `type` | `WiperType` | Category used to select this wiper for front, rear or custom commands. It does not change the sweep geometry by itself. Options: `Front`, `Rear`, `Custom`. | `Front` |
+
+## WiperBlade
+
+Maps normalized stroke to authored blade geometry.
+
+**Source:** `Runtime/Exterior/Wipers/WiperBlade.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `maximumAngle` | `float` | Blade rotation in degrees at sweep value one. The difference from Minimum Angle sets the width and direction of the wipe. | `65` |
+| `minimumAngle` | `float` | Blade rotation in degrees at sweep value zero. Usually the parked end of the wipe; use Maximum Angle for the far end. | `0` |
+| `motion` | `AnchoredRotation` ([fields](Interior.md#anchoredrotation)) | Anchored rotation setup for this blade. Put its anchor on the wiper spindle and keep imported mesh alignment on the moving child. | `new AnchoredRotation{localAxis = Vector3.forward}` |
+| `showGizmos` | `bool` | Show this component's scene guides and editing handles. Does not change gameplay or physics. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
+| `type` | `WiperType` | Category identifying the blade as front, rear or custom. Use matching categories when selecting which wipers a command should operate. Options: `Front`, `Rear`, `Custom`. | `Front` |
+
+## Wipers
+
+Owns wiper cycle timing, running state and blade dispatch.
+
+**Source:** `Runtime/Exterior/Wipers/Wipers.cs`. Component / asset.
+
+**Inherited settings:** [ExteriorModule](Exterior.md#exteriormodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `cyclesPerMinute` | `float` | Default complete outward-and-return wiper cycles per minute. | `45`; Minimum: 0 |
+| `running` | `bool` | `false` | Serialized requested running state. Toggle/SetRunning update it; wiper travel and parking follow the configured blade settings. |
+| `wipers` | `List<Wiper>` ([fields](Exterior.md#wiper)) | Individual blades controlled by this module. Each can share the main speed/audio settings or use its own overrides and commands. | `Empty list` |
+
+## WiperSwitchBinding
+
+**Source:** `Runtime/Exterior/Wipers/WiperSwitchBinding.cs`. Component configuration.
+
+**Inherited settings:** `MonoBehaviour`.
+
+| Setting | Type | Meaning |
+| --- | --- | --- |
+| `onMeansRunning` | `bool` | Maps the switch On position to running wipers; unchecked reverses that mapping. Initial value: `true`. |
+| `switchAnimator` | `SwitchAnimator` | Switch animator for this control. |
+| `wipers` | `Wipers` | Assign the wipers Wipers component/asset used by WiperSwitchBinding. |

@@ -1,0 +1,15 @@
+/* Scope wrapping to the event lookup; preserve the other reference tables. */
+#events-reference .wy-table-responsive table {
+    width: 100%;
+}
+
+#events-reference .wy-table-responsive td,
+#events-reference .wy-table-responsive th {
+    white-space: normal;
+}
+
+#events-reference td code,
+#events-reference td .pre {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}

@@ -1,0 +1,8 @@
+# Local documentation environments and generated output
+.venv/
+venv/
+docs/build/
+docs/_build/
+__pycache__/
+*.py[cod]
+.DS_Store
