@@ -4,6 +4,10 @@ Ultra Vehicle System is a modular vehicle package for Unity. It provides ready-t
 
 **Full documentation:** https://uvs.readthedocs.io/
 
+**YouTube:** [Tutorials and videos](https://www.youtube.com/watch?v=vm_SU-W8ODY&list=PLVuGjQDh104Q&index=1)
+
+<img width="1672" height="941" alt="cover" src="https://github.com/user-attachments/assets/414f828b-1caf-4d24-bf4a-8db6a525833b" />
+
 ## Version and compatibility
 
 | Item | Support |
