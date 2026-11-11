@@ -3,23 +3,6 @@
 Use **Damage Feedback** and **Damage Audio** for impact sounds, scraping, breakage, sparks, fragments and landing sounds. Configure **Damage Feedback** alongside the other effects in **Vehicle Controller > Effects**, and **Damage Audio** in **Effects > Audio**. **Damage**, under the physics modules, continues to control damage amounts, deformation and detached parts. Turning presentation off does not change the vehicle's collision physics.
 
 
-## Body sounds for falls and rollovers
-
-In **Damage Feedback > Profile > Audio Responses**, **Fall Landing** is an additional body thud on the first qualifying ground contact after a height fall. **Rollover Impact** supplies subsequent qualifying tilted/spinning ground strikes. Both default to `CrashMedium01` and use the common bank volume/pitch curves. The first height landing takes priority over rollover audio for that same strike.
-
-Configure **Ground Impacts** in the profile's landing-response settings:
-
-| Response | Default minimums |
-| --- | --- |
-| Fall Landing | 0.15 s airborne, 0.5 m descent and 3 m/s normal approach speed. |
-| Rollover Impact | 2.5 m/s normal approach speed, plus at least 35 degrees of tilt or 1.5 rad/s pitch/roll spin. |
-
-Contact speed includes rotational motion at the impact point, so a fast tumble can sound strong even with little forward speed. Full Impact Speed, Full Spin Speed and Spin Influence shape strength; the bank controls gain, pitch and random variation. Upright yaw-only donuts do not qualify as a tumble. Ground Layers, Minimum Ground Normal and Include Dynamic Ground select eligible ground; movable props/ragdolls are excluded by default.
-
-Body colliders, attached panels (including hinged parts) and wheels share one contact history: several contacts from one impact do not multiply these sounds. Immediate rebounds do not replay Fall Landing; Rollover Impact can play once for each new qualifying strike. Replay/settling settings control separation, impact interval and when a fresh independent fall is armed. Detached debris does not count as the vehicle landing. The same recording selected by Body and a dedicated ground bank is not started twice on the same contact.
-
-**Damage Audio > Contact Audio > Fall Landing Sounds / Rollover Impact Sounds** independently disable these layers. `DamageFeedback.FallLanded` / `RolloverImpacted` and Inspector `onFallLanding` / `onRolloverImpact` report the accepted cues, with contact position, intensity, part and fall height. Tire Landing and Suspension remain separate responses.
-
 ## Vehicle setup
 
 1. Add **Damage Feedback** and **Damage Audio** to the vehicle root. Keep its **Audio** core enabled. The demo vehicles already include this setup.
@@ -30,7 +13,7 @@ Body colliders, attached panels (including hinged parts) and wheels share one co
 
 Body strikes on the roof, sides or underside use the impact banks; sustained sliding separately uses Scrape. Wheel strikes use **Tire Impact** and supported touchdowns use **Tire Landing**, with Suspension as a separate spring/compression cue. Disabling the Tire Feedback effect does not disable touchdown sounds supplied by the Suspension module.
 
-Body impacts mix **Body Thud** underneath the Light, Medium or Heavy material bank. The body transient has priority over crunch and lamp breakage in a busy voice pool. Bank pitch provides random variation; **Impact Pitch By Strength**, **Impact Pitch By Glancing** and **Glancing Impact Gain** adjust the response to impact strength and incidence angle. Disable Body Thud to use the material sounds alone. **Minimum Gain** in each contact sound bank controls how much quieter weak accepted impacts can be; full intensity still uses the bank volume. The Tire Impact and Humanoid defaults retain a stronger minimum so they remain audible among engine sounds. Landing and suspension use their separate response curves. Body impacts use the Body response, with either a shared clip list or Light/Medium/Heavy groups. Metal impacts may add a crunch layer. Wheel strikes use **Tire Impact** and touchdowns use **Tire Landing**, while touchdown and loaded suspension movement use Suspension. Glass and plastic breakage follow the part's material. Scraping depends on sliding speed and contact load, and fades when contact ends. Quiet support contacts are ignored.
+Body impacts mix **Body Thud** with the material's Light/Medium/Heavy bank; disable it for material sounds alone. Strength, glancing-angle and bank curves control gain, pitch and variation. **Tire Impact**, **Tire Landing** and Suspension have separate responses; breakage follows the part material, while scraping follows sliding speed and load. See the [Damage Audio settings](InspectorReference/Effects.md#damageaudio) for the full controls.
 
 The contact thresholds use normal approach speed in metres per second, so a glancing hit need not sound like a head-on crash at the same road speed. Audio variations avoid immediately repeating the same clip where alternatives exist. Sound and particle pools are prepared during configuration; accepted contacts do not create new emitters or effect objects.
 
@@ -68,6 +51,23 @@ audio.PlayResponse(response, contact);
 `strength` is normalized from 0 to 1. This method uses the same clip layout, no-repeat selection, cooldowns, voice pool, positioning and Played notifications as automatic contacts. `DamageAudioResponseEvaluator.Evaluate` is also available for code that needs the bank's volume and pitch multipliers without playing audio. Keep the bank instance for reuse rather than constructing settings for each collision.
 
 The same bank editor is used by **Damage Impact Profile > Sound** for scripted DamageHit responses and by **Damage Audio > Detachment Cues > Response**. Scripted profiles normalize their chosen metric between Minimum Impact and Maximum Impact before selecting a group. An explicit part-detachment cue uses full strength. Sound cooldown lives in the bank; the Impact Profile cooldown controls its custom visual effect.
+
+## Body sounds for falls and rollovers
+
+In **Damage Feedback > Profile > Audio Responses**, **Fall Landing** is an additional body thud on the first qualifying ground contact after a height fall. **Rollover Impact** supplies subsequent qualifying tilted/spinning ground strikes. Both default to `CrashMedium01` and use the common bank volume/pitch curves. The first height landing takes priority over rollover audio for that same strike.
+
+Configure **Ground Impacts** in the profile's landing-response settings:
+
+| Response | Default minimums |
+| --- | --- |
+| Fall Landing | 0.15 s airborne, 0.5 m descent and 3 m/s normal approach speed. |
+| Rollover Impact | 2.5 m/s normal approach speed, plus at least 35 degrees of tilt or 1.5 rad/s pitch/roll spin. |
+
+Contact speed includes rotational motion at the impact point, so a fast tumble can sound strong even with little forward speed. Full Impact Speed, Full Spin Speed and Spin Influence shape strength; the bank controls gain, pitch and random variation. Upright yaw-only donuts do not qualify as a tumble. Ground Layers, Minimum Ground Normal and Include Dynamic Ground select eligible ground; movable props/ragdolls are excluded by default.
+
+Body colliders, attached panels (including hinged parts) and wheels share one contact history: several contacts from one impact do not multiply these sounds. Immediate rebounds do not replay Fall Landing; Rollover Impact can play once for each new qualifying strike. Replay/settling settings control separation, impact interval and when a fresh independent fall is armed. Detached debris does not count as the vehicle landing. The same recording selected by Body and a dedicated ground bank is not started twice on the same contact.
+
+**Damage Audio > Contact Audio > Fall Landing Sounds / Rollover Impact Sounds** independently disable these layers. `DamageFeedback.FallLanded` / `RolloverImpacted` and Inspector `onFallLanding` / `onRolloverImpact` report the accepted cues, with contact position, intensity, part and fall height. Tire Landing and Suspension remain separate responses.
 
 ## Set the target surface
 

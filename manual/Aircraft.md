@@ -11,8 +11,11 @@ The package includes built-in controls and physics for multiple types of flying 
 | Jet | Fighter jets and other fast fixed-wing aircraft | Aerodynamic drag/lift, body-rate controls and G-limited response. |
 | Helicopter | Helicopters and rotorcraft controlled by tilting the body | Rotor-powered lift, pitch/roll movement, yaw and optional altitude hold. |
 | Hover | Drones, hovering platforms, flying cars and UFO-style vehicles | Direct forward/reverse movement, sideways thrust, vertical lift and assisted leveling. |
+| Spaceship | Gravity-free spacecraft | Local-axis thrust and rotation, with optional flight-path alignment and bank drift. |
 
 A drone is a vehicle configuration rather than a separate profile. Use **Hover** for direct movement and strafing, or **Helicopter** when horizontal movement should come from body tilt. The number and placement of visible rotors are configured separately from the movement profile.
+
+**Spaceship** can hover without thrust. **Align Flight Path** redirects travel toward the nose, **Rotation Release Duration** smooths spin braking after release, and optional **Bank Drift** offsets the path with bank; downward drift is disabled by default. See the [profile settings](InspectorReference/Drive.md#spaceshipprofile) for adjustment and [Input](Input.md#keyboard-bindings) for thrust and braking controls.
 
 ## One configurable fixed-wing model
 

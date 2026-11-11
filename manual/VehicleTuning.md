@@ -30,6 +30,8 @@ Set the road-wheel steering limit for the geometry. Configure visible steering-w
 
 Set base grip and [ground Surface multipliers](Surfaces.md). Add traction/stability assistance after native contact behavior is acceptable. If DrivingAssists is installed, edit its shared settings there.
 
+For motorcycles, bicycles and scooters, tune wheel support and steering before adding **Motorcycle Balance**. Its lean, response and recovery settings control chassis assistance; rider pose belongs to [Seats](Seats.md#motorcycle-rider-support). **Disable Balance On Driver Eject** lets an ejected rider’s vehicle tumble without balance assistance; see the [Motorcycle Balance settings](InspectorReference/Drive.md#motorcyclebalance).
+
 ## 5. Validate before adding effects
 
 Check start/stop, reverse, a tight turn, a fast turn, a slope and a landing. Verify passenger load and a reset/re-enable cycle. Save persistent changes outside Play Mode and repeat with a fresh instance.

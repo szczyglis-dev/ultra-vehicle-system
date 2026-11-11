@@ -45,6 +45,8 @@ Set the road-wheel steering limit for the geometry. Configure visible steering-w
 
 Set base grip and :doc:`ground Surface multipliers </Surfaces>`. Add traction/stability assistance after native contact behavior is acceptable. If DrivingAssists is installed, edit its shared settings there.
 
+For motorcycles, bicycles and scooters, tune wheel support and steering before adding **Motorcycle Balance**. Its lean, response and recovery settings control chassis assistance; rider pose belongs to :ref:`Seats <uvs-seats--motorcycle-rider-support>`. **Disable Balance On Driver Eject** lets an ejected rider’s vehicle tumble without balance assistance; see the :ref:`Motorcycle Balance settings <uvs-inspectorreference-drive--motorcyclebalance>`.
+
 .. _uvs-vehicletuning--5-validate-before-adding-effects:
 
 5. Validate before adding effects

@@ -6,17 +6,6 @@ Ultra Vehicle System is a modular vehicle package for Unity. It provides ready-t
 
 **Youtube tutorials:** [Click here](https://www.youtube.com/watch?v=vm_SU-W8ODY)
 
-## Passenger and cockpit walkthroughs
-
-- [Passengers](Passengers.md#access-the-passenger-system-from-a-vehicle): `vehicle.passengers`, controller choice and immediate occupancy.
-- [Boarding step by step](PassengerAccess.md#tutorial-built-in-humanoid-boarding): built-in characters, profiles, doors, markers and lifecycle callbacks.
-- [Your own boarding motion](Scripting/PassengerAccess.md#tutorial-custom-motion-with-the-built-in-coordinator): custom adapters and complete application-owned alternatives.
-- [Seat Inspector and collision setup](Seats.md#find-a-setting-in-the-seat-inspector): full setting paths, per-limb damage/release colliders, auto-eject and Undo.
-- [Handle setup](Handles.md#tutorial-steering-wheel-with-independent-hand-ownership): steering, switches, pedals, Actions, contact and smooth returns.
-- [Your own contact](Scripting/Handles.md#tutorial-implement-your-own-contact) and [control animator](Scripting/Interior.md#tutorial-author-your-own-model-motion): extension steps and compilable examples.
-
-Paths use **Component > Header or foldout > Option**. Expand arrow groups; headings without arrows are visual separators. A placeholder such as **[limb]** means the selected Left Hand, Right Hand, Left Foot or Right Foot. API field names remain unchanged when the Inspector uses a shorter label.
-
 ## Version and compatibility
 
 | Item | Support |
@@ -40,14 +29,6 @@ Vehicle mechanics are independent of the render pipeline. The supplied demo uses
 - **Interactive interiors, body systems and aircraft equipment.** Add instrument readouts, HUDs, mirrors, lights, doors, moving body parts, windows, wipers, levers and pedals. Configure aircraft control surfaces, visible propellers/rotors, retractable landing gear and hinged gear suspension; connect trailers with towing and brake support.
 - **Damage, weapons and audiovisual effects.** Configure impacts, deformation of supported readable meshes, detachable parts and repair actions. Add aiming, projectiles, recoil, rockets and payload release, then combine engine and mechanical audio, tire smoke, skid marks, water effects and propulsion particles.
 - **Public APIs, events and ready-made examples.** Drive systems from your own scripts, read telemetry and react to typed events. Integrate custom input, components, characters and water providers using the API reference and complete C# examples. The Demo sample includes a selectable vehicle fleet and examples of the package's main systems.
-
-## Collision presentation
-
-[Crash, contact and landing effects](DamageFeedback.md): impact strength, metallic scraping, wheel and suspension sounds, detached parts, sparks and configurable sound banks.
-
-## Local documentation formats
-
-Use **Markdown** for the source guides, **RTF** for formatted documents in Word or LibreOffice, or open **UltraVehicleSystem.pdf** for the complete manual with a clickable table of contents and bookmarks. The RTF folder contains standard `.rtf` files with headings, tables, lists and code examples. All formats are generated from the same Markdown source.
 
 ## Start building
 

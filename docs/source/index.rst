@@ -9,20 +9,6 @@ Ultra Vehicle System is a modular vehicle package for Unity. It provides ready-t
 
 **Youtube tutorials:** `Click here <https://www.youtube.com/watch?v=vm_SU-W8ODY>`__
 
-.. _uvs-index--passenger-and-cockpit-walkthroughs:
-
-Passenger and cockpit walkthroughs
-----------------------------------
-
--  :ref:`Passengers <uvs-passengers--access-the-passenger-system-from-a-vehicle>`: ``vehicle.passengers``, controller choice and immediate occupancy.
--  :ref:`Boarding step by step <uvs-passengeraccess--tutorial-built-in-humanoid-boarding>`: built-in characters, profiles, doors, markers and lifecycle callbacks.
--  :ref:`Your own boarding motion <uvs-scripting-passengeraccess--tutorial-custom-motion-with-the-built-in-coordinator>`: custom adapters and complete application-owned alternatives.
--  :ref:`Seat Inspector and collision setup <uvs-seats--find-a-setting-in-the-seat-inspector>`: full setting paths, per-limb damage/release colliders, auto-eject and Undo.
--  :ref:`Handle setup <uvs-handles--tutorial-steering-wheel-with-independent-hand-ownership>`: steering, switches, pedals, Actions, contact and smooth returns.
--  :ref:`Your own contact <uvs-scripting-handles--tutorial-implement-your-own-contact>` and :ref:`control animator <uvs-scripting-interior--tutorial-author-your-own-model-motion>`: extension steps and compilable examples.
-
-Paths use **Component > Header or foldout > Option**. Expand arrow groups; headings without arrows are visual separators. A placeholder such as **[limb]** means the selected Left Hand, Right Hand, Left Foot or Right Foot. API field names remain unchanged when the Inspector uses a shorter label.
-
 .. _uvs-index--version-and-compatibility:
 
 Version and compatibility
@@ -61,20 +47,6 @@ Key features
 -  **Interactive interiors, body systems and aircraft equipment.** Add instrument readouts, HUDs, mirrors, lights, doors, moving body parts, windows, wipers, levers and pedals. Configure aircraft control surfaces, visible propellers/rotors, retractable landing gear and hinged gear suspension; connect trailers with towing and brake support.
 -  **Damage, weapons and audiovisual effects.** Configure impacts, deformation of supported readable meshes, detachable parts and repair actions. Add aiming, projectiles, recoil, rockets and payload release, then combine engine and mechanical audio, tire smoke, skid marks, water effects and propulsion particles.
 -  **Public APIs, events and ready-made examples.** Drive systems from your own scripts, read telemetry and react to typed events. Integrate custom input, components, characters and water providers using the API reference and complete C# examples. The Demo sample includes a selectable vehicle fleet and examples of the package's main systems.
-
-.. _uvs-index--collision-presentation:
-
-Collision presentation
-----------------------
-
-:doc:`Crash, contact and landing effects </DamageFeedback>`: impact strength, metallic scraping, wheel and suspension sounds, detached parts, sparks and configurable sound banks.
-
-.. _uvs-index--local-documentation-formats:
-
-Local documentation formats
----------------------------
-
-Use **Markdown** for the source guides, **RTF** for formatted documents in Word or LibreOffice, or open **UltraVehicleSystem.pdf** for the complete manual with a clickable table of contents and bookmarks. The RTF folder contains standard ``.rtf`` files with headings, tables, lists and code examples. All formats are generated from the same Markdown source.
 
 .. _uvs-index--start-building:
 

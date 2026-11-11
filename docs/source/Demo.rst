@@ -192,15 +192,6 @@ Car and CarAnimator have left/right access profiles in ``Demo/Resources/UVSAcces
 
 The closed-door clips issue **AccessOpenDoor**, **AccessWaitForOpenDoor** and **AccessCloseDoor** Animation Events. Playback waits before passage until the actual door is ready; blocked doors cancel after SeatAccess's Door Timeout. To customize stride, foot contacts or marker timing, follow :doc:`Animated access </PassengerAccess>`. Root motion and Foot IK can be configured independently in the profile.
 
-.. _uvs-demo--rotor-contacts-and-jet-blast:
-
-Rotor contacts and jet blast
-----------------------------
-
-The helicopter main rotor has three solid blade colliders and a metal body part that cannot detach through collision damage. Ground strikes use normal collision and damage contact sounds.
-
-The demo Jet includes **Jet Blast** at its exhaust. Engine throttle and spool control its strength; bodies behind the nozzle are pushed with less force as distance increases. Newly created jets do not receive this optional component automatically. See :ref:`Jet Blast <uvs-particles--jet-blast>`.
-
 .. _uvs-demo--motorcycle-riders:
 
 Motorcycle riders
@@ -208,4 +199,4 @@ Motorcycle riders
 
 The rider examples use the normal Inspector settings. Driver seats use **Affect Vehicle Physics** off: the vehicle moves the physical rider without the rider supports pushing the chassis. Enable it on Passenger Seat when two-way physical coupling is wanted. Quad's visible handlebar range is configured independently of road-wheel lock in **Steering Wheel Animator**. Foot reverse speed is configured on **Balance Rider**.
 
-Select **Motorcycle**, **Quad (F10)**, **Scooter (F12)** or **Bicycle (Home)** to open the rider panel below the vehicle list. Quad uses a **Wheeled** profile with **Balance Rider**; Scooter uses a **Motorcycle** profile and a standing driver. Both new examples reverse in neutral using foot propulsion: alternating feet on Quad, left foot on Scooter. The panel also lets you choose both, left or right foot. Prefabs are **Demo/Prefabs/UVS Quad.prefab** and **Demo/Prefabs/UVS Scooter.prefab**. Switch gear/foot reversing, choose the driver's controller mode, and add/remove the optional rear passenger. Animator mode requires a suitable assigned controller; Animator + IK and Ragdoll Physics can follow the authored foot targets. The demo's Rider Animator rules provide parameter/condition examples for your own clips. See :ref:`motorcycle rider setup <uvs-seats--motorcycle-foot-reversing-and-rider-animations>`.
+Select **Motorcycle**, **Quad (F10)**, **Scooter (F12)** or **Bicycle (Home)** for the rider panel. It switches controller mode, gear/foot reversing, pushing feet and the optional rear passenger. Quad uses Wheeled with Balance Rider; Scooter uses Motorcycle with a standing rider. Animator requires your controller; Animator + IK and Ragdoll Physics can follow the authored foot targets. See :ref:`rider setup <uvs-seats--motorcycle-foot-reversing-and-rider-animations>`.

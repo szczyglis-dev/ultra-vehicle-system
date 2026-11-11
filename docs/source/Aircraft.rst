@@ -23,8 +23,12 @@ Choose a flight profile
 +--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
 | Hover              | Drones, hovering platforms, flying cars and UFO-style vehicles | Direct forward/reverse movement, sideways thrust, vertical lift and assisted leveling. |
 +--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
+| Spaceship          | Gravity-free spacecraft                                        | Local-axis thrust and rotation, with optional flight-path alignment and bank drift.    |
++--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
 
 A drone is a vehicle configuration rather than a separate profile. Use **Hover** for direct movement and strafing, or **Helicopter** when horizontal movement should come from body tilt. The number and placement of visible rotors are configured separately from the movement profile.
+
+**Spaceship** can hover without thrust. **Align Flight Path** redirects travel toward the nose, **Rotation Release Duration** smooths spin braking after release, and optional **Bank Drift** offsets the path with bank; downward drift is disabled by default. See the :ref:`profile settings <uvs-inspectorreference-drive--spaceshipprofile>` for adjustment and :ref:`Input <uvs-input--keyboard-bindings>` for thrust and braking controls.
 
 .. _uvs-aircraft--one-configurable-fixed-wing-model:
 
