@@ -18,7 +18,7 @@ Add the chosen module through **Modules > Add module...**, expand its settings a
 - `BoatProfile`: stronger native hull thrust; Burnout also adds `boatBowLiftDegrees` through the existing powered-pitch spring. Water presence, propulsion/pitch switches, maneuver-angle and hull-tilt limits still apply. A dry hull cannot activate boost.
 - `SubmarineProfile`: stronger forward and manually requested vertical propulsion while immersed; depth hold, drag and buoyancy keep their own behavior.
 - `HoverProfile` and `HelicopterProfile`: greater requested thrust/collective authority. Neutral gravity compensation is not multiplied, rotor spool and configured support caps remain active.
-- `AirplaneProfile` and its Jet/Aerobatic presets: Nitro directly increases thrust, native power capacity, forward speed envelope and engine RPM; no additional component is required. Burnout also increases native thrust.
+- `AirplaneProfile`, including light-plane and Jet configurations: Nitro directly increases thrust, native power capacity, forward speed envelope and engine RPM; no additional component is required. Burnout also increases native thrust.
 
 On non-wheel profiles, Burnout provides a held propulsion boost rather than a timed wheelspin cycle. It supplies throttle and stops on release or braking. **Force Forward Direction** selects forward propulsion without changing existing momentum; disable it to retain the selected drive direction. Simultaneous Nitro and Burnout use the stronger non-wheel multiplier rather than multiplying both.
 
@@ -59,9 +59,11 @@ See the exact [Burnout API](API/DriveDynamics.md#burnout), [clutch](Clutch.md) a
 
 ## Nitro boost
 
+Demo Nitro components disable **Consumes Nitro** for unlimited testing. Newly added components retain finite supply by default.
+
 `Nitro` supplies temporary charge-controlled boost while its input is held. Holding Nitro supplies full throttle automatically; `forceForwardDirection` defaults to true and immediately requests forward torque even while reversing, without waiting for standstill. Disable it to boost in the selected drive direction; no separate accelerator input is required. Releasing Nitro, braking or losing boost eligibility removes the automatic pedal. Wheel vehicles receive drivetrain output and optional grounded acceleration; boats, submarines, hovercraft and helicopters boost their native propulsion. Fixed-wing aircraft boost their native thrust directly through Nitro. Nitro remains optional and is not installed by Full setup.
 
-For non-wheel profiles, Nitro boosts native propulsion; aircraft also use **Additional Power** and **Top Speed Multiplier**. Wheel-only acceleration and gearbox settings do not apply. Simultaneous Nitro and Burnout use the stronger non-wheel multiplier. A running engine, active Drive module and compatible profile are required.
+For non-wheel profiles, Nitro boosts native propulsion; aircraft also use **Additional Power** and **Top Speed Multiplier**. Spaceship scales thrust through **Torque Multiplier** and extends its propulsion speed envelope through **Top Speed Multiplier**. Wheel-only acceleration and gearbox settings do not apply. Simultaneous Nitro and Burnout use the stronger non-wheel multiplier. A running engine, active Drive module and compatible profile are required.
 
 ### Add and configure
 
@@ -186,4 +188,4 @@ All public tuning fields can also be changed at runtime. `Command.WheelLift` and
 
 Telemetry: `Requested` (API request), `IsActive`, `IsLanding`, `Strength` (shaped assistance during lifting, full pitch authority while lowering), `CurrentAngle` (degrees), `AppliedForce` (newtons).
 
-Events, declared at the top of the class: `WheelLiftStarted`, `WheelLiftStopped`, `StateChanged(bool)`. Start/stop describe assistance, so normal release stops after controlled lowering; disabling/reset ends it immediately. Repeated held requests do not repeat the start event.
+Events: `WheelLiftStarted`, `WheelLiftStopped`, `StateChanged(bool)`. Start/stop describe assistance, so normal release stops after controlled lowering; disabling/reset ends it immediately. Repeated held requests do not repeat the start event.

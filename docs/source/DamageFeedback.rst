@@ -12,8 +12,8 @@ Vehicle setup
 
 1. Add **Damage Feedback** and **Damage Audio** to the vehicle root. Keep its **Audio** core enabled. The demo vehicles already include this setup.
 2. Assign **Default Damage Feedback**, or create your own asset with **Assets > Create > UltraVehicleSystem > Damage > Feedback Profile**. The same profile supplies contact sound banks, thresholds and the default particle appearance.
-3. In **Damage Feedback**, the profile and contact-source controls appear directly at the top. Expand **Particles** immediately below them to independently enable sparks, debris and glass. Particle and custom-effect capacities are limited by the Inspector settings.
-4. In **Damage Audio**, the always-visible **Contact Audio** controls let you enable impact, scrape, suspension and breakage sounds independently and set voice capacity. **Mute Body Part On Detach** follows these controls; **Audio Settings** below it controls playback and routing for the shared pool. The Audio core supplies master volume, mixer routing and interior/underwater context.
+3. In **Damage Feedback**, assign the profile and contact sources. Expand **Particles** to independently enable sparks, debris and glass. Particle and custom-effect capacities are limited by the Inspector settings.
+4. In **Damage Audio**, the always-visible **Contact Audio** controls let you enable impact, scrape, suspension and breakage sounds independently and set voice capacity. **Mute Body Part On Detach** controls detached-part muting; **Audio Settings** controls playback and routing for the shared pool. The Audio core supplies master volume, mixer routing and interior/underwater context.
 5. **Mute body part on detach** is enabled by default. Once a part detaches, already accepted one-shots finish naturally, while later impacts or scraping are silent. An active scrape finishes its current clip iteration without looping again. The sound of detachment itself may still play. Disable this option to hear detached debris.
 
 Body strikes on the roof, sides or underside use the impact banks; sustained sliding separately uses Scrape. Wheel strikes use **Tire Impact** and supported touchdowns use **Tire Landing**, with Suspension as a separate spring/compression cue. Disabling the Tire Feedback effect does not disable touchdown sounds supplied by the Suspension module.
@@ -48,16 +48,33 @@ Body uses the three strength groups by default. Other bundled responses retain t
 Play the same response from code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. raw:: html
+
+   <!-- example: DocumentationDamageFeedback1Example.cs -->
+
 .. code-block:: csharp
 
-   DamageAudio audio = vehicle.GetComponent<DamageAudio>();
-   DamageSoundBank response = audio.feedback.profile.plastic;
-   var contact = new DamageContact(
-       DamageCue.Body, hitPoint, hitNormal, Vector3.zero,
-       impactSpeed, contactForce, vehicle.Body.mass,
-       PartMaterial.Plastic, vehicle.transform, strength,
-       surfaceType: DamageSurfaceType.Plastic);
-   audio.PlayResponse(response, contact);
+   using UnityEngine;
+   using UltraVehicleSystem;
+
+   public sealed class DocumentationDamageFeedback1Example : MonoBehaviour
+   {
+       public VehicleController vehicle;
+
+       public void PlayImpact(Vector3 hitPoint, Vector3 hitNormal, float impactSpeed, float contactForce, float strength)
+       {
+           if (!vehicle || !vehicle.Body) return;
+           DamageAudio audio = vehicle.GetComponent<DamageAudio>();
+           if (!audio || !audio.feedback || audio.feedback.profile == null) return;
+           DamageSoundBank response = audio.feedback.profile.plastic;
+           var contact = new DamageContact(
+               DamageCue.Body, hitPoint, hitNormal, Vector3.zero,
+               impactSpeed, contactForce, vehicle.Body.mass,
+               PartMaterial.Plastic, vehicle.transform, strength,
+               surfaceType: DamageSurfaceType.Plastic);
+           audio.PlayResponse(response, contact);
+       }
+   }
 
 ``strength`` is normalized from 0 to 1. This method uses the same clip layout, no-repeat selection, cooldowns, voice pool, positioning and Played notifications as automatic contacts. ``DamageAudioResponseEvaluator.Evaluate`` is also available for code that needs the bank's volume and pitch multipliers without playing audio. Keep the bank instance for reuse rather than constructing settings for each collision.
 
@@ -101,6 +118,8 @@ Set the target surface
 -  **Allow Sparks** and **Scrape Gain** refine a Hard surface's response.
 -  **Response Profile** optionally replaces its audio banks and custom impact effect. Leave it empty to use the vehicle's profile. Contact admission thresholds remain on the vehicle's profile.
 
+**Damage Surface > Impact Audio** optionally plays the routed first sound once, then a **Follow Up** bank after **Follow Up Delay**. Configure separate minimum speeds; all colliders and vehicles share the target's audio state. Demo mannequins use a 2 m/s first-sound threshold and two dull body thuds after 0.35 seconds. Ragdoll Collision Helper requests this shared secondary state after knockdown and rearms it after recovery. Other controllers can call ``surface.impactAudio.SetSecondary(true)`` (or pass ``immediate: true`` for an already-changed target), and ``ResetState()`` to rearm. See :ref:`the API reference <uvs-api-damagefeedback--damageimpactaudiosequence>`.
+
 For a new target material, create a Feedback Profile, choose its recordings and assign it to the target's Damage Surface. You do not need to modify package code. Shared recordings are in ``Resources/Audio/Damage``; their credits and licenses are in ``Resources/Audio/Credits.md``.
 
 For a vehicle part, enable **Damage Surface > Separate Detached Surface** and choose **Attached Surface** and **Detached Surface** independently. The nearest parent Damage Part supplies its state automatically. Detachment switches the surface immediately; repair returns to the attached surface. Other objects keep their single Surface Type unless this option is enabled. Audio, particles and surface response selection use the current type; damage and deformation material settings are unchanged. **Response Profile**, **Allow Sparks** and **Scrape Gain** are shared between the two states. To use different banks/effects, map each type in the vehicle Feedback Profile and leave the object's Response Profile empty. If code reparents the marker to another part, call ``RefreshPart()`` once afterward.
@@ -126,6 +145,10 @@ Damage Feedback accepts general external rules through ``IDamageContactFilter``.
 
 To define your own rule, attach an implementation to the target collider or an ancestor:
 
+.. raw:: html
+
+   <!-- example: MyContactRule.cs -->
+
 .. code-block:: csharp
 
    using UltraVehicleSystem;
@@ -149,6 +172,8 @@ Shared events and API
 
 The **Signals and callbacks** foldouts also let you connect Inspector callbacks for contacts, impacts, scrapes, custom effects, clearing and selected audio clips. These mirror the C# events described below.
 
+C# events and matching ``on...`` Inspector callbacks serve different integrations: subscribe in code, or assign persistent scene callbacks in the Inspector. They describe the same accepted cue; connect a given reaction through one route to avoid running it twice. ``Contacted`` additionally includes scrapes, whereas ``Impacted`` excludes them.
+
 Subscribe to ``DamageFeedback.Contacted`` for every accepted presentation contact, or use ``Impacted`` and ``Scraped`` separately. Each receives a copied ``DamageContact`` describing position, normal, speed, intensity, part, surface type and optional surface response. ``DamageAudio.Played`` supplies that contact and the actual selected clip. ``DamageFeedback.EffectPlayed`` reports a pooled custom effect.
 
 Use ``TireImpacted``, ``TireLanded``, ``SuspensionMoved`` and ``PartBroken`` when you only need one cue category; matching Inspector callbacks are ``onTireImpact``, ``onTireLanding``, ``onSuspension`` and ``onBreakage``. They run only after the contact passes filters. These are presentation notifications: ``PartBroken`` is not a replacement for the physical ``DamagePart.Detached`` event.
@@ -157,28 +182,41 @@ Use ``TireImpacted``, ``TireLanded``, ``SuspensionMoved`` and ``PartBroken`` whe
 
 Use ``SetContactsEnabled(false)`` to stop native observation and clear its history; explicit ``SubmitContact`` requests remain available. ``SetParticlesEnabled(false)`` also removes built-in particles already in flight. ``SetContactAudioEnabled(false)`` stops damage voices and scrape loops immediately, without changing the physical damage module. ``ResolveContactResponse(contact)`` resolves the explicit response, surface mapping and default profile for copied contact data. ``ClearEffects()`` clears custom visual leases and raises ``EffectsCleared`` / ``onEffectsCleared``; ``ClearState()`` additionally resets contact history and raises ``Cleared`` / ``onCleared``.
 
+.. raw:: html
+
+   <!-- example: DocumentationDamageFeedback3Example.cs -->
+
 .. code-block:: csharp
 
-   void OnEnable()
-   {
-       feedback.TireLanded += OnTireLanding;
-       audio.ScrapeStarted += OnScrapeStarted;
-   }
+   using UnityEngine;
+   using UltraVehicleSystem;
 
-   void OnDisable()
+   public sealed class DocumentationDamageFeedback3Example : MonoBehaviour
    {
-       feedback.TireLanded -= OnTireLanding;
-       audio.ScrapeStarted -= OnScrapeStarted;
-   }
+       public DamageFeedback feedback;
+       public DamageAudio damageAudio;
 
-   void OnTireLanding(DamageContact contact)
-   {
-       // Drive your own landing response from contact.Intensity and contact.FallHeight.
-   }
+       void OnEnable()
+       {
+           if (feedback) feedback.TireLanded += OnTireLanding;
+           if (damageAudio) damageAudio.ScrapeStarted += OnScrapeStarted;
+       }
 
-   void OnScrapeStarted(DamageContact contact, AudioClip clip)
-   {
-       // Start your own surface-dependent feedback once this scrape becomes audible.
+       void OnDisable()
+       {
+           if (feedback) feedback.TireLanded -= OnTireLanding;
+           if (damageAudio) damageAudio.ScrapeStarted -= OnScrapeStarted;
+       }
+
+       void OnTireLanding(DamageContact contact)
+       {
+           // Drive your own landing response from contact.Intensity and contact.FallHeight.
+       }
+
+       void OnScrapeStarted(DamageContact contact, AudioClip clip)
+       {
+           // Start your own surface-dependent feedback once this scrape becomes audible.
+       }
    }
 
 Use ``Damage.Hit`` for gameplay damage and health logic. A physical collision can damage multiple parts; it does not need to play the same vehicle sound once for every damage notification. Scripted ``Damage.ApplyImpact`` calls also reach Feedback and Audio through the common response path.
@@ -262,4 +300,4 @@ The shared damage particle materials have Built-in, URP and HDRP shader variants
 
 See the :doc:`Damage feedback API </API/DamageFeedback>` and :doc:`physics damage guide </Damage>`.
 
-Material impact profiles and their fallback are configured in **Scripted material responses** at the bottom of Damage Feedback. Use ``DamageFeedback.impactProfiles``, ``DamageFeedback.fallbackImpactProfile`` and ``DamageFeedback.ResolveImpactProfile(...)`` from code.
+Material impact profiles and their fallback are configured in **Damage Feedback > Scripted material responses**. Use ``DamageFeedback.impactProfiles``, ``DamageFeedback.fallbackImpactProfile`` and ``DamageFeedback.ResolveImpactProfile(...)`` from code.

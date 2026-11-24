@@ -202,191 +202,11 @@ Stopping completes that blade's current cycle. Zero speed pauses its phase, so a
 
 `WiperStrokeStarted`, `WiperRunningChanged`, `WiperSpeedChanged` and `WiperParked` identify individual entries. Aggregate `StrokeStarted` coalesces equal directions within one Tick; aggregate `RunningChanged` reports changes to the any-running state. Direct field edits do not publish API running/speed notifications. `Tick` advances once per rendered frame and rejects disabled modules and non-finite elapsed times.
 
-## Complete public method and event index
-
-The lists below cover public methods and events for this topic and their package base contracts. Signatures include overloads. See [the detailed general moving parts API](../API/MovingParts.md) for arguments, return semantics, state and configuration. An override replaces the matching inherited implementation; it is not an additional call to make.
-
-### IPartMotionSource
-
-[IPartMotionSource](../API/MovingParts.md#ipartmotionsource) gives the full declared contract.
-
-- `event Action MotionAudioStopped` — Requests stopping movement audio after interruption or disable.
-- `event Action<PartMotionEvent> MotionOccurred` — Reports an admitted movement phase to optional presentation receivers.
-
-### IVehicleModule
-
-[IVehicleModule](../API/Modules.md#ivehiclemodule) gives the full declared contract.
-
-| Method | Role |
-| --- | --- |
-| `void Configure(VehicleController vehicle)` | Repeatable setup contract supplied with the owning `VehicleController`. |
-| `void Step(VehicleController vehicle, Command command, float deltaTime)` | Contract for one owner-supplied fixed tick; implement only the module responsibility and use the supplied Command/timestep. |
-
-### MovingPart
-
-[MovingPart](../API/MovingParts.md#movingpart) gives the full declared contract.
-
-- `public event System.Action ClosingCompleted` — Current closing completed.
-- `public event System.Action ClosingStarted` — Current closing started.
-- `public event System.Action MotionAudioStopped` — Requests stopping movement audio after interruption or disable.
-- `public event System.Action<bool> MotionEnabledChanged` — // Reports a changed movement request after pending motion is stopped when disabling.
-- `public event System.Action<PartMotionEvent> MotionOccurred` — Reports an admitted movement phase to optional presentation receivers.
-- `public event System.Action<MovingPart> Moved` — // Reports this moving part after its actual pose changes.
-- `public event System.Action OpeningCompleted` — Current opening completed.
-- `public event System.Action OpeningStarted` — Current opening started.
-- `public virtual void AimAt(Transform target)` — Current aim at.
-- `public virtual void AimAt(Vector3 worldPoint)` — Current aim at.
-- `public virtual void CaptureNeutralPose()` — // Explicit rebasing for runtime authoring; repeated Configure never captures an animated pose.
-- `public virtual float ClampAngle(float angle)` — // Clamps to sorted travel limits when enabled; unrestricted parts retain unwrapped rotation.
-- `public virtual float ClampPosition(float value)` — Current clamp position.
-- `public override void Configure(VehicleController vehicle)` — Binds the component to its configured owner and selected source.
-- `public virtual void GetRotationFrame(out Vector3 worldPivot, out Quaternion worldNeutralRotation)` — // Read the neutral rotation frame without capturing/rebasing or moving the part.
-- `public virtual void GetTranslationFrame(out Vector3 origin, out Vector3 direction)` — // Shared by simulation and gizmos. Direction is unit length so all limits remain in metres.
-- `public virtual void ReturnToNeutral()` — Current return to neutral.
-- `public virtual void SetAngle(float angle)` — Current set angle.
-- `public virtual void SetInput(float input)` — Current set input.
-- `public virtual void SetMotionEnabled(bool value)` — Current set motion enabled.
-- `public virtual void SetNormalizedPosition(float value)` — Current set normalized position.
-- `public virtual void SetPosition(float value)` — Current set position.
-- `public virtual void SetTargetAngle(float angle, bool shortestPath = true)` — Current set target angle.
-- `public virtual void SetTargetPosition(float value)` — Current set target position.
-- `public override void Step(VehicleController vehicle, Command command, float deltaTime)` — Current step.
-- `public virtual void StartMotion(float normalizedTarget)` — Requests normalized travel in the selected mode.
-- `public virtual void ReportProgress(float normalizedValue)` — Reports externally produced progress for Animation/Custom integrations.
-- `public virtual void CompleteCustomMotion()` — Marks the active Custom operation successful; stopping/cancelling is not success.
-- `public virtual void Cancel()` — Cancels the pending operation and clears retained demands.
-- `public virtual void Stop()` — // Stops the current operation and clears the transient command that would otherwise continue it.
-- `public virtual void Tick(float deltaTime)` — Current tick.
-
-### PartMotionAudio
-
-[PartMotionAudio](../API/MovingParts.md#partmotionaudio) gives the full declared contract.
-
-| Member | Meaning |
-| --- | --- |
-| `public AudioClip[] GetClips(PartMotionEvent motionEvent)` | Returns the selected cue’s clip array by reference. Invalid event values throw ArgumentOutOfRangeException. |
-| `public void SetClips(PartMotionEvent motionEvent, params AudioClip[] clips)` | Replaces the selected clip array; null becomes an empty array. Invalid event values throw ArgumentOutOfRangeException. |
-
-
-| Audio member | Behavior |
-| --- | --- |
-| `public VehicleAudioSettings GetSettings(PartMotionEvent motionEvent)` | Returns the selected cue override when Override Settings is enabled, otherwise returns the shared audioSettings instance. Invalid enum values throw ArgumentOutOfRangeException. |
-
-### PartMotionEvents
-
-[PartMotionEvents](../API/MovingParts.md#partmotionevents) gives the full declared contract.
-
-| Member | Meaning |
-| --- | --- |
-| `public UnityEvent openingStarted` | Inspector callback for opening Started. On PartMotionAudio this is the optional settings override for that cue. |
-| `public UnityEvent openingCompleted` | Inspector callback for opening Completed. On PartMotionAudio this is the optional settings override for that cue. |
-| `public UnityEvent closingStarted` | Inspector callback for closing Started. On PartMotionAudio this is the optional settings override for that cue. |
-| `public UnityEvent closingCompleted` | Inspector callback for closing Completed. On PartMotionAudio this is the optional settings override for that cue. |
-| `public UnityEvent GetEvent(PartMotionEvent motionEvent)` | Returns the selected Inspector UnityEvent for subscribing with AddListener/RemoveListener. Invalid event values throw ArgumentOutOfRangeException. |
-
-### SteeringPart
-
-[SteeringPart](../API/MovingParts.md#steeringpart) gives the full declared contract.
-
-#### Methods
-
-| Signature | Role and behavior | Arguments and result |
-| --- | --- | --- |
-| `public override void Configure(VehicleController owner)` | Resolves the fallback vehicle when none is assigned. | `owner` — Owning vehicle. |
-
-### VehicleModule
-
-[VehicleModule](../API/Modules.md#vehiclemodule) gives the full declared contract.
-
-| Method | Role |
-| --- | --- |
-| `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
-| `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
-| `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
-
-| Event / callback | Role |
-| --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
-| `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
-| `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
-
-### WiperBlade
-
-[WiperBlade](../API/Wipers.md#wiperblade) gives the full declared contract.
-
-#### Methods
-
-| Signature | Role and behavior | Arguments and result |
-| --- | --- | --- |
-| `public virtual void CaptureRestPose()` | Captures the currently authored rest pose for this geometry mapper or blade. | — |
-| `public virtual void ParkImmediate()` | Places the blade at its parked pose without waiting for a wiper cycle. | — |
-| `public virtual void SetValue(float value)` | Applies normalized blade stroke using the captured spindle/rest geometry; it does not run a wiper clock. | — |
-
-### Wipers
-
-[Wipers](../API/Wipers.md#wipers) gives the full declared contract.
-
-#### Events and Inspector callbacks
-
-| Member | Meaning |
-| --- | --- |
-| `public event Action Parked` | When wipers reach their parked state. No payload. |
-| `public event Action<bool> RunningChanged` | When the wiper running request changes. Payload: bool; a stop can still finish the current cycle. |
-| `public event Action<float> SpeedChanged` | After `SetSpeed` changes requested wiper speed. Payload: configured cycle-speed value; zero pauses motion. |
-| `public event Action<bool> StrokeStarted` | When a wiper stroke starts. Payload: returning bool, `true` for the return stroke and `false` for the outward stroke. |
-| `public event Action<string> WiperParked` | When an entry reaches/is immediately placed at its parked pose; payload is its ID. |
-| `public event Action<string, bool> WiperRunningChanged` | After an API changes an entry's effective running request; payload is its ID and new bool request. |
-| `public event Action<string, float> WiperSpeedChanged` | After an API changes an entry's effective speed; payload is its ID and cycles per minute. |
-| `public event Action<string, bool> WiperStrokeStarted` | Reports entry ID and stroke direction: false for outward, true for return. Entries have independent phase clocks. |
-
-
-#### Methods
-
-| Signature | Role and behavior | Arguments and result |
-| --- | --- | --- |
-| `public virtual void CaptureRestPoses()` | Captures rest poses for the wiper geometry owned by the module. | — |
-| `public override void Configure(VehicleController vehicle)` | Applies current blade pose only during Play Mode so Edit Mode configuration does not recapture an animated neutral pose. | — |
-| `public virtual AudioSource GetAudioSource(string id = null)` | Returns the shared source or the last resolved source for the selected wiper ID without modifying Audio Settings. | — |
-| `public virtual float GetSpeed(string id)` | Reports the identified entry's effective cycles per minute. Returns zero for an unresolved ID. | — |
-| `public virtual Wiper GetWiper(string id)` | Finds a blade entry by exact ID. Returns null for blank, missing or ambiguous duplicate IDs. | — |
-| `public virtual bool IsWiperRunning(string id)` | Reports the identified entry's effective request, including runtime overrides. False for an unresolved ID; a stopped blade can still be finishing its cycle. | — |
-| `public virtual bool Park(string id)` | Stops and immediately parks one entry without completing its cycle; returns false for an unresolved ID. | — |
-| `public virtual void ParkAll()` | Stops every entry and immediately parks all blades and stops their stroke audio. | — |
-| `public virtual bool RegisterWiper(Wiper wiper)` | Adds an entry with a unique, nonblank ID. Returns false for null, duplicate IDs, duplicate entries or reused helper/blade references. | — |
-| `public virtual bool RestoreWiperControl(string id)` | Clears one entry's runtime running/speed overrides, returning it to its current independent authored settings or shared defaults. Returns false for unresolved IDs. | — |
-| `public virtual void SetRunning(bool value)` | Requests the wiper running state; stopping finishes the current cycle before parking. | — |
-| `public virtual bool SetRunning(string id, bool value)` | The bool-only overload sets every entry's request and clears per-entry running overrides. The ID overload changes only that entry and returns false for an unresolved ID. Stopping finishes the current cycle. | — |
-| `public virtual void SetSpeed(float speed)` | Changes wiper cycle speed; zero pauses cycle motion. | — |
-| `public virtual bool SetSpeed(string id, float speed)` | The float-only overload applies the rate to every entry and clears individual speed overrides. The ID overload changes only one rate. Rates are clamped to zero or greater; non-finite values are rejected. ID overload returns false on rejection. | — |
-| `public virtual void Tick(float deltaTime)` | Advances the declaring presentation/state machine by elapsed seconds; avoid a second call when its built-in owner already ticks it. | — |
-| `public virtual void Toggle()` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. | — |
-| `public virtual bool Toggle(string id)` | The no-argument overload stops all entries if any is requested running, otherwise starts all. The ID overload toggles one entry and returns false for an unresolved ID. | — |
-| `public virtual bool UnregisterWiper(string id)` | Immediately parks and removes the identified entry and releases its generated audio source. User-provided audio sources are retained. Returns false for unresolved IDs. | — |
-
-- `public event Action<Wiper, bool, float> StrokeAudioRequested` — Wiper lifecycle and presentation notification.
-
-- `public event Action<Wiper> WiperRemoved` — Wiper lifecycle and presentation notification.
-
-- `public event Action AudioStopped` — Wiper lifecycle and presentation notification.
-
-- `public event Action StrokeBatchStarted` — Wiper lifecycle and presentation notification.
-
-### WiperSwitchBinding
-
-[WiperSwitchBinding](../API/Wipers.md#wiperswitchbinding) gives the full declared contract.
-
-#### Methods
-
-| Signature | Role and behavior | Arguments and result |
-| --- | --- | --- |
-| `public virtual void Synchronize(bool immediate)` | Synchronizes presentation/selector state with its source; gearbox synchronization is not a validated driving shift request. | — |
-| `public virtual void Tick(float deltaTime)` | Advances the declaring presentation/state machine by elapsed seconds; avoid a second call when its built-in owner already ticks it. | — |
-
 ## Custom motion driver
 
 Assign a component like this to **Motion > Custom Driver** (or the root **Custom Driver** on MovingPart/VehicleBodyPart). It uses explicit references, stores its authored endpoints separately, performs all pose writes itself and reports actual progress. The same driver contract is shared by body panels, aircraft parts and control geometry; it receives the requesting playback instance.
 
+<!-- example: LocalSlideDriver.cs -->
 ```csharp
 using UnityEngine;
 using UltraVehicleSystem;
@@ -449,6 +269,7 @@ This tutorial works with both **VehicleBodyPart (Body Part)** and **MovingPart (
 3. Under **Body Part > Motion Events > Opening Started**, add the object with your Animator, select **Animator > SetTrigger(string)** and enter `Open`. Under **Motion Events > Closing Started**, connect the same method with `Close`.
 4. Save the following component as `DoorAnimationEvents.cs`, add it to the **same GameObject as the Animator**, and assign the door component to **Door Animation Events > Body Part**. The door itself may be on another object.
 
+<!-- example: DoorAnimationEvents.cs -->
 ```csharp
 using UltraVehicleSystem;
 using UnityEngine;
@@ -477,3 +298,265 @@ For a Moving Part, replace the field declaration in the relay with `public Movin
 6. Request movement through `bodyPart.Open()` / `bodyPart.Close()` or your usual interaction. On arrival, the relay reports the endpoint and completes the active operation, firing **Motion Events > Opening Completed / Closing Completed** and **Signals and callbacks > On End / On Stop**. Do not use `Stop()` to report success: it interrupts the operation without firing completion.
 
 You can also attach your own public methods to **Signals and callbacks > On Begin** in any motion mode. Its dynamic `float` argument is the requested target (`1` to open, `0` to close). If your external controller supports interruption, connect **Signals and callbacks > On Stop Requested** to its stop method; ensure interrupted clips do not subsequently report completion for a replacement operation.
+
+## Complete public method and event index
+
+The lists below cover public methods and events for this topic and their package base contracts. Signatures include overloads. See [the detailed general moving parts API](../API/MovingParts.md) for arguments, return semantics, state and configuration. An override replaces the matching inherited implementation; it is not an additional call to make.
+
+### ICustomPartMotion
+
+[ICustomPartMotion](../API/MovingParts.md#icustompartmotion) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `void BeginMotion(PartMotionPlayback motion)` | Starts custom movement after a target is accepted. May report progress or complete synchronously. |
+| `void StopMotion(PartMotionPlayback motion, PartMotionStopReason reason)` | Stops external movement with the supplied completion, stop or cancellation reason. |
+| `void TickMotion(PartMotionPlayback motion, float deltaTime)` | Updates the active custom operation using elapsed seconds. |
+
+### IPartMotionSource
+
+[IPartMotionSource](../API/MovingParts.md#ipartmotionsource) gives the full declared contract.
+
+- `event Action MotionAudioStopped` — Requests stopping movement audio after interruption or disable.
+- `event Action<PartMotionEvent> MotionOccurred` — Reports an admitted movement phase to optional presentation receivers.
+
+### IVehicleModule
+
+[IVehicleModule](../API/Modules.md#ivehiclemodule) gives the full declared contract.
+
+| Method | Role |
+| --- | --- |
+| `void Configure(VehicleController vehicle)` | Repeatable setup contract supplied with the owning `VehicleController`. |
+| `void Step(VehicleController vehicle, Command command, float deltaTime)` | Contract for one owner-supplied fixed tick; implement only the module responsibility and use the supplied Command/timestep. |
+
+### MovingPart
+
+[MovingPart](../API/MovingParts.md#movingpart) gives the full declared contract.
+
+- `public event System.Action ClosingCompleted` — Current closing completed.
+- `public event System.Action ClosingStarted` — Current closing started.
+- `public event System.Action MotionAudioStopped` — Requests stopping movement audio after interruption or disable.
+- `public event System.Action<bool> MotionEnabledChanged` — Reports a changed movement request after pending motion is stopped when disabling.
+- `public event System.Action<PartMotionEvent> MotionOccurred` — Reports an admitted movement phase to optional presentation receivers.
+- `public event System.Action<MovingPart> Moved` — Reports this moving part after its actual pose changes.
+- `public event System.Action OpeningCompleted` — Current opening completed.
+- `public event System.Action OpeningStarted` — Current opening started.
+- `public virtual void AimAt(Transform target)` — Current aim at.
+- `public virtual void AimAt(Vector3 worldPoint)` — Current aim at.
+- `public virtual void Cancel()` — Cancels the pending operation and clears retained demands.
+- `public virtual void CaptureNeutralPose()` — Explicit rebasing for runtime authoring; repeated Configure never captures an animated pose.
+- `public virtual float ClampAngle(float angle)` — Clamps to sorted travel limits when enabled; unrestricted parts retain unwrapped rotation.
+- `public virtual float ClampPosition(float value)` — Current clamp position.
+- `public virtual void CompleteCustomMotion()` — Marks the active Custom operation successful; stopping/cancelling is not success.
+- `public override void Configure(VehicleController vehicle)` — Binds the component to its configured owner and selected source.
+- `public virtual void GetRotationFrame(out Vector3 worldPivot, out Quaternion worldNeutralRotation)` — Read the neutral rotation frame without capturing/rebasing or moving the part.
+- `public virtual void GetTranslationFrame(out Vector3 origin, out Vector3 direction)` — Shared by simulation and gizmos. Direction is unit length so all limits remain in metres.
+- `public virtual void ReportProgress(float normalizedValue)` — Reports externally produced progress for Animation/Custom integrations.
+- `public virtual void ReturnToNeutral()` — Current return to neutral.
+- `public virtual void SetAngle(float angle)` — Current set angle.
+- `public virtual void SetInput(float input)` — Current set input.
+- `public virtual void SetMotionEnabled(bool value)` — Current set motion enabled.
+- `public virtual void SetNormalizedPosition(float value)` — Current set normalized position.
+- `public virtual void SetPosition(float value)` — Current set position.
+- `public virtual void SetTargetAngle(float angle, bool shortestPath = true)` — Current set target angle.
+- `public virtual void SetTargetPosition(float value)` — Current set target position.
+- `public virtual void StartMotion(float normalizedTarget)` — Requests normalized travel in the selected mode.
+- `public override void Step(VehicleController vehicle, Command command, float deltaTime)` — Current step.
+- `public virtual void Stop()` — Stops the current operation and clears the transient command that would otherwise continue it.
+- `public virtual void Tick(float deltaTime)` — Current tick.
+
+### PartClipAnimation
+
+[PartClipAnimation](../API/MovingParts.md#partclipanimation) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public bool CanSample(bool opening)` | Validates clip/Animator compatibility before allocating or evaluating playback resources. |
+| `public void Dispose()` | Releases the prepared animation graph. |
+| `public float Duration(bool opening)` | Returns the configured duration or selected opening/closing clip length. |
+| `public bool Sample(float value, bool opening)` | Maps opening/closing progress into the selected clip without changing the serialized clip assignment. |
+| `public void SetClipOverride(AnimationClip value)` | Per-operation clips (for example selected gear poses) never overwrite the serialized shared clip, so runtime reconfiguration and Inspector authoring agree. |
+
+### PartMotionAudio
+
+[PartMotionAudio](../API/MovingParts.md#partmotionaudio) gives the full declared contract.
+
+| Member | Meaning |
+| --- | --- |
+| `public AudioClip[] GetClips(PartMotionEvent motionEvent)` | Returns the selected cue’s clip array by reference. Invalid event values throw ArgumentOutOfRangeException. |
+| `public void SetClips(PartMotionEvent motionEvent, params AudioClip[] clips)` | Replaces the selected clip array; null becomes an empty array. Invalid event values throw ArgumentOutOfRangeException. |
+
+
+| Audio member | Behavior |
+| --- | --- |
+| `public VehicleAudioSettings GetSettings(PartMotionEvent motionEvent)` | Returns the selected cue override when Override Settings is enabled, otherwise returns the shared audioSettings instance. Invalid enum values throw ArgumentOutOfRangeException. |
+
+### PartMotionEvents
+
+[PartMotionEvents](../API/MovingParts.md#partmotionevents) gives the full declared contract.
+
+| Member | Meaning |
+| --- | --- |
+| `public UnityEvent GetEvent(PartMotionEvent motionEvent)` | Returns the selected Inspector UnityEvent for subscribing with AddListener/RemoveListener. Invalid event values throw ArgumentOutOfRangeException. |
+| `public UnityEvent onClosingCompleted` | Inspector callback for closing Completed. |
+| `public UnityEvent onClosingStarted` | Inspector callback for closing Started. |
+| `public UnityEvent onOpeningCompleted` | Inspector callback for opening Completed. |
+| `public UnityEvent onOpeningStarted` | Inspector callback for opening Started. |
+
+### PartMotionPlayback
+
+[PartMotionPlayback](../API/MovingParts.md#partmotionplayback) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public void Cancel()` | Cancels an active operation and notifies its external movement owner. |
+| `public void Complete()` | Ends an active operation successfully. |
+| `public void Configure(UnityEngine.Object owner, int motionMode)` | Assigns the owner and motion mode; a mode change cancels the previous operation and releases its playback resources. |
+| `public void Dispose()` | Cancels active work and releases implementation and clip resources. |
+| `public void Drive(float value)` | Passes a normalized control value to the selected implementation. |
+| `public void Initialize(float value)` | Sets initial progress once; ignores non-finite values and clamps to 0–1. |
+| `public bool PrepareDrive(float value)` | Prepares an operation for a value already interpolated by the owning control. |
+| `public void ReportProgress(float value)` | Clamps and publishes actual progress; Custom mode does not write a pose. |
+| `public bool Request(float target)` | Requests a normalized target; returns whether that operation remains active after callbacks. An already reached endpoint does not restart it. |
+| `public void SetInput(float value)` | Publishes a changed signed rate request, clamped to −1–1. |
+| `public void Stop()` | Stops an active operation without successful completion. |
+| `public void Tick(float deltaTime)` | Publishes the active update and advances the selected implementation; ignores invalid or nonpositive timesteps. |
+
+### PartMotionSignals
+
+[PartMotionSignals](../API/MovingParts.md#partmotionsignals) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public event Action<float> Began` | Accepted normalized operation target; a listener may cancel or replace it. |
+| `public event Action Cancelled` | After an operation is interrupted, replaced or cancelled. |
+| `public event Action Ended` | After successful completion; manual stop and cancellation do not raise it. |
+| `public event Action<float> InputChanged` | Changed signed rate demand, including zero on release. |
+| `public event Action<float> Moved` | Actual normalized progress after a pose update. |
+| `public event Action<float> MoveRequested` | Accepted normalized target request for an external movement owner. |
+| `public event Action Stopped` | After successful completion, manual stop or cancellation. |
+| `public event Action StopRequested` | Explicit stop/cancel request for an external movement owner. |
+| `public event Action<float> TickRequested` | Elapsed seconds during an active motion update. |
+| `public UnityEvent<float> onBegin` | Accepted normalized operation target; a listener may cancel or replace it. |
+| `public UnityEvent onCancel` | After an operation is interrupted, replaced or cancelled. |
+| `public UnityEvent onEnd` | After successful completion; manual stop and cancellation do not raise it. |
+| `public UnityEvent<float> onInputChanged` | Changed signed rate demand, including zero on release. |
+| `public UnityEvent<float> onMove` | Actual normalized progress after a pose update. |
+| `public UnityEvent<float> onMoveRequested` | Accepted normalized target request for an external movement owner. |
+| `public UnityEvent onStop` | After successful completion, manual stop or cancellation. |
+| `public UnityEvent onStopRequested` | Explicit stop/cancel request for an external movement owner. |
+| `public UnityEvent<float> onTick` | Elapsed seconds during an active motion update. |
+
+### PedalDrive
+
+[PedalDrive](../API/MovingParts.md#pedaldrive) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public override void Configure(VehicleController vehicle)` | Caches wheel geometry and authored crank/pedal rest poses. |
+| `public void ResetVehicleState(VehicleResetReason reason)` | Clears cadence and restores the authored crank/pedal pose. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Advances this mechanism through the vehicle physics pipeline. |
+| `public override bool SupportsProfile(DriveProfile profile)` | Supports wheel-based profiles. |
+
+### SteeringPart
+
+[SteeringPart](../API/MovingParts.md#steeringpart) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public virtual void CancelMotion()` | Cancels active movement and releases its operation ownership. |
+| `public virtual void CompleteCustomMotion()` | Completes the current custom movement operation successfully. |
+| `public override void Configure(VehicleController owner)` | Resolves the fallback vehicle when none is assigned. |
+| `public virtual void ReportProgress(float value)` | Reports actual normalized progress from a custom pose owner. |
+| `public virtual void StopMotion()` | Stops the current movement operation without reporting successful completion. |
+
+### VehicleModule
+
+[VehicleModule](../API/Modules.md#vehiclemodule) gives the full declared contract.
+
+| Method | Role |
+| --- | --- |
+| `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
+| `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
+| `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
+
+| Event / callback | Role |
+| --- | --- |
+| `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
+| `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
+
+### WiperBlade
+
+[WiperBlade](../API/Wipers.md#wiperblade) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public virtual void Cancel()` | Cancels active movement and releases its operation ownership. |
+| `public virtual void CaptureRestPose()` | Captures the currently authored rest pose for this geometry mapper or blade. |
+| `public virtual void CompleteCustomMotion()` | Completes the current custom movement operation successfully. |
+| `public virtual void ParkImmediate()` | Places the blade at its parked pose without waiting for a wiper cycle. |
+| `public virtual void ReportProgress(float value)` | Reports actual normalized progress from a custom pose owner. |
+| `public virtual void SetValue(float value)` | Applies normalized blade stroke using the captured spindle/rest geometry; it does not run a wiper clock. |
+| `public virtual void Stop()` | Stops the current movement operation without reporting successful completion. |
+
+### Wipers
+
+[Wipers](../API/Wipers.md#wipers) gives the full declared contract.
+
+#### Events and Inspector callbacks
+
+| Member | Meaning |
+| --- | --- |
+| `public event Action Parked` | When wipers reach their parked state. No payload. |
+| `public event Action<bool> RunningChanged` | When the wiper running request changes. Payload: bool; a stop can still finish the current cycle. |
+| `public event Action<float> SpeedChanged` | After `SetSpeed` changes requested wiper speed. Payload: configured cycle-speed value; zero pauses motion. |
+| `public event Action<bool> StrokeStarted` | When a wiper stroke starts. Payload: returning bool, `true` for the return stroke and `false` for the outward stroke. |
+| `public event Action<string> WiperParked` | When an entry reaches/is immediately placed at its parked pose; payload is its ID. |
+| `public event Action<string, bool> WiperRunningChanged` | After an API changes an entry's effective running request; payload is its ID and new bool request. |
+| `public event Action<string, float> WiperSpeedChanged` | After an API changes an entry's effective speed; payload is its ID and cycles per minute. |
+| `public event Action<string, bool> WiperStrokeStarted` | Reports entry ID and stroke direction: false for outward, true for return. Entries have independent phase clocks. |
+
+
+#### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public virtual void CaptureRestPoses()` | Captures rest poses for the wiper geometry owned by the module. | — |
+| `public override void Configure(VehicleController vehicle)` | Applies current blade pose only during Play Mode so Edit Mode configuration does not recapture an animated neutral pose. | — |
+| `public virtual AudioSource GetAudioSource(string id = null)` | Returns the shared source or the last resolved source for the selected wiper ID without modifying Audio Settings. | — |
+| `public virtual float GetSpeed(string id)` | Reports the identified entry's effective cycles per minute. Returns zero for an unresolved ID. | — |
+| `public virtual Wiper GetWiper(string id)` | Finds a blade entry by exact ID. Returns null for blank, missing or ambiguous duplicate IDs. | — |
+| `public virtual bool IsWiperRunning(string id)` | Reports the identified entry's effective request, including runtime overrides. False for an unresolved ID; a stopped blade can still be finishing its cycle. | — |
+| `public virtual bool Park(string id)` | Stops and immediately parks one entry without completing its cycle; returns false for an unresolved ID. | — |
+| `public virtual void ParkAll()` | Stops every entry and immediately parks all blades and stops their stroke audio. | — |
+| `public virtual bool RegisterWiper(Wiper wiper)` | Adds an entry with a unique, nonblank ID. Returns false for null, duplicate IDs, duplicate entries or reused helper/blade references. | — |
+| `public virtual bool RestoreWiperControl(string id)` | Clears one entry's runtime running/speed overrides, returning it to its current independent authored settings or shared defaults. Returns false for unresolved IDs. | — |
+| `public virtual void SetRunning(bool value)` | Requests the wiper running state; stopping finishes the current cycle before parking. | — |
+| `public virtual bool SetRunning(string id, bool value)` | The bool-only overload sets every entry's request and clears per-entry running overrides. The ID overload changes only that entry and returns false for an unresolved ID. Stopping finishes the current cycle. | — |
+| `public virtual void SetSpeed(float speed)` | Changes wiper cycle speed; zero pauses cycle motion. | — |
+| `public virtual bool SetSpeed(string id, float speed)` | The float-only overload applies the rate to every entry and clears individual speed overrides. The ID overload changes only one rate. Rates are clamped to zero or greater; non-finite values are rejected. ID overload returns false on rejection. | — |
+| `public virtual void Tick(float deltaTime)` | Advances the declaring presentation/state machine by elapsed seconds; avoid a second call when its built-in owner already ticks it. | — |
+| `public virtual void Toggle()` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. | — |
+| `public virtual bool Toggle(string id)` | The no-argument overload stops all entries if any is requested running, otherwise starts all. The ID overload toggles one entry and returns false for an unresolved ID. | — |
+| `public virtual bool UnregisterWiper(string id)` | Immediately parks and removes the identified entry and releases its generated audio source. User-provided audio sources are retained. Returns false for unresolved IDs. | — |
+
+- `public event Action<Wiper, bool, float> StrokeAudioRequested` — Wiper lifecycle and presentation notification.
+
+- `public event Action<Wiper> WiperRemoved` — Wiper lifecycle and presentation notification.
+
+- `public event Action AudioStopped` — Wiper lifecycle and presentation notification.
+
+- `public event Action StrokeBatchStarted` — Wiper lifecycle and presentation notification.
+
+### WiperSwitchBinding
+
+[WiperSwitchBinding](../API/Wipers.md#wiperswitchbinding) gives the full declared contract.
+
+#### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public virtual void Synchronize(bool immediate)` | Synchronizes presentation/selector state with its source; gearbox synchronization is not a validated driving shift request. | — |
+| `public virtual void Tick(float deltaTime)` | Advances the declaring presentation/state machine by elapsed seconds; avoid a second call when its built-in owner already ticks it. | — |

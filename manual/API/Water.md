@@ -9,8 +9,8 @@ Read [the system explanation](../Scripting/Water.md) for composition, setup and 
 - [WaterInteraction](Water.md#waterinteraction)
 - [WaterProvider](Water.md#waterprovider)
 - [WaterSample](Water.md#watersample)
-- [WaterSurfaceProfile](Water.md#watersurfaceprofile)
 - [WaterSurface](Water.md#watersurface)
+- [WaterSurfaceProfile](Water.md#watersurfaceprofile)
 
 ## SubmarineProfile
 
@@ -103,7 +103,7 @@ Connects vehicle water sampling and hull contact state.
 | `public virtual bool IsSubmerged { get; protected set; }` | Current is submerged predicate; read it instead of maintaining a second application flag. |
 | `public override ExecutionPhase Phase { get; }` | Cross-category execution barrier used by the module pipeline. |
 | `public override bool SupportsReleasedForces { get; }` | Keeps passive maintenance/observation active during release; Drive and Engine suppress force output, and TireCollision keeps native solid proxies without supplemental tread forces. |
-| `public bool useProfileFallback` | Allow the Boat profile's flat water when no explicit provider is assigned. |
+| `public bool useProfileFallback` | Allow the configured boat or aircraft flotation profile's flat water when no explicit provider is assigned. |
 | `public bool waterInteractionEnabled` | Master switch for water interaction: buoyancy, water audio and water particles. |
 | `public WaterProvider waterProvider` | Assign the water provider WaterProvider component/asset used by WaterInteraction. |
 
@@ -154,38 +154,6 @@ Value data for water sample; its fields are listed below.
 | --- | --- | --- |
 | `public WaterSample(float height, Vector3 normal, Vector3 velocity)` | Constructs `WaterSample` with the supplied initial state. | `height` — Height, interpreted by this operation in the declared type. `normal` — Contact/surface normal in the declared frame. `velocity` — World velocity in m/s. **Returns:** New instance initialized from the supplied arguments. |
 
-## WaterSurfaceProfile
-
-**Runtime/World/Water/WaterSurfaceProfile.cs**
-
-Configuration/implementation type for water style within water sampling and movement.
-
-**Inherits / implements:** `ScriptableObject`.
-
-### State and configuration
-
-| Member | Meaning |
-| --- | --- |
-| `public Color deepColor` | Color and alpha used to render deep color. Initial value: `new Color(.025f, .15f, .34f, 1)`. |
-| `public float depthAbsorption` | Strength of depth-based water-color absorption. Initial value: `.3f`. |
-| `public Color foamColor` | Color and alpha used to render foam color. Initial value: `new Color(.7f, .88f, .87f, 1)`. |
-| `public float reflectionStrength` | Multiplier for the water material's reflection contribution. Initial value: `.8f`. |
-| `public float rippleScale` | Multiplier/fraction controlling ripple scale. Increasing it increases this contribution relative to the unscaled value. Initial value: `.055f`. |
-| `public float rippleStrength` | Visible small-ripple contribution to the water surface. Initial value: `.13f`. |
-| `public float roughness` | Water-surface roughness used by its material; larger values soften the reflective appearance. Initial value: `.34f`. |
-| `public Color shallowColor` | Color and alpha used to render shallow color. Initial value: `new Color(.065f, .32f, .52f, 1)`. |
-| `public float shorelineFoam` | Amount of depth/shoreline foam produced by the water shader. Initial value: `.55f`. |
-| `public Vector4 waveA` | Direction X/Z, wavelength in metres, amplitude in metres. Shared by CPU sampling and shader. |
-| `public Vector4 waveB` | Second wave: X/Z direction in the first two components, wavelength in metres in Z, and amplitude in metres in W. Initial value: `new Vector4(-.4f, .92f, 11, .045f)`. |
-| `public float waveSpeed` | Multiplier for wave phase speed shared by CPU surface sampling and shader animation. Initial value: `.65f`. |
-
-
-### Methods
-
-| Signature | Role and behavior | Arguments and result |
-| --- | --- | --- |
-| `public virtual WaterSample Sample(Vector3 position, float time, float baseHeight, bool waves)` | Evaluates the configured water-wave style at a world position/time using base height and optional wave participation. | `position` — Requested point or switch detent; see its declared type and owning operation. `time` — Explicit sample time in seconds. `baseHeight` — World water baseline height. `waves` — Whether wave displacement participates in the sample. **Returns:** Returned `WaterSample`; ownership remains as specified by the creating/lookup operation. |
-
 ## WaterSurface
 
 **Runtime/World/Water/WaterSurface.cs**
@@ -220,3 +188,35 @@ Built-in water-surface provider implementation.
 | `public virtual void RenderSurface()` | Updates the built-in water surface's rendered representation. | No arguments; no returned value. |
 | `public override bool TrySample(Vector3 position, out WaterSample sample)` | Queries valid water at a world position; `false` means no sample, not height zero. | `position` — Requested point or switch detent; see its declared type and owning operation. `sample` — Output water sample; read it only when sampling returns `true`. **Returns:** `true` if admitted/applied; inspect the described completion boundary and any out values. |
 | `public virtual bool TrySampleAtTime(Vector3 position, float time, out WaterSample sample)` | Queries the built-in water model at an explicit time for consistent wave evaluation. | `position` — Requested point or switch detent; see its declared type and owning operation. `time` — Explicit sample time in seconds. `sample` — Output water sample; read it only when sampling returns `true`. **Returns:** `true` if admitted/applied; inspect the described completion boundary and any out values. |
+
+## WaterSurfaceProfile
+
+**Runtime/World/Water/WaterSurfaceProfile.cs**
+
+Configuration/implementation type for water style within water sampling and movement.
+
+**Inherits / implements:** `ScriptableObject`.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public Color deepColor` | Color and alpha used to render deep color. Initial value: `new Color(.025f, .15f, .34f, 1)`. |
+| `public float depthAbsorption` | Strength of depth-based water-color absorption. Initial value: `.3f`. |
+| `public Color foamColor` | Color and alpha used to render foam color. Initial value: `new Color(.7f, .88f, .87f, 1)`. |
+| `public float reflectionStrength` | Multiplier for the water material's reflection contribution. Initial value: `.8f`. |
+| `public float rippleScale` | Multiplier/fraction controlling ripple scale. Increasing it increases this contribution relative to the unscaled value. Initial value: `.055f`. |
+| `public float rippleStrength` | Visible small-ripple contribution to the water surface. Initial value: `.13f`. |
+| `public float roughness` | Water-surface roughness used by its material; larger values soften the reflective appearance. Initial value: `.34f`. |
+| `public Color shallowColor` | Color and alpha used to render shallow color. Initial value: `new Color(.065f, .32f, .52f, 1)`. |
+| `public float shorelineFoam` | Amount of depth/shoreline foam produced by the water shader. Initial value: `.55f`. |
+| `public Vector4 waveA` | Direction X/Z, wavelength in metres, amplitude in metres. Shared by CPU sampling and shader. |
+| `public Vector4 waveB` | Second wave: X/Z direction in the first two components, wavelength in metres in Z, and amplitude in metres in W. Initial value: `new Vector4(-.4f, .92f, 11, .045f)`. |
+| `public float waveSpeed` | Multiplier for wave phase speed shared by CPU surface sampling and shader animation. Initial value: `.65f`. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public virtual WaterSample Sample(Vector3 position, float time, float baseHeight, bool waves)` | Evaluates the configured water-wave style at a world position/time using base height and optional wave participation. | `position` — Requested point or switch detent; see its declared type and owning operation. `time` — Explicit sample time in seconds. `baseHeight` — World water baseline height. `waves` — Whether wave displacement participates in the sample. **Returns:** Returned `WaterSample`; ownership remains as specified by the creating/lookup operation. |

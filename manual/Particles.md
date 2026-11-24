@@ -34,7 +34,7 @@ Add/register the intended module and assign references explicitly when a manuall
 ## Tire smoke and loose ground
 
 1. Add `TireFeedback` and `TireSmoke` to the vehicle and assign **TireFeedback**.
-2. Use the supplied Tire Smoke prefab/Smoke and Tire Sand materials or choose your own compatible assets.
+2. Use the supplied Tire Smoke prefab and set Default Material as a fallback. Assign each surface’s Particle Material on its Tire Surface Profile: Smoke for asphalt, Tire Sand for loose sand, or your own compatible material.
 3. For explicit scene systems, fill **Wheel Particles** in configured wheel order. Otherwise allow the module to create outputs from its prefab/default path.
 4. Set **Maximum Rate**, **Minimum Intensity** and **Emission Response**.
 5. Test a supported skid, a rolling pass, wheel lift and a transition between surfaces.
@@ -113,7 +113,7 @@ For allocation, generated-system ownership and update contracts, see [Presentati
 
 ## Jet Blast
 
-**Jet Blast** is an optional physical effect, separate from exhaust particles. Add it to the vehicle root through **Add Component > Ultra Vehicle System > Effects > Jet Blast** or the matching **Tools > Ultra Vehicle System > Add Component** menu, then apply vehicle configuration.
+**Jet Blast** is an optional physical effect, separate from exhaust particles. Add it to the vehicle root through **Add Component > Ultra Vehicle System > Effects > Physics > Jet Blast** or the matching **Tools > Ultra Vehicle System > Add Component** menu, then apply vehicle configuration.
 
 Assign **Outlets** at the exhaust tips with local **+Z pointing out of the engine**. **Maximum Range**, **Start Radius** and **End Radius** define the plume. **Maximum Force** sets newtons per outlet at full power; **Idle Strength** sets the running-idle fraction: the default **0.12** emits 12% of Maximum Force even at zero throttle. Set it to zero to disable idle blast. Both values can be adjusted in the component Inspector. **Force Multiplier** scales both idle and full-power exhaust. Throttle and engine spool scale the force. A stopped engine produces no blast. Heavy bodies accelerate less, and force decreases towards the edge and end of the plume.
 

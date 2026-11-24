@@ -73,7 +73,7 @@ Save as ``OverspeedAlarm.cs``.
            // Separate entry and exit thresholds keep noise around the limit from retriggering events.
            public VehicleController vehicle;
            public float limitKph = 80, hysteresisKph = 5;
-           public UnityEvent entered = new UnityEvent(), exited = new UnityEvent();
+           public UnityEvent onEntered = new UnityEvent(), onExited = new UnityEvent();
            bool alarm;
            void OnEnable() { if (vehicle) vehicle.AfterPhysicsStep += Sample; }
            void OnDisable() { if (vehicle) vehicle.AfterPhysicsStep -= Sample; alarm = false; }
@@ -82,7 +82,7 @@ Save as ``OverspeedAlarm.cs``.
                bool next = alarm ? t.SpeedKph > Mathf.Max(0, limitKph - hysteresisKph) : t.SpeedKph > limitKph;
                if (next == alarm) return;
                alarm = next;
-               if (alarm) entered.Invoke(); else exited.Invoke();
+               if (alarm) onEntered.Invoke(); else onExited.Invoke();
            }
        }
    }
@@ -198,7 +198,7 @@ Save as ``LowRateSpeedDisplay.cs``.
        public sealed class LowRateSpeedDisplay : MonoBehaviour
        {
            public VehicleController vehicle;
-           public UnityEvent<float> valueChanged = new UnityEvent<float>();
+           public UnityEvent<float> onValueChanged = new UnityEvent<float>();
            float remaining, latest;
            void OnEnable() { if (vehicle) vehicle.AfterPhysicsStep += Sample; remaining = 0; }
            void OnDisable() { if (vehicle) vehicle.AfterPhysicsStep -= Sample; }
@@ -208,7 +208,7 @@ Save as ``LowRateSpeedDisplay.cs``.
                remaining -= Time.unscaledDeltaTime;
                if (remaining > 0) return;
                remaining = .2f; // UI cadence is independent of physics cadence.
-               valueChanged.Invoke(latest);
+               onValueChanged.Invoke(latest);
            }
        }
    }
@@ -241,7 +241,7 @@ Save as ``AccelerationRunTimer.cs``.
            public VehicleController vehicle;
            [Min(5)] public float targetKph = 100;
            public float Seconds { get; private set; }
-           public UnityEvent finished = new UnityEvent();
+           public UnityEvent onFinished = new UnityEvent();
            bool armed, started;
            public void Arm()
            {
@@ -265,7 +265,7 @@ Save as ``AccelerationRunTimer.cs``.
                if (!started) { if (t.SpeedKph > 1) started = true; return; }
                Seconds += t.DeltaTime;
                if (t.SpeedKph < Mathf.Max(5, targetKph)) return;
-               armed = false; finished.Invoke();
+               armed = false; onFinished.Invoke();
            }
        }
    }

@@ -89,12 +89,12 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
-| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
-| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 | `public virtual DriveProfile Clone()` | Creates an independent serialized profile-configuration copy; configure it on its destination vehicle before use. |
+| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
+| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
 | `public virtual float ResolveDriveDemand(VehicleController vehicle, Command command)` | Maps the command and strategy state to propulsion demand for surrounding mechanics. |
 | `public virtual float ResolveExternalDriveIntent(VehicleController vehicle)` | Returns signed non-wheel propulsion intent used by shared coasting/contact policy. |
+| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 
 ### IVehicleModule
 
@@ -112,8 +112,8 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public override void Configure(VehicleController vehicle)` | Ensures a Tracks component exists; explicit side membership remains vehicle-owned configuration. |
-| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Resolves engine output and side/pivot demand, then applies bounded tracked propulsion to the configured sides. |
 | `public override float ResolveDriveDemand(VehicleController vehicle, Command command)` | Maps the command and strategy state to propulsion demand for surrounding mechanics. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Resolves engine output and side/pivot demand, then applies bounded tracked propulsion to the configured sides. |
 
 ### Tracks
 
@@ -122,9 +122,9 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public override void Configure(VehicleController vehicle)` | Clears retained pivot state/blend before tracked movement resumes. |
+| `public virtual int SideOf(WheelCollider wheel)` | Resolves a native wheel's left/right tracked-side membership. |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Applies supported load/grip-limited lateral/pivot stabilization for an active tracked profile. |
 | `public override bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
-| `public virtual int SideOf(WheelCollider wheel)` | Resolves a native wheel's left/right tracked-side membership. |
 
 ### TrackVisuals
 
@@ -132,10 +132,10 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
+| `public virtual void AdvanceVisuals(float deltaTime)` | Advances belt-link and roller presentation from the configured wheel motion. |
 | `public override void Configure(VehicleController owner)` | Caches vehicle/Tracks and prepares left/right belt paths and retained link poses. |
 | `public override bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 | `public virtual bool TryGetPathPoint(Belt belt, int index, out Vector3 position)` | Reads an interpolated point/orientation on a prepared belt path without advancing belt travel. |
-| `public virtual void AdvanceVisuals(float deltaTime)` | Advances belt-link and roller presentation from the configured wheel motion. |
 
 ### VehicleModule
 
@@ -144,12 +144,12 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |

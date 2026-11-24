@@ -4,27 +4,50 @@
 
 | Component or data block | Settings declared here |
 | --- | --- |
-| [Audio](#audio) | 5 |
+| [Audio](#audio) | 3 |
+| [AudioClipReplacement](#audioclipreplacement) | 3 |
+| [AudioContextProfile](#audiocontextprofile) | 19 |
+| [AudioContextSettings](#audiocontextsettings) | 7 |
 | [AudioEvent](#audioevent) | 4 |
 | [AudioModule](#audiomodule) | 0 |
 | [AudioSettingsOverride](#audiosettingsoverride) | 1 |
 | [BoatWaterAudio](#boatwateraudio) | 11 |
 | [BoatWaterParticles](#boatwaterparticles) | 27 |
-| [BrakeAudio](#brakeaudio) | 3 |
+| [BrakeAudio](#brakeaudio) | 4 |
 | [CommercialAudio](#commercialaudio) | 21 |
 | [DamageAudio](#damageaudio) | 12 |
+| [DamageAudio.PartDetachmentSound](#damageaudiopartdetachmentsound) | 3 |
+| [DamageContactAudio](#damagecontactaudio) | 10 |
+| [DamageContactEvent](#damagecontactevent) | 0 |
+| [DamageContactRelay](#damagecontactrelay) | 0 |
+| [DamageEffectEvent](#damageeffectevent) | 0 |
 | [DamageFeedback](#damagefeedback) | 26 |
+| [DamageFeedbackProfile](#damagefeedbackprofile) | 41 |
+| [DamageGroundImpactSettings](#damagegroundimpactsettings) | 16 |
+| [DamageHitSoundEvent](#damagehitsoundevent) | 0 |
+| [DamageImpactAudioSequence](#damageimpactaudiosequence) | 7 |
 | [DamageImpactProfile](#damageimpactprofile) | 16 |
+| [DamageLandingAudioResponse](#damagelandingaudioresponse) | 7 |
+| [DamageParticles](#damageparticles) | 6 |
+| [DamagePartSoundEvent](#damagepartsoundevent) | 0 |
+| [DamageSoundBank](#damagesoundbank) | 22 |
+| [DamageSoundEvent](#damagesoundevent) | 0 |
+| [DamageSoundGroup](#damagesoundgroup) | 5 |
+| [DamageSurface](#damagesurface) | 7 |
+| [DamageSurfaceResponse](#damagesurfaceresponse) | 2 |
 | [DefaultParticlePreset](#defaultparticlepreset) | 0 |
 | [EffectsModule](#effectsmodule) | 0 |
-| [EngineAudio](#engineaudio) | 3 |
+| [EngineAudio](#engineaudio) | 4 |
 | [EngineAudioItem](#engineaudioitem) | 28 |
 | [EngineSoundProfile](#enginesoundprofile) | 10 |
 | [EventAudio](#eventaudio) | 2 |
 | [Events](#events) | 0 |
 | [ExhaustSmoke](#exhaustsmoke) | 16 |
+| [HandleAudio](#handleaudio) | 9 |
+| [HandleAudioCue](#handleaudiocue) | 8 |
 | [HornAudio](#hornaudio) | 4 |
 | [IndicatorAudio](#indicatoraudio) | 5 |
+| [JetBlast](#jetblast) | 12 |
 | [MovingPartAudio](#movingpartaudio) | 2 |
 | [NitroAudio](#nitroaudio) | 7 |
 | [ProfileTransitionAudio](#profiletransitionaudio) | 2 |
@@ -32,7 +55,8 @@
 | [PropulsionJets](#propulsionjets) | 13 |
 | [Skidmarks](#skidmarks) | 9 |
 | [SwitchAudio](#switchaudio) | 3 |
-| [TireAudio](#tireaudio) | 6 |
+| [TireAudio](#tireaudio) | 7 |
+| [TireBurnoutSmokeSettings](#tireburnoutsmokesettings) | 8 |
 | [TireFeedback](#tirefeedback) | 9 |
 | [TireSmoke](#tiresmoke) | 11 |
 | [TireSurface](#tiresurface) | 2 |
@@ -44,30 +68,6 @@
 | [WiperAudioEntry](#wiperaudioentry) | 6 |
 | [WipersAudio](#wipersaudio) | 6 |
 
-| [AudioClipReplacement](#audioclipreplacement) | 3 |
-
-| [AudioContextProfile](#audiocontextprofile) | 19 |
-
-| [AudioContextSettings](#audiocontextsettings) | 7 |
-
-| [DamageAudio.PartDetachmentSound](#damageaudiopartdetachmentsound) | 3 |
-
-| [TireBurnoutSmokeSettings](#tireburnoutsmokesettings) | 8 |
-
-| [DamageAudio](#damageaudio) | 12 |
-
-| [DamageFeedback](#damagefeedback) | 26 |
-
-| [DamageSoundGroup](#damagesoundgroup) | 5 |
-| [DamageSoundBank](#damagesoundbank) | 22 |
-
-| [DamageGroundImpactSettings](#damagegroundimpactsettings) | 16 |
-| [DamageFeedbackProfile](#damagefeedbackprofile) | 41 |
-
-| [DamageParticles](#damageparticles) | 6 |
-
-| [DamageSurface](#damagesurface) | 6 |
-
 ## Audio
 
 Owns channel discovery, common audio settings and render-frame dispatch.
@@ -78,15 +78,65 @@ Owns channel discovery, common audio settings and render-frame dispatch.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `context` | `AudioContextSettings` | Central camera, area and medium [profiles](../Audio.md#camera-area-and-medium-profiles), including clip replacements and effects. | Enabled; empty profiles preserve ordinary audio. |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Master playback settings shared by this vehicle audio core, including emitter routing, gain and spatial attenuation. | `new VehicleAudioSettings{minDistance = 6, maxDistance = 70, response = 8}` |
+| `context` | `AudioContextSettings` ([fields](Effects.md#audiocontextsettings)) | Central camera, area and medium overrides. Empty profiles preserve the ordinary channel configuration. | `new AudioContextSettings()` |
 | `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle supplying speed, commands and the active movement profile for sound. If empty, Audio finds the controller in its parent hierarchy. | `None / unassigned` |
 
+## AudioClipReplacement
 
-### Audio Settings groups
+`enabled` gates the mapping; `original` identifies a recording; `clips` supplies random variants. An enabled empty/null list is silent. Null slots are skipped, and continuous loops retain their selected variant until the rule or available variants change.
 
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
+**Source:** `Runtime/Effects/Audio/Context/AudioContextProfile.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `clips` | `AudioClip[]` | Random replacements for the original recording. An empty list deliberately silences it. Loops keep one variant until the matching rule changes. | `Empty list` |
+| `enabled` | `bool` | Enables this entry/layer. | `true` |
+| `original` | `AudioClip` | Original recording matched by this replacement. | `None / unassigned` |
+
+## AudioContextProfile
+
+An enabled entry combines optional `channel`, `view`, `camera`, `cameraModule`, `area` and `medium` conditions. `samplePoint` selects listener or vehicle position; `customMedium` supplies the ID for Custom. `name` labels the entry. Playback modifiers are `mute`, `volumeMultiplier`, `pitchMultiplier`, `lowPass`/`lowPassCutoff`, `output` and `overrideSpatialBlend`/`spatialBlend`. `clipReplacements` contains original-to-variant mappings. Matching entries stack as described in [profile authoring](../Audio.md#camera-area-and-medium-profiles).
+
+**Source:** `Runtime/Effects/Audio/Context/AudioContextProfile.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `area` | `Collider` | Optional volume containing the sample point. Use a Box, Sphere, Capsule or convex Mesh collider; it may be a trigger. | `None / unassigned` |
+| `camera` | `Camera` | Optional actual rendering camera. Supports external camera systems too. | `None / unassigned` |
+| `cameraModule` | `CameraModule` ([fields](World.md#cameramodule)) | Optional exact vehicle camera module, including custom views. | `None / unassigned` |
+| `channel` | `AudioModule` ([fields](Effects.md#audiomodule)) | Optional channel to affect, such as Engine Audio. Empty affects every audio channel of this vehicle. | `None / unassigned` |
+| `clipReplacements` | `AudioClipReplacement[]` ([fields](Effects.md#audioclipreplacement)) | Serialized context setting. | `Empty list` |
+| `customMedium` | `string` | Case-sensitive medium ID supplied through Audio.SetAudioMedium. Used with Medium = Custom. | `None / unassigned` |
+| `enabled` | `bool` | Enables this entry/layer. | `true` |
+| `lowPass` | `bool` | Enables the context low-pass ceiling. | `false` |
+| `lowPassCutoff` | `float` | Low-pass ceiling in Hz. | `1800`; Range: 10 to 22000 |
+| `medium` | `AudioContextMedium` | Required medium, or Any. Options: `Any`, `Air`, `Water`, `Custom`. | `Any` |
+| `mute` | `bool` | Silences matching audio. | `false` |
+| `name` | `string` | Inspector label. | `"Audio profile"` |
+| `output` | `AudioMixerGroup` | Optional mixer route for reverb, EQ, distortion or other effects. Last matching nonempty route wins; shared mixer assets are never modified. | `None / unassigned` |
+| `overrideSpatialBlend` | `bool` | Overrides ordinary source spatial blend. | `false` |
+| `pitchMultiplier` | `float` | Multiplies ordinary pitch. | `1`; Range: .1f to 3 |
+| `samplePoint` | `AudioContextPoint` | Position tested against Area and Medium. Listener follows the selected camera; Vehicle follows this vehicle. Options: `Listener`, `Vehicle`. | `Listener` |
+| `spatialBlend` | `float` | Override from 0 (2D) to 1 (3D). | `0`; Range: 0 to 1 |
+| `view` | `AudioContextView` | Required view, or Any. Options: `Any`, `Orbit`, `Interior`, `Custom`, `External`. | `Any` |
+| `volumeMultiplier` | `float` | Multiplies ordinary gain. | `1`; Minimum: 0 |
+
+## AudioContextSettings
+
+Serialized context configuration on Audio. `enabled` gates the layer; `cameras` and `listenerCamera` override automatic view lookup; `waterProvider` supplies surface samples; `underwaterDepth` sets the Water threshold; `transitionSeconds` blends gain/pitch/filtering; `profiles` contains ordered AudioContextProfile entries.
+
+**Source:** `Runtime/Effects/Audio/Context/AudioContextProfile.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `cameras` | `Cameras` ([fields](World.md#cameras)) | Optional vehicle camera core. Empty uses Cameras on this vehicle. | `None / unassigned` |
+| `enabled` | `bool` | Enables this entry/layer. | `true` |
+| `listenerCamera` | `Camera` | Optional external listening camera. Empty follows this vehicle's active view, then Camera.main. Code may also call SetListeningCamera. | `None / unassigned` |
+| `profiles` | `AudioContextProfile[]` ([fields](Effects.md#audiocontextprofile)) | Definitions are prepared at startup. Existing profile Enabled switches remain live. After editing parameters, adding or replacing profiles from code, call Audio.RefreshAudioProfiles(). Matching profiles combine in list order: gain/pitch multiply, lowest cutoff wins, last mixer/spatial/clip override wins. | `Empty list` |
+| `transitionSeconds` | `float` | Seconds to blend volume, pitch and filtering after a context change. Clip changes retain normalized loop position. | `.15`; Minimum: 0 |
+| `underwaterDepth` | `float` | Depth below the sampled surface required to select Water. | `.05`; Minimum: 0 |
+| `waterProvider` | `WaterProvider` ([fields](World.md#waterprovider)) | Water sampled at the listener/vehicle point, including waves. Empty uses this vehicle's Water Interaction/profile when available. | `None / unassigned` |
 
 ## AudioEvent
 
@@ -96,16 +146,10 @@ Configuration/implementation type for audio event within audio cores and channel
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch variation, cooldown and emitter settings for this event sound. | `new VehicleAudioSettings{volume = 0.8, pitchRange = new Vector2(0.9, 1.1), cooldown = 0.15}` |
 | `clips` | `AudioClip[]` | One-shot recordings chosen when Event ID is published. Add several clips for variation; an empty list produces no sound for this entry. | `None / unassigned` |
-| `eventId` | `string` | Event name that triggers this sound entry. It must match the ID published through Events, such as `ApplicationAlert`. | `""` |
+| `eventId` | `string` | Application-defined identifier matching the ID passed to Events.Publish. | `""` |
 | `minimumIntensity` | `float` | Lowest event intensity that is eligible to play this sound entry. | `.05`; Range: 0 to 1 |
-
-
-### Audio Settings groups
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
 
 ## AudioModule
 
@@ -119,15 +163,15 @@ No additional Inspector settings are declared on this type. Use the inherited se
 
 ## AudioSettingsOverride
 
-**Source:** `Runtime/Effects/Audio/VehicleAudioSettings.cs`. AudioSettingsOverride serialized playback configuration.
+Optional per-cue override inheriting [VehicleAudioSettings](../API/Audio.md#vehicleaudiosettings).
 
-| Field | Behavior |
-| --- | --- |
-| `overrideSettings` | Selects this cue’s independent VehicleAudioSettings instead of the shared settings. |
+**Source:** `Runtime/Effects/Audio/VehicleAudioSettings.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+**Inherited settings:** [VehicleAudioSettings](Effects.md#vehicleaudiosettings). These settings also appear on this type.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `overrideSettings` | Selects this cue’s independent VehicleAudioSettings instead of the shared settings. |
+| `overrideSettings` | `bool` | Use this entry-specific playback block instead of the parent mechanism audio settings. | `false` |
 
 ## BoatWaterAudio
 
@@ -142,20 +186,14 @@ Configuration/implementation type for boat water audio within audio cores and ch
 | `fullLappingMotion` | `float` | Hull-motion amount at which lapping audio reaches full configured contribution. | `.12`; Minimum: .01f |
 | `fullWakeSpeed` | `float` | Hull speed in m/s at which wake audio reaches its full configured contribution. | `20`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `hullHalfSize` | `Vector2` | Hull half-width and half-length, metres; converts real roll/pitch rates to water-contact motion. | `new Vector2(1, 2.5)` |
+| `lappingAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, attenuation and emitter settings for quiet hull lapping. | `new VehicleAudioSettings{volume = .22, response = 10, pitchRange = new Vector2(.9, 1.06)}` |
 | `lappingLoop` | `AudioClip` | Loop for gentle hull/water contact at low activity. It provides quiet water movement beneath the stronger wake sound. | `None / unassigned` |
+| `splashAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch variation and cooldown settings for hull-entry one-shots. | `new VehicleAudioSettings{volume = 0.5, cooldown = 0.8, pitchRange = new Vector2(0.94, 1.06)}` |
 | `splashClips` | `AudioClip[]` | Short recordings chosen for sufficiently strong hull/water impacts. Multiple clips add variation; Splash Threshold and Cooldown control when they play. | `None / unassigned` |
 | `splashThreshold` | `float` | Minimum water-contact impact activity needed for a splash one-shot. Increase to reserve splashes for stronger hits; decrease to hear gentler water contact. | `.2`; Minimum: .01f |
+| `wakeAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch and attenuation settings for the sustained wake. | `new VehicleAudioSettings{volume = .45, response = 10, pitchRange = new Vector2(.8, 1.2)}` |
 | `wakeLoop` | `AudioClip` | Continuous water-rush recording for the boat moving through water. Its level follows wake activity rather than playing as a one-shot splash. | `None / unassigned` |
 | `waterSoundsEnabled` | `bool` | Allows hull/water contact to produce movement and splash sounds. Turn off to mute water sounds without changing buoyancy or boat propulsion. | `true` |
-
-
-### Audio Settings groups
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `lappingAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `splashAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `wakeAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
 
 ## BoatWaterParticles
 
@@ -167,32 +205,32 @@ Uses hull-water contact for surface-water presentation.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `cullDistance` | `float` | Distance beyond which this effect suspends rendering, in metres; zero disables distance culling. | `120`; Minimum: 0 |
+| `cullDistance` | `float` | Distance in metres beyond which rendering is suspended. Zero disables this distance cull. | `120`; Minimum: 0 |
 | `engine` | `Engine` ([fields](Engine.md#engine)) | Engine supplying running state and throttle for propeller spray. A coasting hull can still leave a wake when this engine is stopped. | `None / unassigned` |
 | `foamMaterial` | `Material` | Material for automatically created foam particles on the surface. Assign it when using the built-in wake instead of a custom prefab. | `None / unassigned` |
 | `fullEffectSpeed` | `float` | Hull speed in m/s at which speed-driven water effects reach full contribution. | `20`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `hullHalfSize` | `Vector2` | Used without a WaterInteraction component; that component's size takes priority. | `new Vector2(1, 2.5)` |
-| `hullRippleRate` | `float` | Base hull-ripple emission rate, in particles per second. | `5`; Minimum: 0 |
+| `hullRippleRate` | `float` | Base ripple emission rate in particles per second before immersion/motion scaling. | `5`; Minimum: 0 |
 | `hullRipplesEnabled` | `bool` | Adds surface ripples around the moving/water-contacting hull while Wake Enabled is on. Turn off to retain the main wake without these extra rings. | `true` |
 | `motorOutlet` | `Transform` | Optional authored motor outlet; otherwise use sternOffset relative to the hull. | `None / unassigned` |
 | `propellerBudget` | `int` | Maximum particle count passed to the default propeller spray. Raise if visible particles disappear too early at high emission rates; lower to reduce particle work. | `384`; Range: 16 to 2048 |
 | `propellerEnabled` | `bool` | Allows spray at the propeller outlet while the engine is running and applying throttle. Other water effects can remain enabled. | `true` |
 | `propellerPrefab` | `ParticleSystem` | Optional particle prefab instantiated for propeller spray. Without one, the component can build its default spray using Spray Material. | `None / unassigned` |
-| `propellerRate` | `float` | Propeller, wake and splash emission rates at full channel activity, in particles per second. | `65`; Minimum: 0 |
+| `propellerRate` | `float` | Propeller-channel particles per second at full activity. | `65`; Minimum: 0 |
 | `runningSprayFactor` | `float` | Small bow-side droplets produced by forward motion, in addition to real hull impacts. | `.009`; Minimum: 0 |
 | `splashBudget` | `int` | Maximum particle count passed to the default splash system. More particles allow larger or overlapping splash bursts before reaching the cap. | `192`; Range: 16 to 2048 |
-| `splashEntryThreshold` | `float` | Minimum inward hull-point speed eligible for entry splash particles, in m/s. | `.045`; Speed field; stored in m/s, displayed in the selected speed unit |
+| `splashEntryThreshold` | `float` | Minimum inward speed in metres per second at a hull sample point before entry droplets are admitted. | `.045`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `splashesEnabled` | `bool` | Allows short bursts when the hull hits the water strongly enough. Turn off to retain continuous wake effects without impact splashes. | `true` |
 | `splashFullEntrySpeed` | `float` | Water-entry speed in m/s at which splash intensity reaches full contribution. | `.45`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `splashPrefab` | `ParticleSystem` | Optional particle prefab instantiated for hull-impact splashes. Without one, the default splash needs Spray Material. | `None / unassigned` |
-| `splashRate` | `float` | Propeller, wake and splash emission rates at full channel activity, in particles per second. | `35`; Minimum: 0 |
+| `splashRate` | `float` | Splash-channel particles per second at full activity. | `35`; Minimum: 0 |
 | `sprayMaterial` | `Material` | Material for automatically created spray particles. Assign it when using the built-in propeller or splash effect instead of a custom prefab. | `None / unassigned` |
-| `sternOffset` | `Vector3` | Fallback propeller-emission point in vehicle-local coordinates, in metres. | `new Vector3(0, -.25, -2.5)` |
+| `sternOffset` | `Vector3` | Vehicle-local fallback propeller outlet in metres when Motor Outlet is unassigned. | `new Vector3(0, -.25, -2.5)` |
 | `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Boat supplying hull motion, water contact and the active profile for wake and spray. If empty, the component searches its parent hierarchy. | `None / unassigned` |
 | `wakeBudget` | `int` | Maximum particle count passed to the default wake. More particles can keep a longer, denser foam trail visible at once. | `256`; Range: 16 to 2048 |
 | `wakeEnabled` | `bool` | Allows the moving hull to leave foam behind it. Hull ripples also depend on this switch; propeller spray and impact splashes have separate switches. | `true` |
 | `wakePrefab` | `ParticleSystem` | Optional particle prefab instantiated for the foam wake. Without one, the default wake needs Foam Material. | `None / unassigned` |
-| `wakeRate` | `float` | Propeller, wake and splash emission rates at full channel activity, in particles per second. | `48`; Minimum: 0 |
+| `wakeRate` | `float` | Wake-channel particles per second at full activity. | `48`; Minimum: 0 |
 | `waterParticlesEnabled` | `bool` | Master switch for water-contact particle effects. Turn off to stop this component's propeller spray, wakes, ripples and splashes without changing boat physics. | `true` |
 
 ## BrakeAudio
@@ -205,80 +243,400 @@ Configuration/implementation type for brake audio within audio cores and channel
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch response and spatial settings for brake playback. | `new VehicleAudioSettings{volume = 0.15, pitchRange = new Vector2(0.85, 1.05)}` |
 | `brakeSpeedRangeKph` | `Vector2` | Speed range in km/h from silent to full brake-loop volume. | `new Vector2(1, 25)`; Speed field; stored in km/h, displayed in the selected speed unit |
 | `brakingLoop` | `AudioClip` | Continuous braking recording whose level follows braking activity and speed. Assign a loopable clip; leave empty to omit this sound channel. | `None / unassigned` |
+| `tireFeedback` | `TireFeedback` ([fields](Effects.md#tirefeedback)) | Tire contacts supplying surface-specific brake sounds. Empty resolves from the vehicle; this channel does not require Tire Audio. | `None / unassigned` |
 
-
-### Audio Settings groups
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-
-
-| Field | Type | Usage | Default |
-| --- | --- | --- | --- |
-| `tireFeedback` | `TireFeedback` | Source owned by this audio channel. Empty resolves from the vehicle; explicit assignments are preserved. | `None / unassigned` |
 ## CommercialAudio
 
 Configuration/implementation type for commercial audio within audio cores and channels.
 
 **Source:** `Runtime/Effects/Audio/Modules/CommercialAudio.cs`. Component / asset.
 
-**Inherited settings:** [EffectsModule](Effects.md#effectsmodule). These settings also appear on this type.
+**Inherited settings:** [AudioModule](Effects.md#audiomodule). These settings also appear on this type.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `airBrakesEnabled` | `bool` | Plays pneumatic brake sounds when the vehicle applies/releases braking or finishes a stop. Turn off to mute these effects while retaining the reverse alarm. | `true` |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Shared commercial-mechanism playback settings used when an individual channel does not override them. | `new VehicleAudioSettings{minDistance = 5, maxDistance = 65, cooldown = 0.15}` |
+| `brakeApplyAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Optional playback override for the brake-application cue. | `new VehicleAudioSettings{volume = 0.24, minDistance = 5, maxDistance = 65}` |
 | `brakeApplyClip` | `AudioClip` | Air-brake application one-shot. Used when the sound logic enters its service-braking cycle; leave empty to omit this recording. | `None / unassigned` |
+| `brakeReleaseAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Optional playback override for the brake-release cue. | `new VehicleAudioSettings{volume = 0.55, minDistance = 5, maxDistance = 65}` |
 | `brakeReleaseClip` | `AudioClip` | Air-brake release one-shot played when the service-braking cycle releases. Use a short pneumatic hiss rather than a continuous loop. | `None / unassigned` |
 | `brakeThreshold` | `float` | Service-brake input needed to enter the braking state that drives the sounds. A lower release threshold prevents repeated triggering near this value. | `.12`; Range: .05f to 1 |
 | `gearbox` | `Gearbox` ([fields](Engine.md#gearbox)) | Gearbox used to detect reverse. If unavailable, the reverse alarm falls back to the vehicle's drive demand and direction of motion. | `None / unassigned` |
 | `movingSpeedKph` | `float` | Speed at which the sound logic considers a stopped vehicle to have set off again. Keeping it above Stopped Speed avoids repeated stop/start sounds while creeping. | `1.5`; Speed field; stored in km/h, displayed in the selected speed unit |
 | `parkingApplyClip` | `AudioClip` | One-shot for applying the parking brake when Parking Apply Sound is enabled. It is separate from the service-brake recording. | `None / unassigned` |
 | `parkingApplySound` | `bool` | Also plays the air-brake effect when the parking brake is applied. Turn off if parking-brake application should be silent. | `true` |
+| `parkingAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Optional playback override for parking-brake sounds. | `new VehicleAudioSettings{volume = 0.65, minDistance = 5, maxDistance = 65}` |
 | `parkingReleaseClip` | `AudioClip` | One-shot for releasing the parking brake when Parking Release Sound is enabled. Leave empty for a silent release. | `None / unassigned` |
 | `parkingReleaseSound` | `bool` | Play a pneumatic parking-brake release sound when the parking brake is released. | `false` |
 | `reverseAlarmEnabled` | `bool` | Plays a repeating warning beep while reverse is selected or the fallback reverse condition is met. It does not affect reversing itself. | `true` |
+| `reverseAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Optional playback override for the reversing warning. | `new VehicleAudioSettings{volume = 0.45, minDistance = 5, maxDistance = 65}` |
 | `reverseBeepClip` | `AudioClip` | One beep; cadence is controlled separately below. | `None / unassigned` |
 | `reverseInterval` | `float` | Seconds between reverse warning beeps. Increase for a slower warning rhythm; decrease for more frequent beeps. | `.85`; Minimum: .1f |
 | `stoppedSpeedKph` | `float` | Speed at or below which the air-brake sound logic considers the vehicle stopped. Increase slightly if small physics motion prevents a stop event. | `.5`; Speed field; stored in km/h, displayed in the selected speed unit |
 | `stopStartOnly` | `bool` | Service-brake hiss only on stopping and setting off; disable for pedal-edge sounds. | `false` |
 | `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle whose braking, parking state and movement trigger air-brake and reverse sounds. If empty, the component looks on the same GameObject. | `None / unassigned` |
 
+## DamageAudio
 
-### Audio Settings groups
+Vehicle damage audio module. Native contacts, scripted damage and named-part cues share sound-bank configuration and pooled playback.
 
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `brakeApplyAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `brakeReleaseAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `parkingAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `reverseAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
+**Source:** `Runtime/Effects/Damage/DamageAudio.cs`. Component / asset.
+
+**Inherited settings:** [AudioModule](Effects.md#audiomodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Shared spatial audio, gain, pitch and context settings for all damage sounds on this vehicle. | `new VehicleAudioSettings{volume = .85, minDistance = 2, maxDistance = 65, priority = 90}` |
+| `contactAudio` | `DamageContactAudio` ([fields](Effects.md#damagecontactaudio)) | Enable individual cue categories and configure the prewarmed audio voice budget. | `new DamageContactAudio()` |
+| `detachmentSounds` | `PartDetachmentSound[]` ([fields](Effects.md#damageaudiopartdetachmentsound)) | Optional named-part sounds played once when each configured part detaches. RefreshPartSounds after changing this list at runtime. | `Empty list` |
+| `fallbackProfile` | `DamageImpactProfile` ([fields](Effects.md#damageimpactprofile)) | Optional scripted audio response used when no material-specific response matches. | `None / unassigned` |
+| `feedback` | `DamageFeedback` ([fields](Effects.md#damagefeedback)) | Contact source and default surface/material configuration. Resolved on this vehicle when empty. | `None / unassigned` |
+| `impactProfiles` | `DamageImpactProfile[]` ([fields](Effects.md#damageimpactprofile)) | Optional material profiles for scripted damage. Empty reuses Damage Feedback's scripted profiles. Physical contacts use the feedback profile. | `Empty list` |
+| `muteBodyPartOnDetach` | `bool` | Let accepted one-shots and the current scrape iteration finish; ignore subsequent part impacts/scrapes after detachment. The detachment cue itself may still play. | `true` |
+| `onDamagePlayed` | `DamageHitSoundEvent` ([fields](Effects.md#damagehitsoundevent)) | A scripted DamageHit sound successfully started, with its selected material profile and clip. | `new DamageHitSoundEvent()` |
+| `onDetachmentPlayed` | `DamagePartSoundEvent` ([fields](Effects.md#damagepartsoundevent)) | A named part's detachment sound successfully started. | `new DamagePartSoundEvent()` |
+| `onPlayed` | `DamageSoundEvent` ([fields](Effects.md#damagesoundevent)) | A one-shot successfully started. Reports the contact and actual clip, including audio-context processing; does not report scrape loop iterations. | `new DamageSoundEvent()` |
+| `onScrapeStarted` | `DamageSoundEvent` ([fields](Effects.md#damagesoundevent)) | A sustained scrape loop started. Reports its contact and original clip before audio-context processing. | `new DamageSoundEvent()` |
+| `onScrapeStopped` | `DamageSoundEvent` ([fields](Effects.md#damagesoundevent)) | A scrape loop stopped, faded out, changed material/group or was cleared. Does not report each loop iteration. | `new DamageSoundEvent()` |
+
+## DamageAudio.PartDetachmentSound
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/DamageAudio.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `enabled` | `bool` | Enable this named-part detachment cue. | `true` |
+| `part` | `DamagePart` ([fields](Exterior.md#damagepart)) | Part whose Detached event starts this cue. | `None / unassigned` |
+| `response` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Clips and strength response for this named detachment cue; detachment is submitted at full strength. | `new DamageSoundBank{usePhysicalResponse = false, modulateVolume = false, randomizePitch = false}` |
+
+## DamageContactAudio
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Audio/DamageContactAudio.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `breakageSounds` | `bool` | Play accepted part-breakage sounds. Named detachment cues are configured separately. | `true` |
+| `enabled` | `bool` | Enable this vehicle's damage-contact audio, including scripted banks. Disabling through SetContactAudioEnabled also stops active sounds. | `true` |
+| `fallLandingSounds` | `bool` | Play the first qualifying fall landing body thud, independently of tire and suspension sounds. | `true` |
+| `impactSounds` | `bool` | Play body impacts and Humanoid impacts, including wheel contacts with a character. Tire switches control tire-bank sounds only. | `true` |
+| `maximumVoices` | `int` | Maximum simultaneous prewarmed one-shot sources. Two additional sources handle scrape loops. Rebuild the pool after changing this limit at runtime. | `10`; Range: 2 to 24 |
+| `rolloverImpactSounds` | `bool` | Play qualifying ground strikes while tilted or tumbling, once per impact across the whole vehicle. | `true` |
+| `scrapeSounds` | `bool` | Play sustained sliding sounds using the selected surface response and fade times. | `true` |
+| `suspensionSounds` | `bool` | Play compression and landing sounds from the vehicle suspension. Independent of tire-impact and tire-landing switches. | `true` |
+| `tireImpactSounds` | `bool` | Play the Tire Impact bank independently of body and Humanoid impact sounds. | `true` |
+| `tireLandingSounds` | `bool` | Play the Tire Landing bank independently of wheel impacts, Humanoid impacts and suspension creaks. | `true` |
+
+## DamageContactEvent
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Contacts/DamageSignals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## DamageContactRelay
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Contacts/DamageContactRelay.cs`. Component / asset.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## DamageEffectEvent
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Contacts/DamageSignals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## DamageFeedback
+
+Vehicle contact presentation API, configured separately from physical damage.
+
+**Source:** `Runtime/Effects/Damage/DamageFeedback.cs`. Component / asset.
+
+**Inherited settings:** [EffectsModule](Effects.md#effectsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `breakageEnabled` | `bool` | Publish presentation cues when parts break away. Does not prevent physical detachment. | `true` |
+| `contactsEnabled` | `bool` | Observe native collisions, tire samples and suspension events. SubmitContact remains available to external providers. | `true` |
+| `damage` | `Damage` ([fields](Physics.md#damage)) | Physical damage source for scripted hits and repair notifications. Auto-resolved from this vehicle when empty. | `None / unassigned` |
+| `effectOverflow` | `DamagePoolOverflow` | Skip a hit when its pool is busy, or replace that profile's oldest active effect. Options: `Skip`, `ReplaceOldest`. | `Skip` |
+| `fallbackImpactProfile` | `DamageImpactProfile` ([fields](Effects.md#damageimpactprofile)) | Optional scripted visual response when no material-specific profile matches. | `None / unassigned` |
+| `impactEffectsEnabled` | `bool` | Enable pooled particles/custom prefabs on accepted damage hits. Does not change damage, dents or sound. | `true` |
+| `impactProfiles` | `DamageImpactProfile[]` ([fields](Effects.md#damageimpactprofile)) | Material responses for scripted DamageHit requests. Native contacts use the feedback profile and surface mappings. | `Empty list` |
+| `maximumContactPairs` | `int` | Fixed contact-cache capacity. Excess pairs replace the least recent; no collection grows on collisions. | `24`; Range: 4 to 64 |
+| `maximumEffectInstances` | `int` | Total prewarmed visual effect instances per vehicle. Profiles allocate their requested share in list order. | `24`; Range: 0 to 128 |
+| `onBreakage` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | Accepted part breakage cue. Use DamagePart.Detached for the physical detachment itself. | `new DamageContactEvent()` |
+| `onCleared` | `UnityEngine.Events.UnityEvent` | Contact history and active presentation effects were cleared, including on reset or disable. | `new UnityEngine.Events.UnityEvent()` |
+| `onContact` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | Every accepted impact or scrape sample. This is presentation data and does not apply physical damage. | `new DamageContactEvent()` |
+| `onEffectPlayed` | `DamageEffectEvent` ([fields](Effects.md#damageeffectevent)) | Custom pooled impact prefab successfully started. | `new DamageEffectEvent()` |
+| `onEffectsCleared` | `UnityEngine.Events.UnityEvent` | Visual effect leases were cleared. Contacts, audio and physical damage are not reset by ClearEffects. | `new UnityEngine.Events.UnityEvent()` |
+| `onFallLanding` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | First qualifying ground contact after a height fall; shared by body, attached parts and wheels. | `new DamageContactEvent()` |
+| `onImpact` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | Every accepted non-scrape cue, including body, wheel, landing, suspension and breakage. | `new DamageContactEvent()` |
+| `onRolloverImpact` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | A qualifying tilted/spinning ground impact, deduplicated across the whole vehicle. | `new DamageContactEvent()` |
+| `onScrape` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | Accepted sustained-contact samples; may run every physics step while sliding. Use Damage Audio scrape lifecycle callbacks for audible start/stop. | `new DamageContactEvent()` |
+| `onSuspension` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | Accepted suspension compression or landing response. | `new DamageContactEvent()` |
+| `onTireImpact` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | Accepted wheel strike, independently of a touchdown. | `new DamageContactEvent()` |
+| `onTireLanding` | `DamageContactEvent` ([fields](Effects.md#damagecontactevent)) | Accepted wheel touchdown, with landing strength and fall-height data. | `new DamageContactEvent()` |
+| `partContactsEnabled` | `bool` | Observe loose-part contacts relayed by DamagePart objects. Does not affect part collision physics. | `true` |
+| `particles` | `DamageParticles` ([fields](Effects.md#damageparticles)) | Built-in pooled sparks, fragments and glass emission controls. | `new DamageParticles()` |
+| `profile` | `DamageFeedbackProfile` ([fields](Effects.md#damagefeedbackprofile)) | Default contact thresholds, surface mappings, sound banks and particle response. | `None / unassigned` |
+| `surfaceResponses` | `DamageFeedbackProfile[]` ([fields](Effects.md#damagefeedbackprofile)) | Additional response profiles used by code providers or future spawned targets. Scene Damage Surface profiles are discovered during configuration; sound-only overrides need no registration. | `Empty list` |
+| `wheelContactsEnabled` | `bool` | Accept wheel strikes, touchdowns and suspension cues. Does not affect physical suspension. | `true` |
+
+## DamageFeedbackProfile
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Profiles/DamageFeedbackProfile.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `body` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Main body-impact recordings, either a shared list or three strength groups. | `new DamageSoundBank{layout = DamageClipLayout.StrengthGroups}` |
+| `bodyThud` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Low body-impact layer mixed under the material impact. Disable to use material sounds alone. | `new DamageSoundBank{volume = .95, cooldown = .1}` |
+| `contactRetriggerTime` | `float` | Minimum separation from the previous hit on the same collider pair. New contact normals can retrigger a tumble impact. | `.12`; Minimum: .01f |
+| `contactTimeout` | `float` | Time without a contact sample before its scraping loop fades. Includes sleeping bodies. | `.1`; Minimum: .01f |
+| `debrisMaterial` | `Material` | Material used by this surface response's prewarmed fragment system. Empty uses the package default. | `None / unassigned` |
+| `fallLanding` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | One additional body thud at the first qualifying ground contact after a fall. Independent of Tire Landing. | `new DamageSoundBank{volume = .85, minimumGain = .05, volumeScale = DamageVolumeScale.Linear, modulatePitch = true}` |
+| `fullImpactSpeed` | `float` | Normal approach speed in metres per second mapped to contact strength one. Higher strengths clamp to one. | `18`; Minimum: .1f |
+| `glancingImpactGain` | `float` | Relative body-impact gain for a glancing strike. Head-on gain is one. | `.65`; Range: 0 to 1 |
+| `glass` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Glass-impact and breakage recordings. Explicit Glass surfaces and glass parts can select this response. | `new DamageSoundBank{volume = .8, cooldown = .12}` |
+| `glassMaterial` | `Material` | Material used by this surface response's prewarmed glass system. Empty uses the package default. | `None / unassigned` |
+| `groundImpacts` | `DamageGroundImpactSettings` ([fields](Effects.md#damagegroundimpactsettings)) | Minimum fall/impact/spin gates and shared deduplication for Fall Landing and Rollover Impact. Does not affect physics. | `new DamageGroundImpactSettings()` |
+| `heavyImpactSpeed` | `float` | Normal approach speed in metres per second for strong-impact particles and audio priority decisions. | `9`; Minimum: .1f |
+| `humanoid` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Dull body-impact response for targets classified as Humanoid. | `new DamageSoundBank{volume = .95, minimumGain = .65, cooldown = .08}` |
+| `impactDebrisCount` | `int` | Maximum fragment count for a full-strength impact, before the shared per-step budget. | `12`; Range: 0 to 64 |
+| `impactEffect` | `DamageImpactProfile` ([fields](Effects.md#damageimpactprofile)) | Optional pooled effect for this response. Register surface response profiles on DamageFeedback before play, or call WarmUpEffects after changing them. | `None / unassigned` |
+| `impactPitchByGlancing` | `float` | Pitch lift for grazing strikes compared with head-on impacts. | `.1`; Range: 0 to .3f |
+| `impactPitchByStrength` | `float` | Pitch reduction as impact intensity rises, in addition to bank pitch variation. | `.08`; Range: 0 to .3f |
+| `mediumImpactSpeed` | `float` | Normal approach speed in metres per second for crunch and stronger fragments. Body clip-group thresholds are configured separately in Body. | `3.5`; Minimum: .1f |
+| `metalCrunch` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Optional metal-deformation layer added to sufficiently strong metal or mechanical body impacts. | `new DamageSoundBank{volume = .65, cooldown = .18}` |
+| `minimumImpactSpeed` | `float` | Minimum normal approach speed in metres per second for an impact cue. Resting support is ignored. | `.65`; Minimum: .1f |
+| `plastic` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Plastic-impact and breakage recordings. | `new DamageSoundBank{volume = .55}` |
+| `rolloverImpact` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | One additional body thud per qualifying tilted/spinning ground strike. Shares contact deduplication with Fall Landing. | `new DamageSoundBank{volume = .85, minimumGain = .05, volumeScale = DamageVolumeScale.Linear, modulatePitch = true}` |
+| `scrape` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Sustained sliding recordings for this response; may use one list or three strength groups. | `new DamageSoundBank{volume = .65, modulateVolume = false}` |
+| `scrapeAttack` | `float` | Seconds for scrape volume to rise toward its requested level. | `.045`; Minimum: .01f |
+| `scrapeEffect` | `DamageImpactProfile` ([fields](Effects.md#damageimpactprofile)) | Optional pooled particles or custom effect repeated during sliding contact. Configure its cooldown and lifetime on the effect profile. | `None / unassigned` |
+| `scrapeFullSpeed` | `float` | Tangential sliding speed in metres per second mapped to full scrape strength and rate contribution. | `10`; Minimum: .1f |
+| `scrapeMinimumSpeed` | `float` | Minimum tangential sliding speed in metres per second for scrape samples. | `.6`; Minimum: .1f |
+| `scrapeRelease` | `float` | Seconds for scrape volume to fade after contact becomes quiet or ends. | `.18`; Minimum: .01f |
+| `soft` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Impact response for targets classified as Soft, without metallic scraping or fragments. | `new DamageSoundBank{volume = .9}` |
+| `softLayers` | `LayerMask` | Fallback soft-object layers. An explicit Damage Surface or custom provider takes priority. | `None / unassigned` |
+| `sparkMaterial` | `Material` | Material used by this surface response's prewarmed spark system. Empty uses the package default. | `None / unassigned` |
+| `sparkMinimumSpeed` | `float` | Minimum tangential scrape speed in metres per second for spark emission. | `2`; Minimum: 0 |
+| `sparksPerSecond` | `float` | Spark emission rate at full scrape strength, before the per-step budget. | `45`; Range: 0 to 100 |
+| `surfaceResponses` | `DamageSurfaceResponse[]` ([fields](Effects.md#damagesurfaceresponse)) | Default responses by contact material. A Damage Surface response profile on an object takes priority. | `Empty list` |
+| `suspension` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Suspension compression and landing recordings, independent of the struck surface. | `new DamageSoundBank{volume = .9, cooldown = .12, modulateVolume = false}` |
+| `suspensionLoadRise` | `float` | Minimum load rise, relative to supported weight, required for a compression cue. | `.35`; Range: .1f to 2 |
+| `suspensionMinimumStrokeSpeed` | `float` | Minimum suspension compression stroke speed in metres per second for a compression cue. | `.35`; Minimum: .05f |
+| `suspensionResponse` | `DamageLandingAudioResponse` ([fields](Effects.md#damagelandingaudioresponse)) | Physical gain and playback-rate response for suspension sounds when the bank uses Physical Response. | `new DamageLandingAudioResponse{fullImpactSpeed = 6, fullFallHeight = 3, fullLoad = 5, gain = new Vector2(.08, 1.4), pitch = new Vector2(1.12, .8)}` |
+| `tireImpact` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Wheel strike recordings, for example a tire hitting a wall or prop. Separate from touchdown audio. | `new DamageSoundBank{volume = .95, minimumGain = .6}` |
+| `tireLanding` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Wheel touchdown recordings. Separate from Tire Impact and Suspension. | `new DamageSoundBank{volume = .65, modulateVolume = false}` |
+| `tireLandingResponse` | `DamageLandingAudioResponse` ([fields](Effects.md#damagelandingaudioresponse)) | Physical gain and playback-rate response for tire landings when the bank uses Physical Response. | `new DamageLandingAudioResponse()` |
+
+## DamageGroundImpactSettings
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Profiles/DamageGroundImpactSettings.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `fullImpactSpeed` | `float` | Normal contact speed in m/s mapped to full sound strength. | `12`; Minimum: .1f |
+| `fullSpinSpeed` | `float` | Pitch/roll angular speed in radians per second giving the full additional rollover strength contribution. | `8`; Minimum: .1f |
+| `groundLayers` | `LayerMask` | Layers treated as ground for the additional landing and rollover sounds. Contact normals must also face upward. | `~0` |
+| `impactInterval` | `float` | Minimum interval in seconds between distinct ground strikes. Coalesces wheels and attached panels contacting in quick succession. | `.12`; Minimum: .01f |
+| `includeDynamicGround` | `bool` | Allow movable rigidbodies to count as ground. Off by default so hitting loose props or ragdolls does not trigger a ground landing. | `false` |
+| `minimumAirTime` | `float` | Minimum whole-vehicle airborne time in seconds before the first height-landing sound can play. | `.15`; Minimum: 0 |
+| `minimumFallHeight` | `float` | Minimum descent in metres for the first height-landing sound. Small bumps and ordinary suspension movement stay silent. | `.5`; Minimum: 0 |
+| `minimumGroundNormal` | `float` | Minimum dot product of the contact normal and gravity-up. Rejects walls and near-vertical surfaces. | `.5`; Range: 0 to 1 |
+| `minimumLandingSpeed` | `float` | Minimum incoming normal contact speed in m/s for a height-landing sound. Includes motion caused by vehicle rotation. | `3`; Minimum: 0 |
+| `minimumRolloverSpeed` | `float` | Minimum incoming normal contact speed in m/s for a rollover/tilted ground strike. Resting or gentle sliding does not qualify. | `2.5`; Minimum: 0 |
+| `minimumSpinSpeed` | `float` | Minimum pitch/roll angular speed in radians per second for a spinning strike. Yaw-only donuts do not count as a tumble. | `1.5`; Minimum: 0 |
+| `minimumTilt` | `float` | Minimum chassis tilt from gravity-up for a rollover strike. A sufficiently fast pitch/roll spin can qualify independently. | `35`; Range: 0 to 180 |
+| `newFaceAngle` | `float` | Rotation of the contacted chassis face, in degrees, that can identify the next strike while tumbling. | `45`; Range: 5 to 180 |
+| `separationTime` | `float` | Time without support in seconds that separates two ground-contact episodes. | `.06`; Minimum: .01f |
+| `settleTime` | `float` | Continuous grounded settling time in seconds before another independent height landing can be armed. Immediate rebounds do not replay the first-landing bank. | `.4`; Minimum: .05f |
+| `spinInfluence` | `float` | Extra rollover strength contributed by pitch/roll spin after the minimum impact-speed gate is passed. | `.35`; Range: 0 to 1 |
+
+## DamageHitSoundEvent
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Contacts/DamageSignals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## DamageImpactAudioSequence
+
+Optional per-target audio history owned by `DamageSurface.impactAudio`; all its colliders and incoming vehicles share one first sound. Suspensions, scrapes and unmarked targets keep their ordinary behavior. Only successful playback consumes an impact; callbacks cannot reenter and play the same first sound twice.
+
+**Source:** `Runtime/Effects/Damage/Audio/DamageImpactAudioSequence.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `enabled` | `bool` | Play the first qualifying impact once on this target, then use Follow Up after its delay. Disabled preserves ordinary damage-bank playback. | `false` |
+| `followUp` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Subsequent impact clips. Empty or disabled stays silent. Cooldown is shared by all vehicles striking this target; Avoid Repeat selects among these clips normally. | `new DamageSoundBank{volume = .8, cooldown = .2}` |
+| `followUpDelay` | `float` | Silent separation in seconds after the first played sound before Follow Up becomes eligible. An explicit secondary request also starts this timer when no first sound was played. | `.35`; Minimum: 0 |
+| `followUpMinimumSpeed` | `float` | Minimum normal impact speed in metres/second for subsequent sounds. | `.65`; Minimum: 0 |
+| `overridePrimary` | `bool` | Optional first bank instead of the normally routed material bank. Leave disabled to retain that material's first impact sound. | `false` |
+| `primary` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | First impact clips and response, used only with Override Primary. | `new DamageSoundBank()` |
+| `primaryMinimumSpeed` | `float` | Minimum normal impact speed in metres/second for the first sound only. Does not change damage or physical knockdown. | `2`; Minimum: 0 |
 
 ## DamageImpactProfile
 
-See [damage response setup](../DamageFeedback.md).
+Scripted impact matching, normalized metric evaluation, shared Sound bank and optional custom visual effect.
 
-| Setting | Type | Description | Declared default |
+**Source:** `Runtime/Effects/Damage/Profiles/DamageImpactProfile.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `responseEnabled` | `bool` | Disable this response without removing its material mapping. | `true` |
-| `material` | `PartMaterial` | Built-in part material matched when Material Id is empty. | `` |
-| `materialId` | `string` | Optional case-sensitive custom material key, matched against DamagePart.materialId. Overrides enum matching. | `` |
-| `metric` | `DamageImpactMetric` | Input units for thresholds: damage units, m/s, N s or N. Physical metrics require physical impact data. | `` |
-| `minimumImpact` | `float` | Lowest accepted input in the selected metric's units. | `` |
-| `maximumImpact` | `float` | Input mapped to full response. Higher inputs clamp unless Ignore Above Maximum is enabled. | `12` |
-| `ignoreAboveMaximum` | `bool` | Reject inputs above Maximum Impact instead of clamping them. | `` |
-| `cooldown` | `float` | Seconds between custom visual effects. The Sound bank has its own audio replay cooldown. | `.1f` |
-| `sound` | `DamageSoundBank` | Shared audio response for scripted impacts: one clip list or Light, Medium and Heavy groups, with optional strength curves. | `new DamageSoundBank{usePhysicalResponse = false, volumeScale = DamageVolumeScale.Linear, cooldown = .1f, randomizePitch = false, modulatePitch = true, pitchJitter = .05f}` |
-| `effectPrefab` | `GameObject` | Pooled prefab, such as particles, a light burst or custom IDamageImpactEffect behavior. No prefab is instantiated per hit. | `` |
-| `effectPoolSize` | `int` | Instances to prewarm for this profile, subject to Damage's total instance budget. Zero disables visuals. | `3` |
-| `effectLifetime` | `float` | Maximum effect lease in seconds before returning to the pool. Include child/sub-emitter lifetime. | `2` |
-| `effectScaleRange` | `Vector2` | Uniform effect-scale endpoints mapped from normalized impact. Multiplies the prefab's original scale. | `new Vector2(.5f, 1.2f)` |
 | `alignToImpact` | `bool` | Orient local +Z opposite the deformation direction. Rotation Offset is applied afterward. | `true` |
-| `effectRotationOffset` | `Vector3` | Additional prefab orientation in degrees relative to the impact frame. | `` |
-| `surfaceOffset` | `float` | Move the effect outward from the hit point, opposite the deformation direction, in metres. | `.02f` |
+| `cooldown` | `float` | Seconds between custom visual effects. The Sound bank has its own audio replay cooldown. | `.1`; Minimum: 0 |
+| `effectLifetime` | `float` | Maximum effect lease in seconds before returning to the pool. Include child/sub-emitter lifetime. | `2`; Minimum: .01f |
+| `effectPoolSize` | `int` | Instances to prewarm for this profile, subject to Damage's total instance budget. Zero disables visuals. | `3`; Range: 0 to 32 |
+| `effectPrefab` | `GameObject` | Pooled prefab, such as particles, a light burst or custom IDamageImpactEffect behavior. No prefab is instantiated per hit. | `None / unassigned` |
+| `effectRotationOffset` | `Vector3` | Additional prefab orientation in degrees relative to the impact frame. | `Zero-initialized Vector3` |
+| `effectScaleRange` | `Vector2` | Uniform effect-scale endpoints mapped from normalized impact. Multiplies the prefab's original scale. | `new Vector2(.5, 1.2)` |
+| `ignoreAboveMaximum` | `bool` | Reject inputs above Maximum Impact instead of clamping them. | `false` |
+| `material` | `PartMaterial` | Built-in part material matched when Material Id is empty. Options: `Metal`, `Glass`, `Plastic`, `Rubber`, `Mechanical`, `Custom`. | `Metal` |
+| `materialId` | `string` | Optional case-sensitive custom material key, matched against DamagePart.materialId. Overrides enum matching. | `None / unassigned` |
+| `maximumImpact` | `float` | Input mapped to full response. Higher inputs clamp unless Ignore Above Maximum is enabled. | `12`; Minimum: 0 |
+| `metric` | `DamageImpactMetric` | Input units for thresholds: damage units, m/s, N s or N. Physical metrics require physical impact data. Options: `DamageAmount`, `ImpactSpeed`, `Impulse`, `Force`. | `DamageAmount` |
+| `minimumImpact` | `float` | Lowest accepted input in the selected metric's units. | `0`; Minimum: 0 |
+| `responseEnabled` | `bool` | Disable this response without removing its material mapping. | `true` |
+| `sound` | `DamageSoundBank` ([fields](Effects.md#damagesoundbank)) | Shared audio response for scripted impacts: one clip list or Light, Medium and Heavy groups, with optional strength curves. | `new DamageSoundBank{usePhysicalResponse = false, volumeScale = DamageVolumeScale.Linear, cooldown = .1, randomizePitch = false, modulatePitch = true, pitchJitter = .05}` |
+| `surfaceOffset` | `float` | Move the effect outward from the hit point, opposite the deformation direction, in metres. | `.02`; Minimum: 0 |
+
+## DamageLandingAudioResponse
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Audio/DamageLandingAudioResponse.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `fullFallHeight` | `float` | Fall height in metres giving the full height contribution. Actual impact speed remains the primary input. | `4`; Minimum: .1f |
+| `fullImpactSpeed` | `float` | Normal approach speed in m/s producing the strongest touchdown sound. | `9`; Minimum: .1f |
+| `fullLoad` | `float` | Contact load in multiples of supported weight giving the full load contribution. | `6`; Minimum: 1.01f |
+| `fullTravelSpeed` | `float` | Tangential speed relative to the landing surface, in m/s, giving the full travel contribution. | `30`; Minimum: .1f |
+| `gain` | `Vector2` | Volume multiplier from a gentle touchdown to a hard landing. | `new Vector2(.08, 1)` |
+| `pitch` | `Vector2` | Pitch and playback-rate multiplier from a gentle touchdown to a hard landing. | `new Vector2(1.12, .86)` |
+| `travelInfluence` | `float` | Small extra gain/rate contribution from surface-relative travel. Cannot turn a gentle contact into a hard landing. | `.1`; Range: 0 to .3f |
+
+## DamageParticles
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Visuals/DamageParticles.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `debrisEnabled` | `bool` | Emit generic fragments on sufficiently strong hard-body impacts. | `true` |
+| `enabled` | `bool` | Enable built-in damage particles. SetParticlesEnabled(false) also clears particles already in flight. | `true` |
+| `glassEnabled` | `bool` | Emit glass fragments for strong Glass contacts and glass breakage. | `true` |
+| `maximumEmissionsPerStep` | `int` | Shared per-vehicle emission budget per physics step across sparks, debris and glass. | `24`; Range: 1 to 64 |
+| `maximumParticlesPerSystem` | `int` | Maximum live particles in each prewarmed particle system. Call WarmUpEffects after changing capacity at runtime. | `160`; Range: 16 to 512 |
+| `sparksEnabled` | `bool` | Emit sparks for allowed hard metal contacts and scraping. Surface spark permission still applies. | `true` |
+
+## DamagePartSoundEvent
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Contacts/DamageSignals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## DamageSoundBank
+
+Single shared clip list or three strength groups, with independent volume and pitch modulation.
+
+**Source:** `Runtime/Effects/Damage/Profiles/DamageSoundBank.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `avoidRepeat` | `bool` | Avoid immediately repeating the same clip when a group has multiple usable clips. | `true` |
+| `clips` | `AudioClip[]` | Recordings selected randomly for this list. Empty or disabled groups stay silent. | `Empty list` |
+| `cooldown` | `float` | Minimum interval in seconds before replaying this bank/group. Does not delay the first accepted hit. | `.09`; Minimum: 0 |
+| `enabled` | `bool` | Enable this response without removing its clip assignments. | `true` |
+| `fixedPitch` | `float` | Constant base playback pitch when Randomize Pitch is off. One is the original pitch and speed. | `1`; Range: .1f to 3 |
+| `heavy` | `DamageSoundGroup` ([fields](Effects.md#damagesoundgroup)) | Recordings and multipliers at or above Heavy Strength. | `new DamageSoundGroup()` |
+| `heavyStrength` | `float` | Normalized contact strength, from zero to one, at which Heavy starts. | `.5`; Range: 0 to 1 |
+| `layout` | `DamageClipLayout` | Single uses one shared clip list; Strength Groups selects Light, Medium or Heavy from normalized contact strength. Options: `Single`, `StrengthGroups`. | `Single` |
+| `light` | `DamageSoundGroup` ([fields](Effects.md#damagesoundgroup)) | Recordings and multipliers below Medium Strength. | `new DamageSoundGroup()` |
+| `medium` | `DamageSoundGroup` ([fields](Effects.md#damagesoundgroup)) | Recordings and multipliers from Medium Strength up to Heavy Strength. | `new DamageSoundGroup()` |
+| `mediumStrength` | `float` | Normalized contact strength, from zero to one, at which Medium starts. | `.2`; Range: 0 to 1 |
+| `minimumGain` | `float` | Quietest impact gain, relative to Volume. The response curve blends from this floor to full gain. | `.2`; Range: 0 to 1 |
+| `modulatePitch` | `bool` | Multiply playback pitch/speed by Pitch By Strength in either clip layout. | `false` |
+| `modulateVolume` | `bool` | Shape gain from normalized contact strength using Minimum Gain, Volume Scale and Volume By Strength. | `true` |
+| `pitch` | `Vector2` | Minimum and maximum pitch multipliers. Group pitch multiplies the common bank pitch. | `new Vector2(.92, 1.08)` |
+| `pitchByStrength` | `AnimationCurve` | Pitch/playback-rate multiplier against normalized contact strength. Available in either clip layout. | `AnimationCurve.Linear(0, 1.1, 1, .85)` |
+| `pitchJitter` | `float` | Additional small random pitch offset applied after the strength curve. Zero disables jitter. | `0`; Range: 0 to 1 |
+| `randomizePitch` | `bool` | Choose pitch randomly within Pitch. Disable to use Fixed Pitch; group pitch ranges then use their midpoint. | `true` |
+| `usePhysicalResponse` | `bool` | Apply vehicle mass, contact angle and landing/suspension response. Disable for playback controlled only by this bank and its strength curves. | `true` |
+| `volume` | `float` | Gain multiplier for this bank/group. Group gain multiplies the common bank gain. | `1`; Range: 0 to 1 |
+| `volumeByStrength` | `AnimationCurve` | Normalized strength to volume response: zero uses Minimum Gain; one uses full Volume. Volume Scale selects linear or perceived-energy interpolation. | `AnimationCurve.Linear(0, 0, 1, 1)` |
+| `volumeScale` | `DamageVolumeScale` | Linear follows the volume curve directly; Perceived Energy uses its square root for a louder weak-contact response. Options: `PerceivedEnergy`, `Linear`. | `PerceivedEnergy` |
+
+## DamageSoundEvent
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Contacts/DamageSignals.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
+## DamageSoundGroup
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Profiles/DamageSoundBank.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `clips` | `AudioClip[]` | Recordings selected randomly for this list. Empty or disabled groups stay silent. | `Empty list` |
+| `cooldown` | `float` | Minimum interval in seconds before replaying this bank/group. Does not delay the first accepted hit. | `.09`; Minimum: 0 |
+| `enabled` | `bool` | Enable this response without removing its clip assignments. | `true` |
+| `pitch` | `Vector2` | Minimum and maximum pitch multipliers. Group pitch multiplies the common bank pitch. | `Vector2.one` |
+| `volume` | `float` | Gain multiplier for this bank/group. Group gain multiplies the common bank gain. | `1`; Range: 0 to 1 |
+
+## DamageSurface
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Surfaces/DamageSurface.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `allowSparks` | `bool` | Disable for sand, grass, water-edge props or other surfaces that should never produce metallic sparks. | `true` |
+| `detachedSurfaceType` | `DamageSurfaceType` | Surface selected after the nearest parent DamagePart detaches, when Separate Detached Surface is enabled. Options: `Hard`, `Soft`, `Humanoid`, `Plastic`, `Glass`. | `DamageSurfaceType.Hard` |
+| `impactAudio` | `DamageImpactAudioSequence` ([fields](Effects.md#damageimpactaudiosequence)) | Optional first/subsequent impact sounds shared by every collider and vehicle hitting this surface. Runtime controllers can switch it through SetSecondary. | `new DamageImpactAudioSequence()` |
+| `responseProfile` | `DamageFeedbackProfile` ([fields](Effects.md#damagefeedbackprofile)) | Optional sound banks and pooled custom impact effect for this target. Empty uses the vehicle defaults. Classification still controls suppression of metallic effects. | `None / unassigned` |
+| `scrapeGain` | `float` | Scale sustained body-scrape audio/particle activity on this collider or its children. | `1`; Range: 0 to 2 |
+| `surfaceType` | `DamageSurfaceType` | Glass selects glass impacts and fragments; Plastic selects plastic impacts and friction; Soft uses Soft Crash; Humanoid uses its own body-impact bank. Add Damage Contact Limiter to group contacts on a target with multiple colliders. Both suppress metallic scraping, sparks and fragments. Does not alter damage or physics. Options: `Hard`, `Soft`, `Humanoid`, `Plastic`, `Glass`. | `DamageSurfaceType.Hard` |
+| `useDetachedSurface` | `bool` | Use a different surface after the nearest parent Damage Part detaches. Surface Type is the attached state. | `false` |
+
+## DamageSurfaceResponse
+
+See the [damage response setup](../DamageFeedback.md) for configuration and examples.
+
+**Source:** `Runtime/Effects/Damage/Profiles/DamageFeedbackProfile.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `profile` | `DamageFeedbackProfile` ([fields](Effects.md#damagefeedbackprofile)) | Sound banks, scrape loop and pooled effects for this material. Empty keeps the base profile. | `None / unassigned` |
+| `surface` | `DamageSurfaceType` | Contact surface category that selects this response. Options: `Hard`, `Soft`, `Humanoid`, `Plastic`, `Glass`. | `Hard` |
 
 ## DefaultParticlePreset
 
@@ -308,14 +666,11 @@ Owns and renders independent engine/rotor sound items. Each item has its own sou
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `engine` | `Engine` ([fields](Engine.md#engine)) | Default engine for sound items without their own Engine. Empty resolves from the vehicle; item overrides take priority. | `None / unassigned` |
 | `gizmoSize` | `float` | Radius of audio-origin markers in metres. | `.08`; Minimum: .01f |
 | `items` | `List<EngineAudioItem>` ([fields](Effects.md#engineaudioitem)) | Independent engine/rotor sounds. Each item owns its ID, profile, anchor, response and ignition settings. | `new List<EngineAudioItem>{new EngineAudioItem()}` |
 | `showGizmos` | `bool` | Show yellow audio-origin markers, labels and anchor connections in the Scene view. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
 
-
-| Field | Type | Usage | Default |
-| --- | --- | --- | --- |
-| `engine` | `Engine` | Source owned by this audio channel. Empty resolves from the vehicle; explicit assignments are preserved. | `None / unassigned` |
 ## EngineAudioItem
 
 Serializable per-source configuration. Assign several items for multiple engines/rotors, and switch them through ID-based activation.
@@ -325,7 +680,8 @@ Serializable per-source configuration. Assign several items for multiple engines
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `active` | `bool` | Enables this sound only. Disabling stops its loop and ignition without affecting other items. | `true` |
-| `engine` | `Engine` ([fields](Engine.md#engine)) | Optional mechanical engine to follow. Empty uses Engine Audio > Engine, which resolves from the vehicle when unassigned. | `None / unassigned` |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback settings for this engine sound item. | `new VehicleAudioSettings{volume = 0.45, pitchRange = new Vector2(0.65, 1.8)}` |
+| `engine` | `Engine` ([fields](Engine.md#engine)) | Optional mechanical engine to follow. Empty uses Engine Audio's Engine, which resolves from the vehicle when unassigned. | `None / unassigned` |
 | `engineLoopReferenceRpm` | `float` | For detailed RPM response, the RPM at which the recording plays at its original pitch. Positive values use engine RPM divided by this reference, clamped to the profile or item pitch range; zero uses normalized RPM and the exponent. | `0`; Minimum: 0 |
 | `engineLoopStartDelay` | `float` | Delay after an actual engine-start transition before an ordinary loop can play. Already-running engines and propulsion spool are not delayed. | `1`; Minimum: 0 |
 | `engineRpmPitchExponent` | `float` | Shapes detailed normalized RPM-to-pitch response when Reference RPM is zero. Values below 1 raise low-RPM pitch; values above 1 keep it lower until RPM rises. | `1`; Range: .2f to 2 |
@@ -335,29 +691,22 @@ Serializable per-source configuration. Assign several items for multiple engines
 | `followPropulsionSpool` | `bool` | Scales the sound with propulsion spin-up/down. Off follows ignition state directly. | `true` |
 | `forwardSpeedReference` | `float` | Full forward-speed activity for an override-only Motion loop. | `25`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `id` | `string` | Unique, case-sensitive ID used by EngineAudio's runtime API. | `"Engine"` |
+| `ignitionAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback settings shared by ignition-related cues unless a cue overrides them. | `new VehicleAudioSettings()` |
 | `loadSensitiveTone` | `bool` | Includes engine load in the loop tone response. | `false` |
 | `loopOverride` | `AudioClip` | Replaces the profile loop, or supplies the loop when no profile is assigned. | `None / unassigned` |
+| `mixAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback override for this item when used as a mixed engine layer. | `new VehicleAudioSettings()` |
 | `overrideIgnitionClips` | `bool` | Use this item's ignition clips instead of profile clips. Otherwise assigned profile clips and their volumes take priority. | `false` |
 | `pitchMode` | `EnginePitchMode` | Pitch mapping for override-only loops. Profile sounds use their own Pitch Mode. Options: `Rpm`, `Constant`, `Motion`. | `EnginePitchMode.Rpm` |
 | `playIgnitionSounds` | `bool` | Plays start/stop one-shots when the engine running state changes. This switch does not disable the continuous engine loop. | `true` |
+| `profileAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback override applied to sound-profile audio for this item. | `new VehicleAudioSettings()` |
 | `propulsion` | `Propulsion` ([fields](Exterior.md#propulsion)) | Optional propulsion spool to follow. Empty uses the vehicle's Propulsion. | `None / unassigned` |
 | `reactToEngineActivity` | `bool` | Allows engine RPM/throttle or profile activity to change volume and load-sensitive tone. | `true` |
 | `reactToPitch` | `bool` | Allows RPM/motion/spool to change pitch. Off holds Fixed Pitch exactly. | `true` |
 | `soundProfile` | `EngineSoundProfile` ([fields](Effects.md#enginesoundprofile)) | Engine sound preset assigned in Effects > Audio > Engine. It supplies the repeating clip, volume and pitch behavior. Use Loop Override to replace only the recording while keeping this preset tuning. | `None / unassigned` |
+| `startAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback override for the engine-start cue. | `new VehicleAudioSettings{volume = 0.65}` |
+| `stopAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback override for the engine-stop cue. | `new VehicleAudioSettings{volume = 0.6}` |
 | `useEngineResponse` | `bool` | Allows detailed RPM reference, exponent, load tone and shift response. Profile sounds also require Use Engine Response on their profile. | `true` |
 | `verticalSpeedReference` | `float` | Full vertical-speed activity for an override-only Motion loop. | `6`; Speed field; stored in m/s, displayed in the selected speed unit |
-
-
-### Audio Settings groups
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `ignitionAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `mixAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `profileAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `startAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `stopAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
 
 ## EngineSoundProfile
 
@@ -367,22 +716,16 @@ Stores engine sound behavior and asset configuration.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Emitter and playback settings for the main engine loop. | `new VehicleAudioSettings{volume = 0.5, pitchRange = new Vector2(0.9, 1.1)}` |
 | `forwardSpeedReference` | `float` | Forward speed in m/s used to normalize a forward-speed-driven sound profile. | `25`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `loop` | `AudioClip` | Looping engine recording used by this preset. Choose a seamless clip because it repeats while the engine sound is active. | `None / unassigned` |
 | `pitchMode` | `EnginePitchMode` | Rpm changes pitch with engine revs. Constant keeps a fixed playback pitch. Motion derives activity from vehicle movement, useful for sounds that should follow speed instead of revs. Options: `Rpm`, `Constant`, `Motion`. | `Rpm` |
+| `startAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback override for this profile engine-start sound. | `new VehicleAudioSettings{volume = 0.65}` |
 | `startClip` | `AudioClip` | Start sound used by items referencing this profile, unless explicitly overridden on the item. | `None / unassigned` |
+| `stopAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback override for this profile engine-stop sound. | `new VehicleAudioSettings{volume = 0.6}` |
 | `stopClip` | `AudioClip` | Stop sound used by items referencing this profile, unless explicitly overridden on the item. | `None / unassigned` |
 | `useEngineResponse` | `bool` | For RPM profiles, use the item's RPM exponent/reference, throttle level, tone filter and shift response. | `false` |
 | `verticalSpeedReference` | `float` | Vertical speed in m/s used to normalize a vertical-speed-driven sound profile. | `6`; Speed field; stored in m/s, displayed in the selected speed unit |
-
-
-### Audio Settings groups
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `startAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `stopAudioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
 
 ## EventAudio
 
@@ -395,7 +738,7 @@ Configuration/implementation type for event audio within audio cores and channel
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `events` | `Events` ([fields](Effects.md#events)) | Custom application event hub. Empty resolves Events on the owning vehicle. | `None / unassigned` |
-| `eventSounds` | `AudioEvent[]` ([fields](Effects.md#audioevent)) | Application-defined sound entries matched against IDs explicitly published through Events; intensity scales one-shot gain. | `Empty list` |
+| `eventSounds` | `AudioEvent[]` ([fields](Effects.md#audioevent)) | Application-defined sound entries; new channels start empty. | `System.Array.Empty<AudioEvent>()` |
 
 ## Events
 
@@ -405,7 +748,7 @@ Publishes application-defined custom effect events.
 
 **Inherited settings:** [EffectsModule](Effects.md#effectsmodule). These settings also appear on this type.
 
-No additional serialized settings. Publish application-defined events through `Publish`.
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
 
 ## ExhaustSmoke
 
@@ -422,28 +765,69 @@ Controls emission from configured exhaust outlets.
 | `defaultMaterial` | `Material` | Smoke material used when generating the default exhaust effect without a prefab. Without a usable prefab or material, an empty emitter cannot be created. | `None / unassigned` |
 | `engine` | `Engine` ([fields](Engine.md#engine)) | Engine supplying running state, RPM and throttle for exhaust intensity. Setup looks on the same GameObject when empty. | `None / unassigned` |
 | `exhaustPoints` | `Transform[]` | Tailpipe attachment points, one per exhaust emitter. Each point's position and rotation place the corresponding particle system. | `None / unassigned` |
-| `idleRate` | `float` | Emission rate at idle activity, in particles per second. | `3`; Minimum: 0 |
+| `idleRate` | `float` | Particles per second emitted at idle before intensity scaling. | `3`; Minimum: 0 |
 | `intensityMultiplier` | `float` | Multiplies the number of exhaust particles emitted per second after blending idle and loaded rates. Higher values make the exhaust denser. | `4`; Minimum: 0 |
-| `loadedRate` | `float` | Emission rate at full propulsion load, in particles per second. | `18`; Minimum: 0 |
-| `nitroIntensity` | `float` | Nitro flame emission multiplier. Default 1; zero stops emission. | 1; minimum 0 |
-| `nitroParticlePrefab` | `ParticleSystem` | Nitro flame prefab at Exhaust Points. Authoring assigns the package default from Resources/Effects/Nitro; replace or clear to disable. | Package NitroFlame.prefab assigned at creation |
-| `nitroResponse` | `float` | Flame intensity response per second. Default 12; release stops emission immediately. | 12; minimum .1 |
-| `nitroRpmInfluence` | `float` | RPM influence on flame emission, speed and size. Default .75; zero preserves the prefab baseline response. | .75; range 0–1 |
+| `loadedRate` | `float` | Particles per second emitted at full propulsion load before intensity scaling. | `18`; Minimum: 0 |
+| `nitroIntensity` | `float` | Nitro flame emission multiplier. Default 1; zero stops emission. | `1`; Minimum: 0 |
+| `nitroParticlePrefab` | `ParticleSystem` | Nitro flame prefab at Exhaust Points. The optional Demo supplies a default; replace or clear to disable. | `None / unassigned` |
+| `nitroResponse` | `float` | Flame intensity response per second. Default 12; release stops emission immediately. | `12`; Minimum: .1f |
+| `nitroRpmInfluence` | `float` | RPM influence on flame emission, speed and size. Default .75; zero preserves the prefab baseline response. | `.75`; Range: 0 to 1 |
 | `particlePrefab` | `ParticleSystem` | Particle effect cloned for an exhaust point with no assigned system. A custom prefab provides its own appearance instead of the built-in smoke setup. | `None / unassigned` |
 | `particles` | `ParticleSystem[]` | Existing particle systems assigned in the same order as Exhaust Points. Empty entries can be created from Particle Prefab or the default material; preassigned systems are reused. | `None / unassigned` |
 | `response` | `float` | How quickly exhaust activity follows changing engine load. Higher values produce faster density changes; lower values give a slower buildup and fade. | `12`; Minimum: .1f |
 | `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle whose enabled state and movement profile determine whether exhaust smoke is appropriate. Setup looks on the same GameObject when empty. | `None / unassigned` |
 
-## HornAudio
+## HandleAudio
 
-**Source:** `Runtime/Effects/Audio/Modules/HornAudio.cs`. Inherits AudioModule.
+Optional audio channel driven by the public VehicleHandle value-change events. Works with any handle and its authored value source; placement under a vehicle Audio core controls ownership.
+
+**Source:** `Runtime/Effects/Audio/Modules/HandleAudio.cs`. Component / asset.
+
+**Inherited settings:** [AudioModule](Effects.md#audiomodule). These settings also appear on this type.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Volume, pitch, spatial range/anchor and output mixer; respects the Audio core master settings. |
-| `clip` | `AudioClip` | Optional replacement horn. |
-| `releaseDuration` | `float` | Default .05 seconds; fade-out on release. Zero stops immediately. |
-| `useDefaultClip` | `bool` | Use the serialized default horn assigned by the editor when Clip is empty. |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | One-shot gain, pitch, routing and emitter. Empty anchor emits at the bound handle. | `new VehicleAudioSettings{volume = .5, minDistance = .5, maxDistance = 12}` |
+| `axis` | `HandleAudioAxis` | Component of Interaction Value used for cue thresholds and direction. Animator-backed handles normally use X. Options: `X`, `Y`, `Z`, `Magnitude`. | `X` |
+| `cues` | `HandleAudioCue[]` ([fields](Effects.md#handleaudiocue)) | Independent one-shot rules for movement, target values and start/stop transitions. | `Empty list` |
+| `cueTiming` | `HandleAudioTiming` | Actual Movement follows the handle's displayed value. Requested Value plays one-shots from the control animator's demand before waiting for the hand. Handles without a control animator use their normal value. Movement Loop always follows actual motion. Options: `ActualMovement`, `RequestedValue`. | `ActualMovement` |
+| `handle` | `VehicleHandle` ([fields](World.md#vehiclehandle)) | Any vehicle handle exposing value-change events. Put the audio channel on the handle or elsewhere under the vehicle Audio core. | `None / unassigned` |
+| `listeningView` | `CameraModule` ([fields](World.md#cameramodule)) | Optional listening camera module, such as Interior or Orbit. Empty allows every camera. | `None / unassigned` |
+| `movementLoop` | `AudioClip` | Optional continuous recording while the handle reports a changing value. | `None / unassigned` |
+| `movementSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Independent loop source and mix. Avoid assigning the same external source as the one-shots. | `new VehicleAudioSettings{volume = .35, minDistance = .5, maxDistance = 12}` |
+| `playAutomaticChanges` | `bool` | Play cues and movement audio for changes marked automatic through SetAutomaticChange. Disabled by default. | `false` |
+
+## HandleAudioCue
+
+One automatic one-shot rule. Thresholds are expressed in the selected HandleAudio axis units, not degrees unless the source itself supplies degrees.
+
+**Source:** `Runtime/Effects/Audio/Handles/HandleAudioCue.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `clips` | `AudioClip[]` | Randomly selected recordings. Empty entries are ignored. | `Empty list` |
+| `cooldown` | `float` | Minimum seconds between accepted repetitions of this cue. | `.1`; Minimum: 0 |
+| `direction` | `HandleAudioDirection` | Optional direction restriction on the selected value axis. Options: `Both`, `Increasing`, `Decreasing`. | `Both` |
+| `minimumChange` | `float` | Required accumulated value change between Value Changed cues, in handle value units. | `.1`; Minimum: .0001f |
+| `targetValue` | `float` | Target in handle value units for a Value Reached cue. | `1` |
+| `tolerance` | `float` | Target acceptance band. Leave the band before the same target can fire again. | `.01`; Minimum: 0 |
+| `trigger` | `HandleAudioTrigger` | When this cue may play. Value Changed accumulates Minimum Change; Value Reached also detects crossing the target between samples. Options: `ChangeStarted`, `ValueChanged`, `ValueReached`, `ChangeStopped`. | `HandleAudioTrigger.ValueChanged` |
+| `volume` | `float` | Additional gain for this cue, multiplied by channel and master volume. | `1`; Minimum: 0 |
+
+## HornAudio
+
+Held audible warning using a replaceable clip or packaged default. Inherits [AudioModule](../API/Audio.md#audiomodule); add beside the Audio core.
+
+**Source:** `Runtime/Effects/Audio/Modules/HornAudio.cs`. Component / asset.
+
+**Inherited settings:** [AudioModule](Effects.md#audiomodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Horn gain, emitter, spatial range and mixer output. | `new VehicleAudioSettings{volume = .8, minDistance = 8, maxDistance = 100}` |
+| `clip` | `AudioClip` | Optional replacement horn recording. | `None / unassigned` |
+| `releaseDuration` | `float` | Seconds to fade after the request is released. | `.05`; Minimum: 0 |
+| `useDefaultClip` | `bool` | Use the packaged CC0 horn when no clip is assigned. | `true` |
 
 ## IndicatorAudio
 
@@ -455,21 +839,38 @@ Follows actual indicator output phase.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Playback gain, pitch and emitter settings for indicator clicks. | `new VehicleAudioSettings{volume = 0.45}` |
 | `lights` | `Lights` ([fields](Exterior.md#lights)) | Lights module whose blink changes trigger the indicator clicks. If empty, the component searches the same GameObject. | `None / unassigned` |
 | `tickOff` | `AudioClip` | Optional replacement for the relay click when the lamps turn off. | `None / unassigned` |
 | `tickOn` | `AudioClip` | Optional replacement for the relay click when the lamps turn on. | `None / unassigned` |
 | `useDefaultClicks` | `bool` | Generates a built-in indicator click when no clip is assigned for that blink. Turn off if unassigned click clips should stay silent. | `true` |
 
+## JetBlast
 
-### Audio Settings groups
+Base type: `EffectsModule`. See [configuration and usage](../Particles.md#jet-blast).
 
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
+**Source:** `Runtime/Effects/Forces/JetBlast.cs`. Component / asset.
+
+**Inherited settings:** [EffectsModule](Effects.md#effectsmodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `activation` | `JetBlastActivation` | Engine Running includes idle exhaust while another vehicle is selected. Throttle Only emits only above the configured throttle threshold. Options: `EngineRunning`, `ThrottleOnly`. | `JetBlastActivation.EngineRunning` |
+| `affectedLayers` | `LayerMask` | Bodies on these layers can be pushed. Trigger colliders are ignored. | `~0` |
+| `contactCapacity` | `int` | Maximum colliders sampled per outlet. Prepared once at startup. | `128`; Range: 8 to 512 |
+| `endRadius` | `float` | Radius at maximum reach in metres. | `4`; Minimum: .01f |
+| `forceMultiplier` | `float` | Overall force multiplier, applied to both idle and full-power exhaust without changing the plume volume. | `1`; Minimum: 0 |
+| `idleStrength` | `float` | Fraction of Maximum Force emitted by a running engine at zero throttle. 0.12 means 12%; zero disables idle blast. Distance and plume-edge falloff still apply. | `.12`; Range: 0 to 1 |
+| `length` | `float` | Maximum exhaust reach in metres. | `18`; Minimum: .1f |
+| `maximumForce` | `float` | Force per outlet at full engine power, in newtons, before distance and plume-edge falloff. Heavy bodies accelerate less. | `45000`; Minimum: 0 |
+| `minimumThrottle` | `float` | Minimum positive throttle required in Throttle Only mode. | `.02`; Range: 0 to 1 |
+| `outlets` | `Transform[]` | Exhaust origins. Each transform's local forward points OUT of the engine. | `Empty list` |
+| `showGizmos` | `bool` | Draw exhaust range when selected. | `true` |
+| `startRadius` | `float` | Radius at the nozzle in metres. | `.5`; Minimum: .01f |
 
 ## MovingPartAudio
 
-Optional presentation receiver for MovingPartAudio.
+Optional audio receiver for moving mechanisms.
 
 **Source:** `Runtime/Effects/Audio/Modules/MovingPartAudio.cs`. Component / asset.
 
@@ -478,11 +879,11 @@ Optional presentation receiver for MovingPartAudio.
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `motionSource` | `MonoBehaviour` | MovingPart or VehicleBodyPart publishing motion notifications. | `None / unassigned` |
-| `movementAudio` | `PartMotionAudio` ([fields](Exterior.md#partmotionaudio)) | Start and actual-arrival sounds. Increasing Is Opening maps event directions; instant pose setters stay silent. | `new PartMotionAudio()` |
+| `movementAudio` | `PartMotionAudio` ([fields](Exterior.md#partmotionaudio)) | Optional [opening/closing sound settings](../API/MovingParts.md#partmotionaudio). Start cues play once per changed request, including explicit closing of an impact-unlatched panel; completion cues follow actual hinge arrival. Collision swinging alone is silent. | `new PartMotionAudio()` |
 
 ## NitroAudio
 
-Optional presentation receiver for NitroAudio.
+Optional audio driven by Nitro output notifications.
 
 **Source:** `Runtime/Effects/Audio/Modules/NitroAudio.cs`. Component / asset.
 
@@ -490,17 +891,17 @@ Optional presentation receiver for NitroAudio.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `nitro` | `Nitro` | Nitro source supplying current output state and strength. Empty resolves Nitro on the same GameObject. | `None / unassigned` |
-| `nitroLoopAudioSettings` | `VehicleAudioSettings` | Loop mix/spatial settings. Default volume .7, pitch range .8–1.25, distance 3–55 m; pitch and gain follow RPM. | volume .7; pitch .8–1.25; distance 3–55 m |
-| `nitroLoopClip` | `AudioClip` | Sustained jet-engine loop during boost. Bundled default assigned on component creation; clear to mute. | Bundled NitroLoop.wav |
-| `nitroOffAudioSettings` | `VehicleAudioSettings` | Independent VehicleAudioSettings for the Off cue. Default volume 0.45, distance 3–45 m. Supplied AudioSources/anchors are preserved during component cleanup. | volume .45; minDistance 3; maxDistance 45 |
-| `nitroOffClip` | `AudioClip` | Release cue; bundled jet shutdown default. | Bundled NitroStop.wav when adding the component |
-| `nitroOnAudioSettings` | `VehicleAudioSettings` | Independent VehicleAudioSettings for the On cue: enabled, volume, pitch, source/anchor, mixer, spatial range and routing. Default volume 0.65, distance 3–45 m. | volume .65; minDistance 3; maxDistance 45 |
-| `nitroOnClip` | `AudioClip` | Activation cue; bundled jet-engine default. Replace or clear as needed. | Bundled NitroStart.wav when adding the component |
+| `nitro` | `Nitro` ([fields](Engine.md#nitro)) | Nitro source supplying output state and strength. | `None / unassigned` |
+| `nitroLoopAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Loop mix/spatial settings. Default volume .7, pitch range .8–1.25, distance 3–55 m; pitch and gain follow RPM. | `new VehicleAudioSettings{volume = .7, pitchRange = new Vector2(.8, 1.25), minDistance = 3, maxDistance = 55}` |
+| `nitroLoopClip` | `AudioClip` | Sustained jet-engine loop during boost. Bundled default assigned on component creation; clear to mute. | `None / unassigned` |
+| `nitroOffAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Independent AudioSettings for the Off cue. Default volume 0.45, distance 3–45 m. Supplied AudioSources/anchors are preserved during component cleanup. | `new VehicleAudioSettings{volume = .45, minDistance = 3, maxDistance = 45}` |
+| `nitroOffClip` | `AudioClip` | Release cue; bundled jet shutdown default assigned on component creation. | `None / unassigned` |
+| `nitroOnAudioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Independent AudioSettings for the On cue: enabled, volume, pitch, source/anchor, mixer, spatial range and routing. Default volume 0.65, distance 3–45 m. | `new VehicleAudioSettings{volume = .65, minDistance = 3, maxDistance = 45}` |
+| `nitroOnClip` | `AudioClip` | Activation cue; bundled jet-engine default assigned on component creation. | `None / unassigned` |
 
 ## ProfileTransitionAudio
 
-Optional presentation receiver for ProfileTransitionAudio.
+Optional audio receiver for admitted profile transitions.
 
 **Source:** `Runtime/Effects/Audio/Modules/ProfileTransitionAudio.cs`. Component / asset.
 
@@ -508,21 +909,21 @@ Optional presentation receiver for ProfileTransitionAudio.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `sounds` | `TransitionSound[]` ([fields](Effects.md#profiletransitionaudiotransitionsound)) | Per-transition forward/reverse recordings and playback settings. | `Empty list` |
-| `switcher` | `ProfileSwitcher` | Profile switcher publishing transition requests. | `None / unassigned` |
+| `sounds` | `TransitionSound[]` ([fields](Effects.md#profiletransitionaudiotransitionsound)) | Audio routes matched to a transition component. Each route owns both direction clips and its playback settings. | `Empty list` |
+| `switcher` | `ProfileSwitcher` ([fields](Drive.md#profileswitcher)) | Profile switcher supplying admitted transitions. | `None / unassigned` |
 
 ## ProfileTransitionAudio.TransitionSound
 
-Audio configuration for one transition route.
+Presentation or lifecycle contract for independent vehicle components.
 
-**Source:** `Runtime/Effects/Audio/Modules/ProfileTransitionAudio.cs`. Nested configuration data.
+**Source:** `Runtime/Effects/Audio/Modules/ProfileTransitionAudio.cs`. Nested configuration data; expand its owning field in the Inspector.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Playback settings for this transition sound. | `new VehicleAudioSettings { volume = .65f }` |
-| `forwardClip` | `AudioClip` | Recording for the transition from its source profile to its destination. | `None / unassigned` |
-| `reverseClip` | `AudioClip` | Recording for the reverse direction of a bidirectional route. | `None / unassigned` |
-| `transition` | `ProfileTransition` | Transition component matched by this audio entry. | `None / unassigned` |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Reusable [VehicleAudioSettings](../API/Audio.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. | `new VehicleAudioSettings{volume = .65}` |
+| `forwardClip` | `AudioClip` | Optional one-shot sound for changing from From Profile ID to To Profile ID. Leave empty for a silent forward transition. | `None / unassigned` |
+| `reverseClip` | `AudioClip` | Optional one-shot for the opposite change when Bidirectional is enabled. It can differ from the forward transformation sound. | `None / unassigned` |
+| `transition` | `ProfileTransition` ([fields](Drive.md#profiletransition)) | Transition route whose direction selects a recording. | `None / unassigned` |
 
 ## PropulsionJets
 
@@ -540,11 +941,11 @@ Presents propulsion exhaust/jet outlets.
 | `engine` | `Engine` ([fields](Engine.md#engine)) | Engine supplying running state and throttle for jet emission. If empty, the component looks on the assigned vehicle. | `None / unassigned` |
 | `followPropulsionSpool` | `bool` | Scale emission by the shared aircraft engine spool. Custom particle prefabs remain untouched. | `false` |
 | `hoverPoints` | `Transform[]` | Jet outlet transforms used while HoverProfile is active. Their positions and rotations place and aim the generated effects. | `Empty list` |
-| `idleRate` | `float` | Emission rate at idle activity, in particles per second. | `15`; Minimum: 0 |
+| `idleRate` | `float` | Jet particles per second at idle activity. | `15`; Minimum: 0 |
 | `jetsEnabled` | `bool` | Master switch for visible propulsion jets. The engine and vehicle can still produce thrust when these visual effects are off. | `true` |
 | `jetSpeed` | `float` | Particle launch speed for the generated propulsion jet visuals. | `4`; Minimum: 0 |
-| `loadedRate` | `float` | Emission rate at full propulsion load, in particles per second. | `65`; Minimum: 0 |
-| `nitroRateMultiplier` | `float` | PropulsionJets emission multiplier at full Nitro output; default 3, minimum 1. | `3` |
+| `loadedRate` | `float` | Jet particles per second at full propulsion activity before boost scaling. | `65`; Minimum: 0 |
+| `nitroRateMultiplier` | `float` | Emission multiplier at full Nitro strength. | `3`; Minimum: 1 |
 | `particlePrefab` | `ParticleSystem` | Particle effect cloned at each active outlet. Without a prefab, Default Material is used to create the built-in jet effect. | `None / unassigned` |
 | `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle whose movement profile selects hover or aircraft jet outlets. If empty, the component searches its parent hierarchy. | `None / unassigned` |
 
@@ -560,25 +961,27 @@ Consumes contact state and controls trail history.
 | --- | --- | --- | --- |
 | `groundOffset` | `float` | Distance in metres the mark is raised along the ground normal. Use a small positive value to keep marks from flickering inside the road surface. | `.015`; Minimum: .001f |
 | `lifetime` | `float` | Seconds a skidmark remains before fading from the trail. Increase to keep marks visible longer; the segment buffer can still overwrite old marks sooner if it fills. | `35`; Minimum: 1 |
-| `material` | `Material` | Use Szczyglis/UltraVehicleSystem/Skidmarks or a compatible transparent vertex-color material. | `None / unassigned` |
-| `maximumGap` | `float` | Largest separation that may be joined by one continuous tire trail, in metres. | `2`; Minimum: .1f |
+| `material` | `Material` | Use the skidmark material or a compatible transparent vertex-color material. | `None / unassigned` |
+| `maximumGap` | `float` | Largest allowed distance in metres between connected segments; larger gaps begin a new strip. | `2`; Minimum: .1f |
 | `maxSegments` | `int` | Number of skidmark segments held in the rolling mesh buffer. A larger buffer keeps more old marks visible but uses more mesh memory; old segments are reused when full. | `2048`; Range: 16 to 8192 |
 | `minimumDistance` | `float` | Minimum distance in metres a tire must move before extending its current skidmark. Increase for fewer, longer segments; decrease for smoother curves with more segments. | `.12`; Minimum: .01f |
 | `minimumIntensity` | `float` | Minimum normalized skid/mark activity required to emit a ribbon segment. | `.12`; Range: 0 to 1 |
-| `tireFeedback` | `TireFeedback` ([fields](Effects.md#tirefeedback)) | Wheel-contact and slip source telling the renderer when and where to leave marks. If empty, the component searches the same GameObject. | `None / unassigned` |
+| `tireFeedback` | `TireFeedback` ([fields](Effects.md#tirefeedback)) | Tire contact and skid source for marks. | `None / unassigned` |
 | `width` | `float` | Base ribbon width in metres for emitted skid marks, before any surface mark-width multiplier. | `.24`; Minimum: .01f |
 
 ## SwitchAudio
 
-**Source:** `Runtime/Effects/Audio/Modules/SwitchAudio.cs`. Component configuration.
+Configuration/implementation type for switch audio within audio cores and channels.
 
-**Inherited settings:** `AudioModule`.
+**Source:** `Runtime/Effects/Audio/Modules/SwitchAudio.cs`. Component / asset.
 
-| Setting | Type | Meaning |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](../API/Audio.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-| `click` | `AudioClip` | Audio recording for click. No assigned clip means this recording is unavailable. |
-| `switchAnimator` | `SwitchAnimator` | Switch animator for this control. |
+**Inherited settings:** [AudioModule](Effects.md#audiomodule). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch and emitter settings for this cockpit switch sound. | `new VehicleAudioSettings{volume = 0.45, minDistance = 0.5, maxDistance = 8}` |
+| `click` | `AudioClip` | Short recording played after an accepted switch position change. Leave empty to make this switch silent. | `None / unassigned` |
+| `switchAnimator` | `SwitchAnimator` ([fields](Interior.md#switchanimator)) | Switch animator whose requested/settled position drives this binding. Assign the matching cockpit switch component. | `None / unassigned` |
 
 ## TireAudio
 
@@ -590,23 +993,31 @@ Consumes per-wheel contact/effect-surface state.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `cornerSquealDelay` | `Vector2` | Minimum and maximum sustained-turn delay before squeal starts, in seconds. | `new Vector2(1, 2)` |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch, attenuation and emitter routing for tire squeal. | `new VehicleAudioSettings{volume = 0.5, pitchRange = new Vector2(0.9, 1.1)}` |
+| `cornerSquealDelay` | `Vector2` | Seconds of qualifying cornering before sustained-corner squeal is allowed. | `new Vector2(1, 2)` |
 | `cornerSquealMinimumSpeed` | `float` | Minimum vehicle speed in km/h for the sustained-corner squeal contribution. | `50`; Speed field; stored in km/h, displayed in the selected speed unit |
 | `cornerSteeringThreshold` | `float` | Steering amount above which the tire sound can treat a moving turn as cornering activity, even without strong measured slip. Increase to reserve this for sharper steering. | `.75`; Range: 0 to 1 |
 | `delayCornerSqueal` | `bool` | Delay squeal during sustained high-speed corners. Disable for immediate slip feedback. | `true` |
+| `tireFeedback` | `TireFeedback` ([fields](Effects.md#tirefeedback)) | Tire contact and slip source for this tire audio channel. Empty resolves from the vehicle. | `None / unassigned` |
 | `tireSquealLoop` | `AudioClip` | Fallback looping tire-slip recording. A contacted TireSurfaceProfile can supply its own loop instead. | `None / unassigned` |
 
+## TireBurnoutSmokeSettings
 
-### Audio Settings groups
+Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip.
 
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
+**Source:** `Runtime/Effects/Particles/TireBurnoutSmoke.cs`. Nested configuration data; expand its owning field in the Inspector.
 
-
-| Field | Type | Usage | Default |
+| Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `tireFeedback` | `TireFeedback` | Source owned by this audio channel. Empty resolves from the vehicle; explicit assignments are preserved. | `None / unassigned` |
+| `buildupSeconds` | `float` | Seconds for the dense cloud to build up. Smoke already emitted remains in world space. | `1.2`; Minimum: .01f |
+| `enabled` | `bool` | Allows the separate burnout cloud to emit when the selected smoke mode requests it. | `true` |
+| `lifetime` | `Vector2` | Minimum and maximum emitted particle lifetime in seconds. | `new Vector2(3, 5)` |
+| `maximumRate` | `float` | Maximum burnout cloud emission rate in particles per second. | `260`; Minimum: 0 |
+| `maximumTravelSpeed` | `float` | Maximum road-relative wheel travel speed for automatic tire-ring smoke. | `3`; Speed field; stored in m/s, displayed in the selected speed unit |
+| `minimumIntensity` | `float` | Minimum surface particle activity required by Automatic mode, normalized 0..1. | `.5`; Range: 0 to 1 |
+| `minimumSpinSpeed` | `float` | Minimum excess tire circumference speed over road travel. Locked wheels do not qualify. | `6`; Speed field; stored in m/s, displayed in the selected speed unit |
+| `size` | `Vector2` | Minimum and maximum starting particle size in metres. | `new Vector2(.35, .65)` |
+
 ## TireFeedback
 
 Builds per-wheel presentation state after mechanics.
@@ -617,15 +1028,15 @@ Builds per-wheel presentation state after mechanics.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `defaultSurface` | `TireSurfaceProfile` ([fields](Effects.md#tiresurfaceprofile)) | Fallback for unmarked colliders. Null uses the general asphalt effect settings. | `None / unassigned` |
-| `fullSkidSlip` | `float` | Slip magnitude mapped to full normalized skid feedback. | `0.9`; Minimum: 0.01f |
-| `minimumSkidSpeed` | `float` | Minimum wheel/vehicle speed in m/s for skid feedback. | `1`; Speed field; stored in m/s, displayed in the selected speed unit |
-| `skidEventStartIntensity` | `float` | Skid intensity at which a new skid event starts. | `.15`; Range: 0 to 1 |
-| `skidEventStopIntensity` | `float` | Lower skid intensity at which an active skid event stops; separated thresholds prevent chatter. | `.05`; Range: 0 to 1 |
+| `defaultSurface` | `TireSurfaceProfile` ([fields](Effects.md#tiresurfaceprofile)) | Fallback for unmarked colliders. Null uses the default asphalt effects. | `None / unassigned` |
+| `fullSkidSlip` | `float` | Tire slip level mapped to full skid intensity. | `0.9`; Minimum: 0.01f |
+| `minimumSkidSpeed` | `float` | Minimum vehicle speed for ordinary skid feedback. | `1`; Speed field; stored in m/s, displayed in the selected speed unit |
+| `skidEventStartIntensity` | `float` | Skid intensity required to begin a skid event. | `.15`; Range: 0 to 1 |
+| `skidEventStopIntensity` | `float` | Skid intensity below which an active skid event ends; use hysteresis to avoid repeated start/stop events. | `.05`; Range: 0 to 1 |
 | `skidSpeedRange` | `float` | Speed span in m/s over which skid intensity reaches its full value above Minimum Skid Speed. | `2`; Speed field; stored in m/s, displayed in the selected speed unit |
-| `skidStartSlip` | `float` | Slip magnitude at which normalized skid feedback begins. | `0.22`; Minimum: 0 |
+| `skidStartSlip` | `float` | Tire slip level at which skid intensity begins rising. | `0.22`; Minimum: 0 |
 | `touchdownSlipSeconds` | `float` | Decay time for physical tire spin-up slip after first surface contact. Shared by smoke, decals and squeal. | `.18`; Minimum: 0 |
-| `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle sampled for wheel contact and slip. If empty, TireFeedback looks on the same GameObject. | `None / unassigned` |
+| `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle supplying speed, contact and command state for effect feedback. | `None / unassigned` |
 
 ## TireSmoke
 
@@ -637,22 +1048,16 @@ Manages wheel smoke and granular emission.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `burnoutSmoke` | `TireBurnoutSmokeSettings` ([fields](Effects.md#tireburnoutsmokesettings)) | Appearance and activation settings for the separate burnout cloud. | `new TireBurnoutSmokeSettings()` |
 | `createDefaultParticles` | `bool` | Allows the package to create its default wheel-particle emitters for empty entries. Turn off when all emitters come from custom systems or a custom prefab. | `true` |
-| `defaultMaterial` | `Material` | Material used for generated tire smoke when a surface does not provide its own material. It also enables creating default smoke emitters without a prefab. | `None / unassigned` |
+| `defaultMaterial` | `Material` | Fallback material for generated smoke and granular particles when the active Tire Surface Profile has no Particle Material. Also enables generating smoke emitters without a prefab. | `None / unassigned` |
 | `emissionResponse` | `float` | Response of smoke density to changing slip. Zero follows slip immediately. | `10`; Minimum: 0 |
-| `maximumRate` | `float` | Largest permitted particle emission rate, in particles per second. | `110`; Minimum: 0 |
+| `maximumRate` | `float` | Maximum smoke emission in particles per second at full skid intensity. | `110`; Minimum: 0 |
 | `minimumIntensity` | `float` | Minimum normalized tire-effect activity required to emit smoke. | `.12`; Range: 0 to 1 |
 | `particlePrefab` | `ParticleSystem` | Particle effect cloned for missing wheel emitters. Use a custom prefab to supply your own tire smoke instead of the package's default effect. | `None / unassigned` |
-| `sandMaterial` | `Material` | Material used by the built-in granular spray for sand-like surfaces. Surface profiles can override the particle material at each contact. | `None / unassigned` |
-| `tireFeedback` | `TireFeedback` ([fields](Effects.md#tirefeedback)) | Source of per-wheel contact, slip and surface information. It determines where tire particles appear and how strongly they emit. | `None / unassigned` |
+| `smokeMode` | `TireSmokeMode` | Automatic selects tire-ring smoke from physical wheelspin; Contact Patch keeps ordinary skid smoke; Tire Ring requests the dense cloud while the tire is slipping. Options: `Automatic`, `ContactPatch`, `TireRing`. | `TireSmokeMode.Automatic` |
+| `tireFeedback` | `TireFeedback` ([fields](Effects.md#tirefeedback)) | Wheel tireFeedback supplying skid intensity and tire contact data. | `None / unassigned` |
 | `wheelParticles` | `ParticleSystem[]` | Existing smoke/custom particle systems in vehicle wheel order. Empty entries can be filled from the prefab or default setup; keep the order aligned with the registered wheels. | `None / unassigned` |
-
-
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `smokeMode` | `TireSmokeMode` | Automatic selects tire-ring smoke from physical wheelspin; Contact Patch keeps ordinary skid smoke; Tire Ring requests the dense cloud while the tire is slipping. | `TireSmokeMode.Automatic` |
-| `burnoutSmoke` | `TireBurnoutSmokeSettings` | Configuration for TireSmoke. | `new TireBurnoutSmokeSettings()` |
 
 ## TireSurface
 
@@ -684,20 +1089,21 @@ Stores presentation assets and effect multipliers.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch and attenuation settings for this surface rolling/skid audio. | `new VehicleAudioSettings{volume = 0.5, pitchRange = new Vector2(0.9, 1.1)}` |
 | `brakeAudioMultiplier` | `float` | Scales braking audio on this surface, including its custom loop. Zero mutes brake audio. | `1`; Range: 0 to 1 |
 | `brakingLoop` | `AudioClip` | Optional braking loop for this surface. When empty, Use Default Brake Loop When Empty selects component fallback or silence. | `None / unassigned` |
 | `fullRollingSpeed` | `float` | Ground-relative rolling speed in m/s mapped to full rolling-only activity. | `12`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `granularParticles` | `bool` | Use a separate, bounded grain spray pool instead of the smoke preset. Custom wheel systems/prefabs keep their authored design. | `false` |
 | `looseTracks` | `bool` | Draw irregular soil ruts instead of rubber grooves, within the same mesh/material. | `false` |
 | `markColor` | `Color` | Tint and opacity of the tire marks left on this surface. Use it to distinguish rubber streaks from loose-ground tracks. | `new Color(.025, .025, .025, .8)` |
-| `markLifetime` | `float` | Time before tire marks on this surface fade away, in seconds. | `35`; Minimum: 1 |
+| `markLifetime` | `float` | Seconds for marks left on this surface to remain visible. | `35`; Minimum: 1 |
 | `marksEnabled` | `bool` | Allows tire marks on this surface. Turn off for surfaces that should produce sound/particles without drawing skidmark ribbons. | `true` |
 | `markWidthMultiplier` | `float` | Scales the skidmark width on this surface. Increase for a wider tire trail without changing the wheel's physical width. | `1`; Minimum: .01f |
 | `minimumRollingSpeed` | `float` | Ground-relative rolling speed in m/s below which rolling-only activity is zero. | `1`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `particleColor` | `Color` | Tint and alpha for the default tire particles while on this surface. Use brown for dust or pale grey for smoke; custom systems can keep their own design. | `new Color(.78, .8, .82, .25)` |
 | `particleGravity` | `float` | Gravity multiplier applied to the generated surface particles. | `0`; Minimum: 0 |
 | `particleLifetime` | `Vector2` | Lower and upper particle lifetimes in seconds. | `new Vector2(1.8, 3.2)` |
-| `particleMaterial` | `Material` | Optional material replacing the tire emitter's normal material while a wheel touches this surface. Use it for surface-specific dust or sand appearance. | `None / unassigned` |
+| `particleMaterial` | `Material` | Material for built-in smoke or granular emitters while a wheel touches this surface. Falls back to Tire Smoke Default Material when empty. Custom systems retain their authored material. | `None / unassigned` |
 | `particleRateMultiplier` | `float` | Multiplies tire-particle emission on this surface. Zero suppresses emission; higher values make the trail denser for the same contact activity. | `1`; Minimum: 0 |
 | `particlesEnabled` | `bool` | Allows tire smoke or granular spray on this surface. Turn off for surfaces that should still have sounds or skidmarks but no tire particles. | `true` |
 | `particleSize` | `Vector2` | Minimum and maximum particle size used by the default surface effect, in metres. Larger particles make dust or smoke appear broader. | `new Vector2(.32, .58)` |
@@ -709,37 +1115,32 @@ Stores presentation assets and effect multipliers.
 | `useDefaultBrakeLoopWhenEmpty` | `bool` | When Braking Loop is empty, use the Brake Audio component's loop. Off means silence. Brake Audio Multiplier applies to either clip. | `true` |
 | `useDefaultTireLoopWhenEmpty` | `bool` | When Tire Loop is empty, use the Tire Audio component's loop. Off means silence. Surface volume, pitch and activity settings still apply. | `false` |
 
-
-### Audio Settings groups
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
-
 ## VehicleAudioSettings
 
-**Source:** `Runtime/Effects/Audio/VehicleAudioSettings.cs`. VehicleAudioSettings serialized playback configuration.
+Universal serialized playback, source/anchor and spatial configuration. Clips and triggering rules belong to the owning mechanism.
 
-| Field | Behavior |
-| --- | --- |
-| `audioAnchor` | Emitter transform for generated sources; empty uses the owning mechanism. Pooled audio creates independent voices under this anchor. |
-| `cooldown` | Minimum interval between matching one-shots, in seconds. |
-| `dopplerLevel` | Doppler multiplier. |
-| `enabled` | Enables this playback configuration. |
-| `maxDistance` | Outer attenuation distance in metres, not below Min Distance. |
-| `minDistance` | Full-volume distance in metres. |
-| `output` | Mixer output group. |
-| `pitch` | Fixed pitch or one-shot pitch multiplier; 1 uses the recording’s original pitch. |
-| `pitchJitter` | Symmetric pitch jitter for impact-driven audio. |
-| `pitchRange` | Pitch endpoints for dynamic response, or bounds for random one-shots. |
-| `priority` | Unity voice priority, 0..256. |
-| `response` | Response speed for smoothed playback. |
-| `rolloffMode` | Distance attenuation policy. |
-| `source` | Optional dedicated AudioSource. Supplied sources remain user-owned. |
-| `spatialBlend` | 0 = nonpositional, 1 = fully positional audio. |
-| `spread` | Stereo spread in degrees. |
-| `volume` | Playback gain. Loop sources use Unity’s source-volume range; one-shots apply this gain as their volume scale. |
-| `volumeRange` | Low/high gain endpoints for intensity-driven sounds. |
+**Source:** `Runtime/Effects/Audio/VehicleAudioSettings.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `audioAnchor` | `Transform` | Transform from which generated audio is emitted. Leave empty to use the mechanism owning the sound. | `None / unassigned` |
+| `cooldown` | `float` | Minimum interval in seconds between repeated matching one-shot sounds. | `0`; Minimum: 0 |
+| `dopplerLevel` | `float` | Doppler pitch-shift multiplier for moving emitters/listeners. Zero disables the Doppler effect. | `0`; Range: 0 to 5 |
+| `enabled` | `bool` | Allow playback using this settings block. Disabling it silences this configured channel. | `true` |
+| `maxDistance` | `float` | Outer spatial attenuation distance in metres. Keep it at or beyond Min Distance. | `70`; Minimum: .01f |
+| `minDistance` | `float` | Distance in metres within which spatial audio retains full volume. Attenuation begins outside this range. | `6`; Minimum: .01f |
+| `output` | `AudioMixerGroup` | Audio mixer group receiving generated or assigned sound playback. Leave empty to use the AudioSource default output. | `None / unassigned` |
+| `pitch` | `float` | Pitch multiplier for fixed-pitch playback. One plays the recording at its original pitch. | `1`; Range: .01f to 3 |
+| `pitchJitter` | `float` | Symmetric random pitch variation added to impact/one-shot playback. | `0`; Range: 0 to 1 |
+| `pitchRange` | `Vector2` | Lower and upper pitch multipliers used by dynamic response or randomized one-shot playback. | `Vector2.one` |
+| `priority` | `int` | Unity voice priority from 0 (highest) to 256 (lowest), used when competing sounds exceed the available voice budget. | `128`; Range: 0 to 256 |
+| `response` | `float` | Response of smoothed audio parameters to changes in load or intensity. Higher values settle faster. | `8`; Minimum: 0 |
+| `rolloffMode` | `AudioRolloffMode` | Unity attenuation curve used as the listener moves from Min Distance toward Max Distance. | `AudioRolloffMode.Logarithmic` |
+| `source` | `AudioSource` | Optional AudioSource supplied by your game. It stays user-owned; leave empty to let the effect manage its own source. | `None / unassigned` |
+| `spatialBlend` | `float` | Blend from nonpositional audio at zero to fully positional 3D audio at one. | `1`; Range: 0 to 1 |
+| `spread` | `float` | Angular spread of multichannel spatial audio in degrees. | `0`; Range: 0 to 360 |
+| `volume` | `float` | Playback gain for this channel. Loop sources use source volume; one-shots apply it as their playback scale. | `1`; Minimum: 0 |
+| `volumeRange` | `Vector2` | Quiet and loud gain endpoints for channels whose volume follows an intensity value. | `Vector2.one` |
 
 ## WeaponEffects
 
@@ -751,22 +1152,16 @@ Presents shot sound, flash and smoke.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Shot gain, spatial attenuation, pitch variation and mixer output. | `new VehicleAudioSettings{volume = .9, minDistance = 12, maxDistance = 450, dopplerLevel = 1}` |
 | `effectScale` | `float` | Multiplies the size of spawned muzzle-flash and smoke effects. It changes their appearance without changing weapon damage or range. | `1`; Minimum: 0 |
 | `emitSmoke` | `bool` | Spawns Muzzle Effect Prefab after a confirmed shot. Turn off to keep flash/audio without that particle effect. | `true` |
-| `flashLifetime` | `float` | Delay before a spawned muzzle flash is removed, in seconds. | `2`; Minimum: .01f |
-| `muzzleEffectPrefab` | `ParticleSystem` | Optional smoke/particle prefab instantiated at the muzzle after a shot. | `None / unassigned` |
-| `muzzleFlashPrefab` | `GameObject` | Optional flash object instantiated at the muzzle after a shot. | `None / unassigned` |
+| `flashLifetime` | `float` | Seconds before the spawned muzzle flash is removed. | `2`; Minimum: .01f |
+| `muzzleEffectPrefab` | `ParticleSystem` | Smoke particle prefab created at the muzzle; the editor assigns the bundled default on creation. | `None / unassigned` |
+| `muzzleFlashPrefab` | `GameObject` | Flash prefab created at the barrel muzzle; the editor assigns the bundled default on creation. | `None / unassigned` |
 | `shotSound` | `AudioClip` | One-shot recording played at the muzzle after a confirmed shot when Play Audio is on. Failed fire requests do not play it. | `None / unassigned` |
 | `smokeLifetime` | `float` | Zero uses the particle duration and maximum lifetime. | `0`; Minimum: 0 |
 | `spawnMuzzleFlash` | `bool` | Spawns Muzzle Flash Prefab after a confirmed shot. Turn off to omit the flash while keeping smoke and audio. | `true` |
 | `weapon` | `WeaponBarrel` ([fields](World.md#weaponbarrel)) | Barrel whose confirmed shots trigger muzzle effects and sound. If empty, the component finds WeaponBarrel on the same GameObject. | `None / unassigned` |
-
-
-### Audio Settings groups
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Reusable [VehicleAudioSettings](Effects.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
 
 ## WeaponRecoil
 
@@ -778,6 +1173,7 @@ Presents configured visual/hull recoil.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `anchor` | `Transform` | Optional independent local direction frame for visual recoil translation. It does not alter the muzzle-based physical recoil impulse. | `None / unassigned` |
 | `angularImpulse` | `Vector3` | Additional angular impulse in muzzle axes (pitch, yaw, roll). Native physics supplies suspension movement. | `new Vector3(-650, 0, 180)` |
 | `animateBarrel` | `bool` | Moves Barrel through the kick-and-return animation after a confirmed shot. It can be disabled independently of physical vehicle recoil. | `true` |
 | `applyBodyImpulse` | `bool` | Applies a physical recoil impulse to the vehicle after a confirmed shot. The visible barrel animation can remain enabled separately. | `true` |
@@ -789,26 +1185,25 @@ Presents configured visual/hull recoil.
 | `localRecoilAxis` | `Vector3` | Direction of visible barrel travel in the barrel's local axes. Usually local backward; reverse it if the imported mesh points the other way. | `Vector3.back` |
 | `returnDuration` | `float` | Seconds for the barrel to move from full recoil back to its resting position. Longer values give a slower recovery stroke. | `.32`; Minimum: .001f |
 | `weapon` | `WeaponBarrel` ([fields](World.md#weaponbarrel)) | Barrel whose confirmed shots trigger visual kick and vehicle recoil. If empty, the component finds WeaponBarrel on the same GameObject. | `None / unassigned` |
-| `anchor` | `Transform` | Optional independent local direction frame for visual recoil translation. It does not alter the muzzle-based physical recoil impulse. | `None / unassigned` |
 
 ## WiperAudioEntry
 
-Optional presentation receiver for WiperAudioEntry.
+Presentation or lifecycle contract for independent vehicle components.
 
-**Source:** `Runtime/Effects/Audio/Modules/WipersAudio.cs`. Component / asset.
+**Source:** `Runtime/Effects/Audio/Modules/WipersAudio.cs`. Nested configuration data; expand its owning field in the Inspector.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Shared playback, pitch, emitter and spatial settings. See [Audio Settings](Effects.md#vehicleaudiosettings). |
-| `id` | `string` | Name used to request this driving setup and match transition rules. Use exactly this ID in profile-switch commands and transitions. | `None / unassigned` |
-| `outwardClip` | `AudioClip` | Audio for the outward stroke; entry value is used when overrideAudio is true. | `None / unassigned` |
-| `overrideAudio` | `bool` | Uses this entry's clips, volume and pitch-synchronization policy instead of the module defaults. | `false` |
-| `returnClip` | `AudioClip` | Audio for the return stroke; entry value is used when overrideAudio is true. | `None / unassigned` |
-| `synchronizeAudioSpeed` | `bool` | Fits clip duration to the entry's effective mechanical rate; otherwise uses pitch 1. Entry value is used when overrideAudio is true. | `true` |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Wipe gain, pitch, emitter and spatial routing settings. | `new VehicleAudioSettings{volume = .4, minDistance = 2, maxDistance = 25, dopplerLevel = 1}` |
+| `id` | `string` | Unique, case-sensitive ID used by EngineAudio's runtime API. | `None / unassigned` |
+| `outwardClip` | `AudioClip` | Recording played during the outward half of a wipe. | `None / unassigned` |
+| `overrideAudio` | `bool` | Use this wiper own recordings/settings instead of shared wiper audio. | `false` |
+| `returnClip` | `AudioClip` | Recording played during the returning half of a wipe. | `None / unassigned` |
+| `synchronizeAudioSpeed` | `bool` | Adjust wipe sound timing/pitch to follow the configured wipe speed. | `true` |
 
 ## WipersAudio
 
-Optional presentation receiver for WipersAudio.
+Optional shared and per-entry audio for wiper mechanisms.
 
 **Source:** `Runtime/Effects/Audio/Modules/WipersAudio.cs`. Component / asset.
 
@@ -816,354 +1211,9 @@ Optional presentation receiver for WipersAudio.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Shared playback, pitch, emitter and spatial settings. See [Audio Settings](Effects.md#vehicleaudiosettings). |
-| `entries` | `List<WiperAudioEntry>` | Audio overrides matched to stable wiper entry IDs. | `new List<WiperAudioEntry>()` |
-| `outwardClip` | `AudioClip` | Audio for the outward stroke; entry value is used when overrideAudio is true. | `None / unassigned` |
-| `returnClip` | `AudioClip` | Audio for the return stroke; entry value is used when overrideAudio is true. | `None / unassigned` |
-| `synchronizeAudioSpeed` | `bool` | Fits clip duration to the entry's effective mechanical rate; otherwise uses pitch 1. Entry value is used when overrideAudio is true. | `true` |
-| `wipers` | `Wipers` | Wiper mechanism supplying stroke notifications. Empty resolves Wipers on the same GameObject. | `None / unassigned` |
-
-## AudioClipReplacement
-
-**Source:** `Runtime/Effects/Audio/Context/AudioContextProfile.cs`.
-
-A matching original loop/one-shot and the replacement recording used by an audio context. The original source recording remains available for restoration.
-
-
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | A matching original loop/one-shot and the replacement recording used by an audio context. The original source recording remains available for restoration. | `true` |
-| `original` | `AudioClip` | A matching original loop/one-shot and the replacement recording used by an audio context. The original source recording remains available for restoration. | `None / unassigned` |
-| `clips` | `AudioClip[]` | Random replacements for the original recording. An empty list deliberately silences it. Loops keep one variant until the matching rule changes. | `Array.Empty<AudioClip>()` |
-
-## AudioContextProfile
-
-**Source:** `Runtime/Effects/Audio/Context/AudioContextProfile.cs`.
-
-Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle.
-
-
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `name` | `string` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `"Audio profile"` |
-| `enabled` | `bool` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `true` |
-| `channel` | `AudioModule` | Optional channel to affect, such as Engine Audio. Empty affects every audio channel of this vehicle. | `None / unassigned` |
-| `view` | `AudioContextView` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `None / unassigned` |
-| `camera` | `Camera` | Optional actual rendering camera. Supports external camera systems too. | `None / unassigned` |
-| `cameraModule` | `CameraModule` | Optional exact vehicle camera module, including custom views. | `None / unassigned` |
-| `samplePoint` | `AudioContextPoint` | Position tested against Area and Medium. Listener follows the selected camera; Vehicle follows this vehicle. | `None / unassigned` |
-| `area` | `Collider` | Optional volume containing the sample point. Use a Box, Sphere, Capsule or convex Mesh collider; it may be a trigger. | `None / unassigned` |
-| `medium` | `AudioContextMedium` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `None / unassigned` |
-| `customMedium` | `string` | Case-sensitive medium ID supplied through Audio.SetAudioMedium. Used with Medium = Custom. | `None / unassigned` |
-| `mute` | `bool` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `false` |
-| `volumeMultiplier` | `float` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `1` |
-| `pitchMultiplier` | `float` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `1` |
-| `lowPass` | `bool` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `false` |
-| `lowPassCutoff` | `float` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `1800` |
-| `output` | `AudioMixerGroup` | Optional mixer route for reverb, EQ, distortion or other effects. Last matching nonempty route wins; shared mixer assets are never modified. | `None / unassigned` |
-| `overrideSpatialBlend` | `bool` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `false` |
-| `spatialBlend` | `float` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `0` |
-| `clipReplacements` | `AudioClipReplacement[]` | Shared ScriptableObject defining context-specific audio settings. Assign on the Audio core; runtime source baselines remain per vehicle. | `Array.Empty<AudioClipReplacement>()` |
-
-## AudioContextSettings
-
-**Source:** `Runtime/Effects/Audio/Context/AudioContextProfile.cs`.
-
-Per-context audio transformations and clip replacements. Applies to registered module sources without rewriting their authored settings.
-
-
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | Per-context audio transformations and clip replacements. Applies to registered module sources without rewriting their authored settings. | `true` |
-| `cameras` | `Cameras` | Optional vehicle camera core. Empty uses Cameras on this vehicle. | `None / unassigned` |
-| `listenerCamera` | `Camera` | Optional external listening camera. Empty follows this vehicle's active view, then Camera.main. Code may also call SetListeningCamera. | `None / unassigned` |
-| `waterProvider` | `WaterProvider` | Water sampled at the listener/vehicle point, including waves. Empty uses this vehicle's Water Interaction/profile when available. | `None / unassigned` |
-| `underwaterDepth` | `float` | Depth below the sampled surface required to select Water. | `.05f` |
-| `transitionSeconds` | `float` | Seconds to blend volume, pitch and filtering after a context change. Clip changes retain normalized loop position. | `.15f` |
-| `profiles` | `AudioContextProfile[]` | Matching profiles combine in list order: gain/pitch multiply, lowest filter cutoff wins, last mixer/spatial/clip override wins. Disabled entries have no effect. | `Array.Empty<AudioContextProfile>()` |
-
-## TireBurnoutSmokeSettings
-
-**Source:** `Runtime/Effects/Particles/TireBurnoutSmoke.cs`.
-
-Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip.
-
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip. | `true` |
-| `maximumTravelSpeed` | `float` | Maximum road-relative wheel travel speed for automatic tire-ring smoke. | `3` |
-| `minimumSpinSpeed` | `float` | Minimum excess tire circumference speed over road travel. Locked wheels do not qualify. | `6` |
-| `minimumIntensity` | `float` | Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip. | `.5f` |
-| `buildupSeconds` | `float` | Seconds for the dense cloud to build up. Smoke already emitted remains in world space. | `1.2f` |
-| `maximumRate` | `float` | Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip. | `260` |
-| `lifetime` | `Vector2` | Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip. | `new Vector2(3, 5)` |
-| `size` | `Vector2` | Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip. | `new Vector2(.35f, .65f)` |
-
-
-
-
-## DamageFeedback
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `onContact` | `DamageContactEvent` | Every accepted impact or scrape sample. This is presentation data and does not apply physical damage. | `new DamageContactEvent()` |
-| `onImpact` | `DamageContactEvent` | Every accepted non-scrape cue, including body, wheel, landing, suspension and breakage. | `new DamageContactEvent()` |
-| `onScrape` | `DamageContactEvent` | Accepted sustained-contact samples; may run every physics step while sliding. Use Damage Audio scrape lifecycle callbacks for audible start/stop. | `new DamageContactEvent()` |
-| `onTireImpact` | `DamageContactEvent` | Accepted wheel strike, independently of a touchdown. | `new DamageContactEvent()` |
-| `onTireLanding` | `DamageContactEvent` | Accepted wheel touchdown, with landing strength and fall-height data. | `new DamageContactEvent()` |
-| `onSuspension` | `DamageContactEvent` | Accepted suspension compression or landing response. | `new DamageContactEvent()` |
-| `onBreakage` | `DamageContactEvent` | Accepted part breakage cue. Use DamagePart.Detached for the physical detachment itself. | `new DamageContactEvent()` |
-| `onFallLanding` | `DamageContactEvent` | First qualifying ground contact after a height fall; shared by body, attached parts and wheels. | `new DamageContactEvent()` |
-| `onRolloverImpact` | `DamageContactEvent` | A qualifying tilted/spinning ground impact, deduplicated across the whole vehicle. | `new DamageContactEvent()` |
-| `onEffectPlayed` | `DamageEffectEvent` | Custom pooled impact prefab successfully started. | `new DamageEffectEvent()` |
-| `onCleared` | `UnityEngine.Events.UnityEvent` | Contact history and active presentation effects were cleared, including on reset or disable. | `new UnityEngine.Events.UnityEvent()` |
-| `onEffectsCleared` | `UnityEngine.Events.UnityEvent` | Visual effect leases were cleared. Contacts, audio and physical damage are not reset by ClearEffects. | `new UnityEngine.Events.UnityEvent()` |
-| `profile` | `DamageFeedbackProfile` | Default contact thresholds, surface mappings, sound banks and particle response. | `` |
-| `surfaceResponses` | `DamageFeedbackProfile[]` | Additional response profiles used by code providers or future spawned targets. Scene Damage Surface profiles are discovered during configuration; sound-only overrides need no registration. | `Array.Empty<DamageFeedbackProfile>()` |
-| `particles` | `DamageParticles` | Built-in pooled sparks, fragments and glass emission controls. | `new DamageParticles()` |
-| `damage` | `Damage` | Physical damage source for scripted hits and repair notifications. Auto-resolved from this vehicle when empty. | `` |
-| `impactProfiles` | `DamageImpactProfile[]` | Material responses for scripted DamageHit requests. Native contacts use the feedback profile and surface mappings. | `Array.Empty<DamageImpactProfile>()` |
-| `fallbackImpactProfile` | `DamageImpactProfile` | Optional scripted visual response when no material-specific profile matches. | `` |
-| `impactEffectsEnabled` | `bool` | Enable pooled particles/custom prefabs on accepted damage hits. Does not change damage, dents or sound. | `true` |
-| `maximumEffectInstances` | `int` | Total prewarmed visual effect instances per vehicle. Profiles allocate their requested share in list order. | `24` |
-| `effectOverflow` | `DamagePoolOverflow` | Skip a hit when its pool is busy, or replace that profile's oldest active effect. | `` |
-| `contactsEnabled` | `bool` | Observe native collisions, tire samples and suspension events. SubmitContact remains available to external providers. | `true` |
-| `wheelContactsEnabled` | `bool` | Accept wheel strikes, touchdowns and suspension cues. Does not affect physical suspension. | `true` |
-| `partContactsEnabled` | `bool` | Observe loose-part contacts relayed by DamagePart objects. Does not affect part collision physics. | `true` |
-| `breakageEnabled` | `bool` | Publish presentation cues when parts break away. Does not prevent physical detachment. | `true` |
-| `maximumContactPairs` | `int` | Fixed contact-cache capacity. Excess pairs replace the least recent; no collection grows on collisions. | `24` |
-
-## DamageAudio
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `feedback` | `DamageFeedback` | Contact source and default surface/material configuration. Resolved on this vehicle when empty. | `` |
-| `audioSettings` | `VehicleAudioSettings` | Shared spatial audio, gain, pitch and context settings for all damage sounds on this vehicle. | `new VehicleAudioSettings{volume = .85f, minDistance = 2, maxDistance = 65, priority = 90}` |
-| `contactAudio` | `DamageContactAudio` | Enable individual cue categories and configure the prewarmed audio voice budget. | `new DamageContactAudio()` |
-| `muteBodyPartOnDetach` | `bool` | Let accepted one-shots and the current scrape iteration finish; ignore subsequent part impacts/scrapes after detachment. The detachment cue itself may still play. | `true` |
-| `impactProfiles` | `DamageImpactProfile[]` | Optional material profiles for scripted damage. Empty reuses Damage Feedback's scripted profiles. Physical contacts use the feedback profile. | `Array.Empty<DamageImpactProfile>()` |
-| `fallbackProfile` | `DamageImpactProfile` | Optional scripted audio response used when no material-specific response matches. | `` |
-| `detachmentSounds` | `PartDetachmentSound[]` | Optional named-part sounds played once when each configured part detaches. RefreshPartSounds after changing this list at runtime. | `Array.Empty<PartDetachmentSound>()` |
-| `onPlayed` | `DamageSoundEvent` | A one-shot successfully started. Reports the contact and actual clip, including audio-context processing; does not report scrape loop iterations. | `new DamageSoundEvent()` |
-| `onDamagePlayed` | `DamageHitSoundEvent` | A scripted DamageHit sound successfully started, with its selected material profile and clip. | `new DamageHitSoundEvent()` |
-| `onDetachmentPlayed` | `DamagePartSoundEvent` | A named part's detachment sound successfully started. | `new DamagePartSoundEvent()` |
-| `onScrapeStarted` | `DamageSoundEvent` | A sustained scrape loop started. Reports its contact and original clip before audio-context processing. | `new DamageSoundEvent()` |
-| `onScrapeStopped` | `DamageSoundEvent` | A scrape loop stopped, faded out, changed material/group or was cleared. Does not report each loop iteration. | `new DamageSoundEvent()` |
-
-## DamageSurface
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `surfaceType` | `DamageSurfaceType` | Glass selects glass impacts and fragments; Plastic selects plastic impacts and friction; Soft uses Soft Crash; Humanoid uses its own body-impact bank. Add Damage Contact Limiter to group contacts on a target with multiple colliders. Both suppress metallic scraping, sparks and fragments. Does not alter damage or physics. | `DamageSurfaceType.Hard` |
-| `allowSparks` | `bool` | Disable for sand, grass, water-edge props or other surfaces that should never produce metallic sparks. | `true` |
-| `responseProfile` | `DamageFeedbackProfile` | Optional sound banks and pooled custom impact effect for this target. Empty uses the vehicle defaults. Classification still controls suppression of metallic effects. | `` |
-| `scrapeGain` | `float` | Scale sustained body-scrape audio/particle activity on this collider or its children. | `1` |
-| `useDetachedSurface` | `bool` | Use a different surface after the nearest parent Damage Part detaches. Surface Type is the attached state. | `` |
-| `detachedSurfaceType` | `DamageSurfaceType` | Surface selected after the nearest parent DamagePart detaches, when Separate Detached Surface is enabled. | `DamageSurfaceType.Hard` |
-
-## DamageFeedbackProfile
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `minimumImpactSpeed` | `float` | Minimum normal approach speed in metres per second for an impact cue. Resting support is ignored. | `.65f` |
-| `mediumImpactSpeed` | `float` | Normal approach speed in metres per second for crunch and stronger fragments. Body clip-group thresholds are configured separately in Body. | `3.5f` |
-| `heavyImpactSpeed` | `float` | Normal approach speed in metres per second for strong-impact particles and audio priority decisions. | `9` |
-| `fullImpactSpeed` | `float` | Normal approach speed in metres per second mapped to contact strength one. Higher strengths clamp to one. | `18` |
-| `contactRetriggerTime` | `float` | Minimum separation from the previous hit on the same collider pair. New contact normals can retrigger a tumble impact. | `.12f` |
-| `softLayers` | `LayerMask` | Fallback soft-object layers. An explicit Damage Surface or custom provider takes priority. | `` |
-| `surfaceResponses` | `DamageSurfaceResponse[]` | Default responses by contact material. A Damage Surface response profile on an object takes priority. | `Array.Empty<DamageSurfaceResponse>()` |
-| `impactEffect` | `DamageImpactProfile` | Optional pooled effect for this response. Register surface response profiles on DamageFeedback before play, or call WarmUpEffects after changing them. | `` |
-| `scrapeEffect` | `DamageImpactProfile` | Optional pooled particles or custom effect repeated during sliding contact. Configure its cooldown and lifetime on the effect profile. | `` |
-| `bodyThud` | `DamageSoundBank` | Low body-impact layer mixed under the material impact. Disable to use material sounds alone. | `new DamageSoundBank{volume = .95f, cooldown = .1f}` |
-| `impactPitchByStrength` | `float` | Pitch reduction as impact intensity rises, in addition to bank pitch variation. | `.08f` |
-| `impactPitchByGlancing` | `float` | Pitch lift for grazing strikes compared with head-on impacts. | `.1f` |
-| `glancingImpactGain` | `float` | Relative body-impact gain for a glancing strike. Head-on gain is one. | `.65f` |
-| `body` | `DamageSoundBank` | Main body-impact recordings, either a shared list or three strength groups. | `new DamageSoundBank{layout = DamageClipLayout.StrengthGroups}` |
-| `metalCrunch` | `DamageSoundBank` | Optional metal-deformation layer added to sufficiently strong metal or mechanical body impacts. | `new DamageSoundBank{volume = .65f, cooldown = .18f}` |
-| `humanoid` | `DamageSoundBank` | Dull body-impact response for targets classified as Humanoid. | `new DamageSoundBank{volume = .95f, minimumGain = .65f, cooldown = .08f}` |
-| `soft` | `DamageSoundBank` | Impact response for targets classified as Soft, without metallic scraping or fragments. | `new DamageSoundBank{volume = .9f}` |
-| `tireLanding` | `DamageSoundBank` | Wheel touchdown recordings. Separate from Tire Impact and Suspension. | `new DamageSoundBank{volume = .65f, modulateVolume = false}` |
-| `tireImpact` | `DamageSoundBank` | Wheel strike recordings, for example a tire hitting a wall or prop. Separate from touchdown audio. | `new DamageSoundBank{volume = .95f, minimumGain = .6f}` |
-| `tireLandingResponse` | `DamageLandingAudioResponse` | Physical gain and playback-rate response for tire landings when the bank uses Physical Response. | `new DamageLandingAudioResponse()` |
-| `suspension` | `DamageSoundBank` | Suspension compression and landing recordings, independent of the struck surface. | `new DamageSoundBank{volume = .9f, cooldown = .12f, modulateVolume = false}` |
-| `suspensionResponse` | `DamageLandingAudioResponse` | Physical gain and playback-rate response for suspension sounds when the bank uses Physical Response. | `new DamageLandingAudioResponse{fullImpactSpeed = 6, fullFallHeight = 3, fullLoad = 5, gain = new Vector2(.08f, 1.4f), pitch = new Vector2(1.12f, .8f)}` |
-| `glass` | `DamageSoundBank` | Glass-impact and breakage recordings. Explicit Glass surfaces and glass parts can select this response. | `new DamageSoundBank{volume = .8f, cooldown = .12f}` |
-| `plastic` | `DamageSoundBank` | Plastic-impact and breakage recordings. | `new DamageSoundBank{volume = .55f}` |
-| `scrape` | `DamageSoundBank` | Sustained sliding recordings for this response; may use one list or three strength groups. | `new DamageSoundBank{volume = .65f, modulateVolume = false}` |
-| `scrapeMinimumSpeed` | `float` | Minimum tangential sliding speed in metres per second for scrape samples. | `.6f` |
-| `scrapeFullSpeed` | `float` | Tangential sliding speed in metres per second mapped to full scrape strength and rate contribution. | `10` |
-| `contactTimeout` | `float` | Time without a contact sample before its scraping loop fades. Includes sleeping bodies. | `.1f` |
-| `scrapeAttack` | `float` | Seconds for scrape volume to rise toward its requested level. | `.045f` |
-| `scrapeRelease` | `float` | Seconds for scrape volume to fade after contact becomes quiet or ends. | `.18f` |
-| `suspensionMinimumStrokeSpeed` | `float` | Minimum suspension compression stroke speed in metres per second for a compression cue. | `.35f` |
-| `suspensionLoadRise` | `float` | Minimum load rise, relative to supported weight, required for a compression cue. | `.35f` |
-| `sparkMaterial` | `Material` | Material used by this surface response's prewarmed spark system. Empty uses the package default. | `` |
-| `debrisMaterial` | `Material` | Material used by this surface response's prewarmed fragment system. Empty uses the package default. | `` |
-| `glassMaterial` | `Material` | Material used by this surface response's prewarmed glass system. Empty uses the package default. | `` |
-| `sparkMinimumSpeed` | `float` | Minimum tangential scrape speed in metres per second for spark emission. | `2` |
-| `sparksPerSecond` | `float` | Spark emission rate at full scrape strength, before the per-step budget. | `45` |
-| `impactDebrisCount` | `int` | Maximum fragment count for a full-strength impact, before the shared per-step budget. | `12` |
-| `fallLanding` | `DamageSoundBank` | One additional body thud at the first qualifying ground contact after a fall. Independent of Tire Landing. | `new DamageSoundBank{volume = .85f, minimumGain = .05f, volumeScale = DamageVolumeScale.Linear, modulatePitch = true}` |
-| `rolloverImpact` | `DamageSoundBank` | One additional body thud per qualifying tilted/spinning ground strike. Shares contact deduplication with Fall Landing. | `new DamageSoundBank{volume = .85f, minimumGain = .05f, volumeScale = DamageVolumeScale.Linear, modulatePitch = true}` |
-| `groundImpacts` | `DamageGroundImpactSettings` | Minimum fall/impact/spin gates and shared deduplication for Fall Landing and Rollover Impact. Does not affect physics. | `new DamageGroundImpactSettings()` |
-
-## DamageSoundBank
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | Enable this response without removing its clip assignments. | `true` |
-| `avoidRepeat` | `bool` | Avoid immediately repeating the same clip when a group has multiple usable clips. | `true` |
-| `layout` | `DamageClipLayout` | Single uses one shared clip list; Strength Groups selects Light, Medium or Heavy from normalized contact strength. | `` |
-| `clips` | `AudioClip[]` | Recordings selected randomly for this list. Empty or disabled groups stay silent. | `Array.Empty<AudioClip>()` |
-| `light` | `DamageSoundGroup` | Recordings and multipliers below Medium Strength. | `new DamageSoundGroup()` |
-| `medium` | `DamageSoundGroup` | Recordings and multipliers from Medium Strength up to Heavy Strength. | `new DamageSoundGroup()` |
-| `heavy` | `DamageSoundGroup` | Recordings and multipliers at or above Heavy Strength. | `new DamageSoundGroup()` |
-| `mediumStrength` | `float` | Normalized contact strength, from zero to one, at which Medium starts. | `.2f` |
-| `heavyStrength` | `float` | Normalized contact strength, from zero to one, at which Heavy starts. | `.5f` |
-| `volume` | `float` | Gain multiplier for this bank/group. Group gain multiplies the common bank gain. | `1` |
-| `cooldown` | `float` | Minimum interval in seconds before replaying this bank/group. Does not delay the first accepted hit. | `.09f` |
-| `usePhysicalResponse` | `bool` | Apply vehicle mass, contact angle and landing/suspension response. Disable for playback controlled only by this bank and its strength curves. | `true` |
-| `randomizePitch` | `bool` | Choose pitch randomly within Pitch. Disable to use Fixed Pitch; group pitch ranges then use their midpoint. | `true` |
-| `fixedPitch` | `float` | Constant base playback pitch when Randomize Pitch is off. One is the original pitch and speed. | `1` |
-| `pitch` | `Vector2` | Minimum and maximum pitch multipliers. Group pitch multiplies the common bank pitch. | `new Vector2(.92f, 1.08f)` |
-| `pitchJitter` | `float` | Additional small random pitch offset applied after the strength curve. Zero disables jitter. | `` |
-| `modulateVolume` | `bool` | Shape gain from normalized contact strength using Minimum Gain, Volume Scale and Volume By Strength. | `true` |
-| `volumeScale` | `DamageVolumeScale` | Linear follows the volume curve directly; Perceived Energy uses its square root for a louder weak-contact response. | `` |
-| `minimumGain` | `float` | Quietest impact gain, relative to Volume. The response curve blends from this floor to full gain. | `.2f` |
-| `volumeByStrength` | `AnimationCurve` | Normalized strength to volume response: zero uses Minimum Gain; one uses full Volume. Volume Scale selects linear or perceived-energy interpolation. | `AnimationCurve.Linear(0, 0, 1, 1)` |
-| `modulatePitch` | `bool` | Multiply playback pitch/speed by Pitch By Strength in either clip layout. | `` |
-| `pitchByStrength` | `AnimationCurve` | Pitch/playback-rate multiplier against normalized contact strength. Available in either clip layout. | `AnimationCurve.Linear(0, 1.1f, 1, .85f)` |
-
-## DamageContactAudio
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | Enable this vehicle's damage-contact audio, including scripted banks. Disabling through SetContactAudioEnabled also stops active sounds. | `true` |
-| `impactSounds` | `bool` | Play body impacts and Humanoid impacts, including wheel contacts with a character. Tire switches control tire-bank sounds only. | `true` |
-| `tireImpactSounds` | `bool` | Play the Tire Impact bank independently of body and Humanoid impact sounds. | `true` |
-| `tireLandingSounds` | `bool` | Play the Tire Landing bank independently of wheel impacts, Humanoid impacts and suspension creaks. | `true` |
-| `fallLandingSounds` | `bool` | Play the first qualifying fall landing body thud, independently of tire and suspension sounds. | `true` |
-| `rolloverImpactSounds` | `bool` | Play qualifying ground strikes while tilted or tumbling, once per impact across the whole vehicle. | `true` |
-| `scrapeSounds` | `bool` | Play sustained sliding sounds using the selected surface response and fade times. | `true` |
-| `suspensionSounds` | `bool` | Play compression and landing sounds from the vehicle suspension. Independent of tire-impact and tire-landing switches. | `true` |
-| `breakageSounds` | `bool` | Play accepted part-breakage sounds. Named detachment cues are configured separately. | `true` |
-| `maximumVoices` | `int` | Maximum simultaneous prewarmed one-shot sources. Two additional sources handle scrape loops. Rebuild the pool after changing this limit at runtime. | `10` |
-
-## DamageParticles
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | Enable built-in damage particles. SetParticlesEnabled(false) also clears particles already in flight. | `true` |
-| `sparksEnabled` | `bool` | Emit sparks for allowed hard metal contacts and scraping. Surface spark permission still applies. | `true` |
-| `debrisEnabled` | `bool` | Emit generic fragments on sufficiently strong hard-body impacts. | `true` |
-| `glassEnabled` | `bool` | Emit glass fragments for strong Glass contacts and glass breakage. | `true` |
-| `maximumParticlesPerSystem` | `int` | Maximum live particles in each prewarmed particle system. Call WarmUpEffects after changing capacity at runtime. | `160` |
-| `maximumEmissionsPerStep` | `int` | Shared per-vehicle emission budget per physics step across sparks, debris and glass. | `24` |
-
-## DamageAudio.PartDetachmentSound
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | Enable this named-part detachment cue. | `true` |
-| `part` | `DamagePart` | Part whose Detached event starts this cue. | `` |
-| `response` | `DamageSoundBank` | Clips and strength response for this named detachment cue; detachment is submitted at full strength. | `new DamageSoundBank{usePhysicalResponse = false, modulateVolume = false, randomizePitch = false}` |
-
-## DamageLandingAudioResponse
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `fullImpactSpeed` | `float` | Normal approach speed in m/s producing the strongest touchdown sound. | `9` |
-| `fullFallHeight` | `float` | Fall height in metres giving the full height contribution. Actual impact speed remains the primary input. | `4` |
-| `fullLoad` | `float` | Contact load in multiples of supported weight giving the full load contribution. | `6` |
-| `fullTravelSpeed` | `float` | Tangential speed relative to the landing surface, in m/s, giving the full travel contribution. | `30` |
-| `gain` | `Vector2` | Volume multiplier from a gentle touchdown to a hard landing. | `new Vector2(.08f, 1)` |
-| `pitch` | `Vector2` | Pitch and playback-rate multiplier from a gentle touchdown to a hard landing. | `new Vector2(1.12f, .86f)` |
-| `travelInfluence` | `float` | Small extra gain/rate contribution from surface-relative travel. Cannot turn a gentle contact into a hard landing. | `.1f` |
-
-## DamageContactLimiter
-
-Target-side component: **Add Component > Ultra Vehicle System > World > Damage > Damage Contact Limiter**. Place it on the shared parent of the target’s colliders.
-
-| Field | Type | Meaning | Default |
-| --- | --- | --- | --- |
-| `contactSeparation` | `float` | Quiet gap allowing a new impact response. | `.35f` |
-| `repeatTime` | `float` | Minimum spacing of sustained impacts from the same vehicle. | `.8f` |
-
-### Material responses in a Feedback Profile
-
-**Surface Responses** maps each surface type to a Feedback Profile. **Default Plastic Feedback** is included for Plastic. An object's Damage Surface can override the profile. Configure **Plastic** for its impacts, **Scrape** for sliding audio, and **Impact Effect** / **Scrape Effect** for custom pooled particles. The particle material fields can also differ between profiles. New effect prefabs require `WarmUpEffects()` when added after configuration.
-
-## DamageSoundGroup
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `enabled` | `bool` | Enable this response without removing its clip assignments. | `true` |
-| `clips` | `AudioClip[]` | Recordings selected randomly for this list. Empty or disabled groups stay silent. | `Array.Empty<AudioClip>()` |
-| `volume` | `float` | Gain multiplier for this bank/group. Group gain multiplies the common bank gain. | `1` |
-| `pitch` | `Vector2` | Minimum and maximum pitch multipliers. Group pitch multiplies the common bank pitch. | `Vector2.one` |
-| `cooldown` | `float` | Minimum interval in seconds before replaying this bank/group. Does not delay the first accepted hit. | `.09f` |
-
-## DamageGroundImpactSettings
-
-See [damage response setup](../DamageFeedback.md).
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
-| `groundLayers` | `LayerMask` | Layers treated as ground for the additional landing and rollover sounds. Contact normals must also face upward. | `~0` |
-| `minimumGroundNormal` | `float` | Minimum dot product of the contact normal and gravity-up. Rejects walls and near-vertical surfaces. | `.5f` |
-| `includeDynamicGround` | `bool` | Allow movable rigidbodies to count as ground. Off by default so hitting loose props or ragdolls does not trigger a ground landing. | `` |
-| `minimumAirTime` | `float` | Minimum whole-vehicle airborne time in seconds before the first height-landing sound can play. | `.15f` |
-| `minimumFallHeight` | `float` | Minimum descent in metres for the first height-landing sound. Small bumps and ordinary suspension movement stay silent. | `.5f` |
-| `minimumLandingSpeed` | `float` | Minimum incoming normal contact speed in m/s for a height-landing sound. Includes motion caused by vehicle rotation. | `3` |
-| `minimumRolloverSpeed` | `float` | Minimum incoming normal contact speed in m/s for a rollover/tilted ground strike. Resting or gentle sliding does not qualify. | `2.5f` |
-| `minimumTilt` | `float` | Minimum chassis tilt from gravity-up for a rollover strike. A sufficiently fast pitch/roll spin can qualify independently. | `35` |
-| `minimumSpinSpeed` | `float` | Minimum pitch/roll angular speed in radians per second for a spinning strike. Yaw-only donuts do not count as a tumble. | `1.5f` |
-| `fullImpactSpeed` | `float` | Normal contact speed in m/s mapped to full sound strength. | `12` |
-| `fullSpinSpeed` | `float` | Pitch/roll angular speed in radians per second giving the full additional rollover strength contribution. | `8` |
-| `spinInfluence` | `float` | Extra rollover strength contributed by pitch/roll spin after the minimum impact-speed gate is passed. | `.35f` |
-| `impactInterval` | `float` | Minimum interval in seconds between distinct ground strikes. Coalesces wheels and attached panels contacting in quick succession. | `.12f` |
-| `separationTime` | `float` | Time without support in seconds that separates two ground-contact episodes. | `.06f` |
-| `newFaceAngle` | `float` | Rotation of the contacted chassis face, in degrees, that can identify the next strike while tumbling. | `45` |
-| `settleTime` | `float` | Continuous grounded settling time in seconds before another independent height landing can be armed. Immediate rebounds do not replay the first-landing bank. | `.4f` |
-
-## JetBlast
-
-Optional physical exhaust under **Effects**; see [Jet Blast](../Particles.md#jet-blast).
-
-| Setting | Description | Default |
-| --- | --- | --- |
-| Activation | Engine Running includes idle; Throttle Only requires throttle above the threshold. | Engine Running |
-| Minimum Throttle | Activation threshold for Throttle Only. | 0.02 |
-| Outlets | Exhaust transforms, local +Z outward. | Empty |
-| Maximum Range | Reach in metres. | 18 |
-| Start Radius / End Radius | Plume width at nozzle/end, in metres. | 0.5 / 4 |
-| Maximum Force | Newtons per outlet at full engine demand. | 45000 |
-| Force Multiplier | Scale idle and full-power exhaust together. | 1 |
-| Idle Strength | Full-force fraction at zero throttle while the engine runs. Set zero to disable idle blast. | 0.12 |
-| Affected Layers | Bodies eligible for the volume query. | All |
-| Contact Capacity | Collider query capacity prepared at configuration. | 128 |
-| Show Gizmos | Selected plume preview. | On |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Shared wipe sound gain, emitter and spatial routing. | `new VehicleAudioSettings{volume = .4, minDistance = 2, maxDistance = 25, dopplerLevel = 1}` |
+| `entries` | `List<WiperAudioEntry>` ([fields](Effects.md#wiperaudioentry)) | Per-wiper audio overrides addressed by the mechanism entry ID. | `Empty list` |
+| `outwardClip` | `AudioClip` | Shared sound for a blade's outward stroke. Individual wipers can replace it when Override Audio is enabled. | `None / unassigned` |
+| `returnClip` | `AudioClip` | Shared sound for the return stroke toward park. Use a different clip for alternating wipe sounds or reuse the outward recording. | `None / unassigned` |
+| `synchronizeAudioSpeed` | `bool` | Synchronize shared wipe sound playback with the configured wipe rate. | `true` |
+| `wipers` | `Wipers` ([fields](Exterior.md#wipers)) | Assign the wipers Wipers component/asset used by WiperSwitchBinding. | `None / unassigned` |

@@ -296,20 +296,21 @@ The lists below cover public methods and events for this topic and their package
 
 [DriveProfile](../API/DriveProfiles.md#driveprofile) gives the full declared contract.
 
-| Method | Role |
+| Member | Behavior |
 | --- | --- |
-| `public virtual void ReleaseAllForces(VehicleController vehicle)` | Release the supplied vehicle through its controller API. vehicle: target owner; runtime state stays on that vehicle, not the serialized profile. |
-| `public virtual void RestoreAllForces(VehicleController vehicle)` | Clear the target vehicle manual release through its controller API. Overrides the current ignition-off interval; the next running/off cycle can release again. Preserves pose and velocity. |
-| `public virtual bool AreForcesReleased(VehicleController vehicle)` | Query the target vehicle effective force-release state. Returns false for a missing vehicle; includes both manual and ignition-policy release. |
-| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
+| `public virtual bool AreForcesReleased(VehicleController vehicle)` | Query the target vehicle effective force-release state. |
 | `public virtual bool CanUsePropulsionBoost(VehicleController vehicle)` | Checks the profile propulsion switch and required water/support context before activation. |
 | `public virtual DriveProfile Clone()` | Creates an independent serialized profile-configuration copy; configure it on its destination vehicle before use. |
+| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
+| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
+| `public virtual void ReleaseAllForces(VehicleController vehicle)` | Release the supplied vehicle through its controller API. |
 | `public virtual float ResolveBoostDemand(VehicleController vehicle, Command command)` | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. |
 | `public virtual float ResolveDriveDemand(VehicleController vehicle, Command command)` | Maps the command and strategy state to propulsion demand for surrounding mechanics. |
 | `public virtual float ResolveExternalDriveIntent(VehicleController vehicle)` | Returns signed non-wheel propulsion intent used by shared coasting/contact policy. |
 | `public virtual float ResolvePropulsionBoostMultiplier(VehicleController vehicle)` | Returns the resolved native-thrust multiplier; custom profiles consume it in their own force law. |
-| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
-| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
+| `public Vector3 ResolveRotationMultipliers(float speedKph)` | Returns pitch/yaw/roll curve multipliers, or ones when disabled. |
+| `public virtual void RestoreAllForces(VehicleController vehicle)` | Clear the target vehicle manual release through its controller API. |
+| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 
 ### FreeProfile
 
@@ -326,9 +327,9 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public override void Begin(VehicleController vehicle, DriveProfile previous, DriveProfile target)` | Starts the owning operation or adapter; its parameters identify the request, seat or transition being owned. |
-| `public override void Step(VehicleController vehicle, float progress, float remainingTime, float deltaTime)` | Applies configured landing-clearance support while returning from hover to wheel drive. |
 | `public override void Complete(VehicleController vehicle)` | Completes hover/wheel transition geometry and its inherited transition cleanup. |
 | `public override void Progress(VehicleController vehicle, float progress)` | Returns normalized progress for the active profile transition. |
+| `public override void Step(VehicleController vehicle, float progress, float remainingTime, float deltaTime)` | Applies configured landing-clearance support while returning from hover to wheel drive. |
 
 ### HoverProfile
 
@@ -337,8 +338,8 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public override bool CanUsePropulsionBoost(VehicleController vehicle)` | Checks the profile propulsion switch and required water/support context before activation. |
-| `public override float ResolveBoostDemand(VehicleController vehicle, Command command)` | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. |
 | `public override void Configure(VehicleController vehicle)` | Ensures a `HoverVisuals` helper exists for the hover family. |
+| `public override float ResolveBoostDemand(VehicleController vehicle, Command command)` | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Applies powered vertical support, horizontal drive, attitude response and resistance. |
 
 ### IVehicleModule
@@ -358,21 +359,27 @@ The lists below cover public methods and events for this topic and their package
 | --- | --- |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Provides fallback family balance only when enabled and no dedicated `MotorcycleBalance` owns that responsibility. |
 
+### ProfileControlGate
+
+- `public void Configure(DriveProfile primary, DriveProfile secondary, float minimumHoldSeconds = .25f)` — Install distinct controllers and reset primary ownership.
+- `public void Reset()` — Return primary control immediately without reconfiguring the vehicle.
+- `public void Step(bool requestSecondary, float deltaTime)` — Advance hold timing and admit a requested controller change.
+
 ### ProfileSwitcher
 
 [ProfileSwitcher](../API/DriveProfiles.md#profileswitcher) gives the full declared contract.
 
-- `public UnityEvent completed` — Invoked when the transition finishes and the destination profile is active.
 - `public event Action<DriveProfile> ProfileChanged` — Current profile changed.
 - `public event Action ProfilesChanged` — Current profiles changed.
-- `public UnityEvent<float> progressed` — Invoked as transition progress changes; use it to update an animation or progress display.
-- `public UnityEvent started` — Invoked when an admitted profile transition starts.
 - `public event Action TransitionAudioStopped` — Requests stopping transition presentation.
 - `public event Action<ProfileTransition, string, string> TransitionBegan` — Reports the admitted transition component, source profile ID and destination profile ID.
 - `public event Action TransitionCompleted` — Current transition completed.
 - `public event Action TransitionInterrupted` — Current transition interrupted.
 - `public event Action<float> TransitionProgressed` — Current transition progressed.
 - `public event Action TransitionStarted` — Current transition started.
+- `public UnityEvent onCompleted` — Invoked when the transition finishes and the destination profile is active.
+- `public UnityEvent<float> onProgressed` — Invoked as transition progress changes; use it to update an animation or progress display.
+- `public UnityEvent onStarted` — Invoked when an admitted profile transition starts.
 - `public virtual bool ClearProfiles()` — Current clear profiles.
 - `public override void Configure(VehicleController vehicle)` — Binds the component to its configured owner and selected source.
 - `public virtual DriveProfile GetProfile(string id)` — Current get profile.
@@ -394,7 +401,19 @@ The lists below cover public methods and events for this topic and their package
 - `public virtual void Complete(VehicleController vehicle)` — Current complete.
 - `public virtual bool Matches(string fromId, string toId)` — Current matches.
 - `public virtual void Progress(VehicleController vehicle, float progress)` — Current progress.
-- `public virtual void Step(VehicleController vehicle, float progress, float remainingTime, float deltaTime)` — // Physics-only transition assistance; never called by render-frame presentation updates.
+- `public virtual void Step(VehicleController vehicle, float progress, float remainingTime, float deltaTime)` — Physics-only transition assistance; never called by render-frame presentation updates.
+
+### SpaceshipProfile
+
+[SpaceshipProfile](../API/DriveProfiles.md#spaceshipprofile) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public override void Configure(VehicleController vehicle)` | Binds the vehicle owner and prepares component state. |
+| `public Vector3 ResolveAngularRates(float speedKph)` | Returns configured angular rates scaled by enabled speed curves, in degrees/s. |
+| `public override float ResolveBoostDemand(VehicleController vehicle, Command command)` | Boost demand from the combined translation axes. |
+| `public override float ResolveDriveDemand(VehicleController vehicle, Command command)` | Engine demand from the combined translation axes. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Advances this mechanism through the vehicle physics pipeline. |
 
 ### VehicleModule
 
@@ -403,14 +422,14 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
 
 ### WheeledProfile

@@ -102,7 +102,7 @@ Original parent, sibling order, local pose/scale and any changed kinematic setti
 Pelvis and chest support
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Seat restraints support the body around the captured seated pose. **Seat Travel** and **Chest Travel** bound translation when the harness travel limit is enabled. **Chest Support Strength** scales chest support independently from the pelvis. The compliant harness's frequency/damping, maximum acceleration and angular torque settings determine how strongly it follows the vehicle.
+Seat restraints support the body around the captured seated pose. **Pin Pelvis To Seat** is enabled by default: a native positional constraint keeps the hips at their support point while torso rotation and limb physics remain active. Disable it for compliant pelvis translation. **Seat Travel** and **Chest Travel** bound translation when the harness travel limit is enabled. **Chest Support Strength** scales chest support independently from the pelvis. The compliant harness's frequency/damping, maximum acceleration and angular torque settings determine how strongly it follows the vehicle.
 
 Use lean/twist limits to allow controlled body movement around the seated frame. These limit the seated support envelope, not individual hip/shoulder anatomy. Relative linear/angular damping suppresses motion relative to the vehicle; it is separate from ordinary world-space Rigidbody damping.
 
@@ -136,25 +136,25 @@ Detection uses gravity-compensated acceleration at the seat, including angular m
 +--------------------------------+---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Maximum Relative Speed         | 3 m/s   | Maximum dynamic bone speed relative to the vehicle's velocity at that bone while protection is active.                                                                                                       |
 +--------------------------------+---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Maximum Seat Displacement      | 0.15 m  | Pelvis travel around its seated spine origin during protection. An excessive displacement translates the dynamic body together.                                                                              |
+| Maximum Seat Displacement      | 0.15 m  | Upper bound for compliant native seat restraint travel; existing tighter Seat Travel limits remain in effect. Pinned pelvis position remains fixed.                                                          |
 +--------------------------------+---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Maximum Relative Angular Speed | 360°/s  | Maximum bone spin and rotation per physics step relative to the moving vehicle, using live pre-solve rotations.                                                                                              |
+| Maximum Relative Angular Speed | 360°/s  | Maximum bone spin relative to the moving vehicle; anatomical joint limits govern orientation.                                                                                                                |
 +--------------------------------+---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Maximum Joint Separation       | 0.025 m | Allowed separation between anatomical joint anchors during protection.                                                                                                                                       |
+| Maximum Joint Separation       | 0.025 m | Native positional projection tolerance for anatomical anchors.                                                                                                                                               |
 +--------------------------------+---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Below the thresholds, detection leaves the occupant's ordinary physics unchanged. See :ref:`Passenger Seat settings <uvs-inspectorreference-world--passengerseat>` for all force-limit controls.
+Detection does not rewrite bone poses or interpolation. Native seat and anatomical constraints retain the physical rig. See :ref:`Passenger Seat settings <uvs-inspectorreference-world--passengerseat>` for all force-limit controls.
 
-During protection, relative bone speed, spin and joint separation are limited, with temporarily stronger solver constraints. **Protection Time** is a minimum hold and extends while motion remains excessive. **Monitor After Physics** also checks motion after the native solve. Original joint and interpolation settings return when protection ends, the controller changes or the occupant exits. Configured ejection takes precedence; the limiter does not restore an authored pose.
+During protection, relative bone speed, spin and joint separation are limited, with temporarily stronger solver constraints. **Protection Time** is a minimum hold and extends while motion remains excessive. **Monitor After Physics** also checks motion after the native solve. Temporary solver and angular-stop settings return when overload protection ends. Seat constraint policies return on controller change or exit. Vehicle and passenger interpolation are preserved throughout. Configured ejection takes precedence; the limiter does not restore an authored pose.
 
-**Measured G-force** and **G-force protection active** are read-only Play Mode indicators shown when the group is expanded. Lower the activation thresholds to cover weaker impacts, or raise them if protection engages on intended rough-terrain motion. These settings are live; they do not rebuild the seat's ordinary restraints. Teleport/reset and entry clear the velocity history so a deliberate reset is not treated as a collision.
+**Measured G-force** and **G-force protection active** are read-only Play Mode indicators shown when the group is expanded. Lower the activation thresholds to cover weaker impacts, or raise them if protection engages on intended rough-terrain motion. Activation thresholds are live. Apply structural restraint changes through the seat rebind API. Teleport/reset and entry clear the velocity history so a deliberate reset is not treated as a collision.
 
 .. _uvs-seats--collision-and-tilt-response:
 
 Collision and tilt response
 ---------------------------
 
-Limb release and passenger ejection have separate configuration. They run for an eligible occupied physical humanoid; they are not general-purpose animation triggers for every passenger controller. Empty/ineligible seats skip damage handling. Tilt is not calculated unless an unreleased limb or the enabled auto-eject policy needs it. Collision force and relative speed are calculated once only if collision release/ejection needs them. Force limits have their own eligibility checks; disabling auto-eject does not disable those limits.
+Limb release and whole-passenger ejection have separate policies. Limb damage requires an occupied physical humanoid. Automatic ejection belongs to the seat and works independently of Balance Rider, the selected vehicle, and the occupant's Ragdoll / Animator / Animator + IK mode. A custom passenger backend keeps ownership of its release behavior. Empty or disabled seats do not eject. Force-limit protection remains independent of auto-eject.
 
 .. _uvs-seats--configure-each-limb-independently:
 
@@ -177,9 +177,32 @@ Configure whole-passenger ejection
 
 1. Open **Passenger Seat > Settings > Damage / Auto-eject**.
 2. Enable **Enable Passenger Ejection**, then **Eject Passenger On Collision** and/or **Eject Passenger On Spin**.
-3. Set the corresponding **Minimum Ejection Collision Force / Minimum Ejection Collision Speed** or **Minimum Ejection Angle / Ejection Tilt Delay**. These thresholds are independent from each limb's settings.
-4. Set **Passenger Ejection Velocity** if an additional vehicle-local velocity change is required. Existing body momentum is preserved by the physical release.
-5. Set **Reseat Ejected On Reset** if explicit reset should return this same damage-ejected body when it remains eligible. It does not steal an actor from another seat.
+3. Expand **Collision Ejection**. **Frontal Deceleration** requires a sufficiently fast forward approach and a substantial measured seat-point speed loss, both absolute and as a fraction of the incoming forward speed. **Frontal Cone Angle** restricts the direction. The default is at least 8 m/s, 5 m/s lost, 45% lost and a 60-degree cone.
+4. **External Strike** admits another rigidbody approaching the vehicle, including side/rear strikes while parked. Its default requires 3 m/s of approach from that body and at least 3 m/s of chassis velocity change. Moving kinematic strikers are allowed unless disabled. A parked rigidbody is not considered an incoming striker merely because this vehicle hits it.
+5. Shared **Minimum Closing Speed** uses velocity into the contact normal, not full sliding speed. **Minimum Normal Impulse** optionally adds an N·s floor. **Maximum Vertical Normal** excludes gravity-relative support contacts by default, independently of vehicle lean; **Collision Layers** filters external colliders. **Other Impacts** is off by default and can separately enable severe static side/rear shocks.
+6. Set **Minimum Ejection Angle / Ejection Tilt Delay** for sustained overturn release. These settings do not depend on collision admission.
+7. **Inertia Transfer** controls preservation of pre-impact normal motion. Physical bones restore only their lost normal component; animated occupants correct inherited post-impact chassis motion. **Maximum Inherited Velocity Change** caps that correction. **Passenger Ejection Velocity** is a separate, optional vehicle-local addition; leave it zero for an inertial release.
+8. Set **Reseat Ejected On Reset** if explicit reset should return this same damage-ejected body when it remains eligible. It does not steal an actor from another seat.
+
++-------------------------------------------------+-----------------------------------------------------------------------+
+| Example                                         | Default collision result                                              |
++=================================================+=======================================================================+
+| Fast frontal impact nearly stopping the vehicle | Ejects after the speed-loss thresholds qualify                        |
++-------------------------------------------------+-----------------------------------------------------------------------+
+| Fast travel sliding along a wall                | Does not eject from tangential speed or friction alone                |
++-------------------------------------------------+-----------------------------------------------------------------------+
+| Vehicle leaning against a wall at rest          | Does not eject from contact force alone; tilt release can still apply |
++-------------------------------------------------+-----------------------------------------------------------------------+
+| Another moving vehicle strikes the side/rear    | Ejects when its approach and mass-normalized impulse qualify          |
++-------------------------------------------------+-----------------------------------------------------------------------+
+| Fast light debris                               | Does not eject unless it changes chassis velocity enough              |
++-------------------------------------------------+-----------------------------------------------------------------------+
+| Normal road support / vertical landing          | Excluded by the vertical-normal filter                                |
++-------------------------------------------------+-----------------------------------------------------------------------+
+
+``PassengerCollisionEjection.Evaluate(PassengerCollisionSample)`` is a virtual policy boundary for application-specific rules. Assign a derived instance from code; the Inspector authors the built-in policy. Measurements are in chassis axes (forward +Z, up +Y), in m/s and N·s. Impulse divided by chassis mass estimates that contact pair's linear velocity change; it is not a medical injury model or a measurement of occupant force. Frontal loss uses the solved seat-point velocity, so a stop shared across several contact pairs still qualifies. External strikes and optional other impacts require both each contact pair's normal impulse divided by chassis mass and the measured seat-point velocity change along that normal to reach the configured threshold. A braced vehicle that barely moves does not eject from contact impulse alone; unrelated side contacts are not pooled into a stronger striker.
+
+Ejecting a driver blocks held propulsion requests (throttle, lift/strafe, nitro, burnout and wheel lift) until a driver enters that seat again or the vehicle is reset. The engine remains running and its RPM responds as it does to releasing the accelerator; boosts stop. Ejecting a passenger does not interrupt the seated driver's controls. This is runtime behavior and does not depend on the demo keyboard adapter.
 
 Ejection ends occupancy and releases the whole passenger. Limb release leaves the passenger seated. Whole-passenger ejection takes priority when the same damage sample qualifies for both.
 
@@ -261,9 +284,11 @@ Motorcycle rider support
 
 Fit the pelvis, foot pegs and handlebar contacts before tuning extra rider support. Keep the knees outside the motorcycle using reachable foot/hip geometry; do not use seat springs to conceal incorrect anatomical hip limits.
 
-On ``PassengerSeat``, **Hold Head Forward** adds artificial angular spring support to the seated ragdoll head. A runtime PhysX angular drive evaluates its spring and damping together with the native constraints; it does not apply an explicit PD torque on each physics step. All three linear axes of this support remain free, so only the anatomical neck locates the head. **Head Pitch** is relative to the seat's neutral forward pose: zero faces forward, negative looks up and positive looks down. **Head Spring**, **Head Damper** and **Maximum Head Torque** control stiffness, damping relative to the chassis and the torque cap. They can be adjusted in Play Mode.
+On ``PassengerSeat``, **Hold Head Forward** adds artificial angular spring support to the seated ragdoll head. A runtime PhysX angular drive evaluates its spring and damping together with the native constraints; it does not apply an explicit PD torque on each physics step. With **Hold Head Position** disabled, the anatomical neck alone locates the head; angular support does not prevent the whole head moving with the torso. **Head Pitch** is relative to the seat's neutral forward pose: zero faces forward, negative looks up and positive looks down. **Head Spring**, **Head Damper** and **Maximum Head Torque** control stiffness, damping relative to the chassis and the torque cap. They can be adjusted in Play Mode.
 
-This requires a Humanoid Avatar, a saved anatomical joint on the mapped head and a dynamic head Rigidbody. It runs only for an occupied enabled Ragdoll Physics seat. Animator, Animator + IK, Attach Only, Custom, empty seats and ejected bodies receive no head torque. Disabling support immediately clears its runtime drive and removes the temporary angular support; saved anatomy remains intact. The demo uses zero-degree pitch. The same settings work for a quad, car, boat or aircraft without a BalanceRider component. Support is off by default on new seats; older enabled rider support is transferred to its assigned seat.
+**Hold Head Position** independently adds a force-limited native linear spring so steering-hand forces cannot pull the head far over the wheel. It preserves physical motion: the head remains dynamic and no linear axis is locked. With **Head Position Anchor** empty, the seated head position is captured in the seat's frame; an optional vehicle-mounted Transform can provide an explicit target instead. Do not assign a passenger bone as that target. **Head Position Frequency** controls stiffness (default ``6`` Hz), **Head Position Damping Ratio** controls damping (default ``1``), and **Maximum Head Acceleration** caps force per kilogram of head mass (default ``100`` m/s²). Both position and rotation support can be used separately. The blue demo car driver enables both, with position frequency ``10`` Hz and maximum acceleration ``250`` m/s². Other seats keep their authored support settings.
+
+This requires a Humanoid Avatar, a saved anatomical joint on the mapped head and a dynamic head Rigidbody. It runs only for an occupied enabled Ragdoll Physics seat. Animator, Animator + IK, Attach Only, Custom, empty seats and ejected bodies receive no head support. Disabling either option clears its corresponding drive; disabling both or releasing the occupant removes the temporary support; saved anatomy remains intact. The demo uses zero-degree pitch. The same settings work for a quad, car, boat or aircraft without a BalanceRider component. Support is off by default on new seats; older enabled rider support is transferred to its assigned seat.
 
 .. _uvs-seats--balance-rider-motorcycles-bicycles-and-scooters:
 
@@ -278,6 +303,8 @@ A **Passenger Seat** represents an occupancy and body-support frame; it can supp
 
 Independent foot policies
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Lower Feet When Stopped** is available on each Balance Rider, for drivers and passengers alike. With Speed Blend and both Ground/Riding targets assigned, enabled lowers the feet at low speed; disabled keeps them on the riding supports. Ground mode is also overridden by Riding while disabled; explicit Riding and Unchanged policies remain unchanged. Toggle it at runtime with ``SetGroundSupport(bool)``. This does not enable passenger foot propulsion. The demo motorcycle's rear passenger has its own ground and peg targets; enable or disable the checkbox on its Balance Rider. Use reachable ground poses and **Release Foot Pins On Ground** for compliant legs.
 
 +-------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Setting     | Behavior and required poses                                                                                                                                                               |
@@ -456,7 +483,7 @@ Attach this script to an application object, assign a seat and an empty knee tar
 
 For live changes, ``seat.UpdateJointSupport(kneeJointId, support => support.spring = 700f)`` edits the entry and restarts target tracking. ``TryGetJointSupportState`` exposes the supported world point, target point and last applied force/torque; see the :ref:`API reference <uvs-api-passengercontrollers--passengerjointsupportstate>`.
 
-Select the vehicle or seat to show yellow target markers and lines to resolved anatomical pivots. Under the bottom **Gizmos** foldout, **Show anchors**, **Show connections** and **Show labels** control these guides independently. A pre-placed **Passenger Seat > Body** can supply joint positions for the editor preview; a prefab-only occupant is resolved after spawning.
+Select the vehicle or seat to show yellow target markers and lines to resolved anatomical pivots. In the **Gizmos** section, **Show anchors**, **Show connections** and **Show labels** control these guides independently. A pre-placed **Passenger Seat > Body** can supply joint positions for the editor preview; a prefab-only occupant is resolved after spawning.
 
 .. _uvs-seats--seated-recovery-without-pose-resets:
 
@@ -525,3 +552,43 @@ Add a rear passenger
 ~~~~~~~~~~~~~~~~~~~~
 
 Use a separate Passenger Seat with role **Humanoid Passenger**, its own pelvis, hand/grab and foot-peg targets, and an optional Balance Rider/Rider Animator. Set foot modes to Riding so a passenger keeps their feet on the pegs. A passenger never takes over driver foot propulsion. The demo has **RearPassenger**, initially empty; use its Add/Remove button or ``Spawn()`` / ``TryExit()`` on that seat. Driver and passenger can use independent controller modes and animation rules.
+
+.. _uvs-seats--fpp-presentation-swaps:
+
+FPP presentation swaps
+----------------------
+
+Expand **Passenger Seat > FPP Swap** to add Passenger Variants and assign the optional FPP prefab, controller, attachment, limb and handle policies. **Swap On Interior Camera** is optional; custom cameras can use the :ref:`public API <uvs-scripting-passengercontrollers--runtime-presentation-swaps-and-custom-cameras>`.
+
+**Restore Original On Exit** defaults to off: the active FPP body can leave. Enable it to restore the original before animated departure. **Restore Original On Eject** is independent and defaults to on. Disable/destroy teardown never activates a parked body.
+
+A returning variant regains its settings and FPP/TPP association when it re-enters the same seat. Its outside lifetime remains application-owned. Reusing the original through ``Spawn()`` ends that return association; unrelated occupants are never adopted.
+
+The yellow car demonstrates **SWAP -> FPP** / **SWAP -> TPP**: a red, headless mannequin with intact bones and animation bindings, and the original TPP model.
+
+.. _uvs-seats--airborne-rider-correction:
+
+Airborne rider correction
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On **Balance Rider → Airborne weight transfer**, enable ``airControl`` to use the dedicated ``Command.AirRoll`` and ``Command.AirPitch`` axes. Their keyboard/action bindings are independent of throttle and steering, even when the demo assigns the same A/D and W/S keys. ``rollAcceleration`` controls sideways angular acceleration and ``maximumRollAngularSpeed`` its separate speed limit; set either to zero to disable vehicle roll correction. ``maximumAngularSpeed`` controls pitch independently. Contact delay and response time filter brief loss of support and smooth input. Motorcycle, bicycle and scooter demo drivers enable this control. It adds bounded physical torque. Automatic airborne roll leveling belongs to Stabilization; when its outward-roll guard is enabled, input can correct toward upright but cannot deepen the current bank. Any operational tire contact ends airborne rider correction. Opposite input can counter an existing spin.
+
+.. _uvs-seats--rider-support-and-pose-signals:
+
+Rider support and pose signals
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``BalanceRider.MotionUpdated`` / ``onMotionUpdated`` provide resolved world-space foot targets, the effective riding blend, grounded/support phases, requested torso lean and left/right knee extension. Check ``seated`` and the corresponding ``leftFootTargetValid`` / ``rightFootTargetValid`` before using foot poses. ``FootPlanted`` and ``FootLifted`` (and Inspector counterparts) report support edges for standing, backward steps and inside/fallen support. They describe the target support phase, not measured sole collisions. ``RidingBlendChanged`` and ``BodyLeanChanged`` let custom animation follow transitions. Releasing or disabling the rider clears active support phases. Subclasses can extend matching ``On...`` notification hooks, calling base once.
+
+Inside-knee lean is enabled by default in ``kneeLean``. Steering selects the inside leg while the requested riding bank determines extension: it reaches ``maximumOffset`` (0.2 m by default) at ``fullExtensionAngle`` (35°). Deployment fades in between 1 and 4 m/s. Releasing steering, straightening, wheel lift, flight or foot pushing smoothly retracts the knees. The displaced targets are shared by configured knee joint supports and IK poles. Tune extension, bank threshold, steering deadzone and response time. Damaged or externally controlled legs retain their own pose ownership.
+
+The demo motorcycle includes the car's ``AimingHandDemo``: Y cycles right hand, left hand and off; mouse aiming and LMB firing use the same interaction token and return to the saved handlebar grip. Its braking yaw damping is 4.3/s, retaining slide deceleration while allowing a larger heading reversal.
+
+.. _uvs-seats--torso-transfer-and-head-support:
+
+Torso transfer and head support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``BalanceRider.corneringPosture`` transfers the torso into riding turns and counterbalances slow parking turns. It requires **Support Balance** and an occupied seat; tune additional bank, slow counterlean, response time and maximum rate. Airborne input suppresses this automatic cornering posture. The same resolved lean is available through the rider's motion and body-lean notifications. This is separate from speed-based forward crouching, which is not provided by the current rider.
+
+On a physical humanoid seat, **Hold Head Position** adds a compliant head-position spring alongside the independent **Hold Head Forward** rotation spring. Leave **Head Position Anchor** empty to retain the seated position captured relative to the seat, or assign a vehicle-mounted point. Do not use a passenger bone as the target. **Head Position Frequency** controls stiffness, **Head Position Damping Ratio** controls damping and **Maximum Head Acceleration** limits support force per kilogram of head mass. The head remains dynamic and its anatomical neck still participates. Both supports release on exit/ejection and require the active Ragdoll Physics controller with a valid humanoid head/neck mapping.

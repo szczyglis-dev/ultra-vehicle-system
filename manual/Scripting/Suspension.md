@@ -159,8 +159,8 @@ The lists below cover public methods and events for this topic and their package
 
 [Suspension](../API/Suspension.md#suspension) gives the full declared contract.
 
-- `public event Action<LandingEvent> Landed` — // First wheel support after qualifying flight; copied impact context.
-- `public event Action<LandingEvent> LandingCompleted` — // All operational wheel rays have support after Landed; not a promise of settled suspension.
+- `public event Action<LandingEvent> Landed` — First wheel support after qualifying flight; copied impact context.
+- `public event Action<LandingEvent> LandingCompleted` — All operational wheel rays have support after Landed; not a promise of settled suspension.
 - `public override void Configure(VehicleController v)` — Binds the component to its configured owner and selected source.
 - `public virtual void ResetVehicleState(VehicleResetReason reason)` — Clears transient state for the supplied reset reason without changing persistent configuration.
 - `public override void Step(VehicleController v, Command c, float dt)` — Current step.
@@ -188,9 +188,9 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
+| `public float Angle(float angle, Vector3 axis)` | Returns a signed angular component in degrees for the configured constrained frame. |
 | `public Quaternion Apply(Quaternion desired, Quaternion neutral)` | Applies authored angular permissions/limits to a world rotation relative to its reference frame. |
 | `public Quaternion ApplyLocal(Quaternion relative)` | Constrains a local requested rotation to the configured angular permissions and bounds. |
-| `public float Angle(float angle, Vector3 axis)` | Returns a signed angular component in degrees for the configured constrained frame. |
 
 ### VehicleModule
 
@@ -199,12 +199,12 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |

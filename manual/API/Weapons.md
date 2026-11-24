@@ -49,7 +49,7 @@ Detaches the actual payload and establishes released physics.
 
 ## IWeaponProjectile
 
-**Runtime/World/Weapons/WeaponBarrel.cs**
+**Runtime/Contracts/Weapons/IWeaponProjectile.cs**
 
 ProjectileDemo handover contract invoked after a barrel admits/spawns a shot.
 
@@ -307,6 +307,7 @@ Presents configured visual/hull recoil.
 
 | Member | Meaning |
 | --- | --- |
+| `public Transform anchor` | Optional independent local direction frame for visual recoil translation. Does not change the physical recoil impulse. |
 | `public Vector3 angularImpulse` | Additional angular impulse in muzzle axes (pitch, yaw, roll). Native physics supplies suspension movement. |
 | `public bool animateBarrel` | `animateBarrel`: enables visual barrel kick and return after a confirmed shot; `applyBodyImpulse`: applies a physical recoil impulse to the vehicle after a confirmed shot. |
 | `public bool applyBodyImpulse` | `animateBarrel`: enables visual barrel kick and return after a confirmed shot; `applyBodyImpulse`: applies a physical recoil impulse to the vehicle after a confirmed shot. |
@@ -325,4 +326,5 @@ Presents configured visual/hull recoil.
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public override void Configure(VehicleController vehicle)` | Refreshes accepted-shot bindings while this recoil presentation is enabled. | `vehicle` — Vehicle context/owner receiving the operation. |
+| `public override void Configure(VehicleController vehicle)` | Refreshes accepted-shot bindings while this recoil presentation is enabled. | — |
+| `public virtual void GetTranslationFrame(out Vector3 origin, out Vector3 direction)` | Returns the world-space origin and axis of the authored recoil travel. | — |

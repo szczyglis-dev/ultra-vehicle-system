@@ -13,9 +13,7 @@ Select the vehicle root and open **VehicleController > Setup > Drive mode**. Cho
 | Tracked | Tanks, tracked carriers, bulldozers and other vehicles steered by their left/right tracks | [Tracked vehicles](Tracked.md) |
 | Hover | Multirotor drones, quadcopters, hovercraft and flying cars with assisted hovering and sideways movement | [Combined vehicles](CombinedVehicles.md), [Aircraft](Aircraft.md) |
 | Helicopter | Helicopters and other rotorcraft with collective lift, forward flight and optional altitude hold | [Aircraft](Aircraft.md) |
-| Airplane | Conventional fixed-wing aircraft, such as light planes, trainers and propeller aircraft | [Aircraft](Aircraft.md) |
-| Aerobatic Airplane | Aerobatic and stunt planes intended for loops, rolls and inverted flight | [Aircraft](Aircraft.md) |
-| Jet | Jet aircraft, such as fighters and fast jets, with thrust-driven flight and body-rate controls | [Aircraft](Aircraft.md) |
+| Airplane | All fixed-wing aircraft, including light planes, aerobatic planes and jets; Simple Steering optionally enables assisted attitude | [Aircraft](Aircraft.md) |
 | Boat | Motorboats, speedboats, patrol boats, ships and other powered surface vessels | [Boat](Boat.md) |
 | Spaceship | Six-axis gravity-free spacecraft | [Aircraft](Aircraft.md) |
 | Submarine | Submarines and powered underwater vehicles with depth and trim control | [Submarine](Submarine.md) |

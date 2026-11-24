@@ -129,17 +129,17 @@ AdaptiveHandGrip
 +-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | Method                                                                            | Role                                                                                                                          |
 +===================================================================================+===============================================================================================================================+
-| ``public virtual void Bind(VehicleHandle surface, Animator animator, bool left)`` | Binds this character hand to a ``VehicleHandle`` surface, calibrates the selected side and prepares adaptive surface fitting. |
-+-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void Unbind()``                                                  | Releases the current source/hand association and its owned state.                                                             |
-+-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool ApplyGrip()``                                               | Applies the currently prepared adaptive grip to the mapped hand.                                                              |
++-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Bind(VehicleHandle surface, Animator animator, bool left)`` | Binds this character hand to a ``VehicleHandle`` surface, calibrates the selected side and prepares adaptive surface fitting. |
 +-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool Calibrate(Animator animator)``                              | Builds hand measurements/reference frames from the supplied character Animator.                                               |
 +-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Release()``                                                 | Releases this part or hand pose through its declaring type's ownership boundary.                                              |
++-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool TryApplyPose(bool gripping)``                               | Applies the prepared gripping/released hand pose when this hand-pose provider can supply it.                                  |
 +-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void Release()``                                                 | Releases this part or hand pose through its declaring type's ownership boundary.                                              |
+| ``public virtual void Unbind()``                                                  | Releases the current source/hand association and its owned state.                                                             |
 +-----------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-gripsolving--handgrip:
@@ -156,11 +156,11 @@ HandGrip
 +---------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+
 | ``public virtual void ConfigureJoint(ConfigurableJoint joint, Rigidbody vehicle, VehicleHandle handle)``                                                | Configures a physical hand joint using the prepared grip frame and drive policy.  |
 +---------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+
-| ``public virtual Quaternion WristRotation(Transform target)``                                                                                           | Returns wrist orientation from the prepared hand/contact frame.                   |
+| ``public virtual void DriveRotation(ConfigurableJoint joint, Rigidbody vehicle, Transform target, VehicleHandle handle, bool left, float contact = 1)`` | Applies the physical wrist rotational drive in the prepared hand/contact frame.   |
 +---------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+
 | ``public virtual Vector3 WristPosition(Transform target)``                                                                                              | Returns the wrist position corresponding to a prepared palm/contact frame.        |
 +---------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+
-| ``public virtual void DriveRotation(ConfigurableJoint joint, Rigidbody vehicle, Transform target, VehicleHandle handle, bool left, float contact = 1)`` | Applies the physical wrist rotational drive in the prepared hand/contact frame.   |
+| ``public virtual Quaternion WristRotation(Transform target)``                                                                                           | Returns wrist orientation from the prepared hand/contact frame.                   |
 +---------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+
 
 .. _uvs-scripting-gripsolving--ihandavailabilitysource:
@@ -182,9 +182,9 @@ IPassengerHandPose
 +--------------------------------------+----------------------------------------------------------------------------------------------+
 | Method                               | Role                                                                                         |
 +======================================+==============================================================================================+
-| ``bool TryApplyPose(bool gripping)`` | Applies the prepared gripping/released hand pose when this hand-pose provider can supply it. |
-+--------------------------------------+----------------------------------------------------------------------------------------------+
 | ``void Release()``                   | Releases this part or hand pose through its declaring type's ownership boundary.             |
++--------------------------------------+----------------------------------------------------------------------------------------------+
+| ``bool TryApplyPose(bool gripping)`` | Applies the prepared gripping/released hand pose when this hand-pose provider can supply it. |
 +--------------------------------------+----------------------------------------------------------------------------------------------+
 | ``void Unbind()``                    | Releases the current source/hand association and its owned state.                            |
 +--------------------------------------+----------------------------------------------------------------------------------------------+
@@ -214,9 +214,9 @@ PassengerBehaviour
 +---------------------------------------------------------------------------------+-------------------------------------------------------------------------------+
 | Method                                                                          | Role                                                                          |
 +=================================================================================+===============================================================================+
-| ``public sealed override void StepPassenger(Passengers core, float deltaTime)`` | Advances passenger work in the supplied seat/core context.                    |
-+---------------------------------------------------------------------------------+-------------------------------------------------------------------------------+
 | ``public virtual bool AppliesTo(VehicleController vehicle)``                    | Checks whether this passenger behavior should run for the supplied seat/role. |
++---------------------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| ``public sealed override void StepPassenger(Passengers core, float deltaTime)`` | Advances passenger work in the supplied seat/core context.                    |
 +---------------------------------------------------------------------------------+-------------------------------------------------------------------------------+
 
 .. _uvs-scripting-gripsolving--passengermodule:
@@ -229,13 +229,13 @@ PassengerModule
 +---------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
 | Method                                                                                            | Role                                                                                                                                              |
 +===================================================================================================+===================================================================================================================================================+
-| ``public sealed override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Intentionally empty sealed module-pipeline entry point. Passenger-local work runs through ``StepPassenger``/``RenderPassenger`` under Passengers. |
-+---------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void PreparePassenger(Passengers core, PassengerSeat seat)``                     | Prepares this passenger behavior for an occupied seat.                                                                                            |
++---------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void RenderPassenger(Passengers core)``                                          | Advances render-time passenger presentation owned by this behavior/core.                                                                          |
 +---------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void ResetPassenger(Passengers core)``                                           | Resets this passenger behavior's state for the supplied seat.                                                                                     |
 +---------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void RenderPassenger(Passengers core)``                                          | Advances render-time passenger presentation owned by this behavior/core.                                                                          |
+| ``public sealed override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Intentionally empty sealed module-pipeline entry point. Passenger-local work runs through ``StepPassenger``/``RenderPassenger`` under Passengers. |
 +---------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void StepPassenger(Passengers core, float deltaTime)``                           | Advances passenger work in the supplied seat/core context.                                                                                        |
 +---------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -252,16 +252,16 @@ SteeringHandRegrip
 -  ``public virtual Object HandOwner(bool left)`` — Current hand owner.
 -  ``public virtual bool IsFirmlySupported(bool left)`` — Current is firmly supported.
 -  ``public virtual bool IsHandAvailable(bool left)`` — Current is hand available.
--  ``public virtual bool IsHandOnWheel(bool left)`` — // Reports whether the hand currently belongs to the wheel rather than an external reservation or transfer.
--  ``public virtual float MaterialAngle(bool left)`` — // Returns the hand's unwrapped position on the rotating wheel material rather than a static world angle.
+-  ``public virtual bool IsHandOnWheel(bool left)`` — Reports whether the hand currently belongs to the wheel rather than an external reservation or transfer.
+-  ``public virtual float MaterialAngle(bool left)`` — Returns the hand's unwrapped position on the rotating wheel material rather than a static world angle.
 -  ``public override void PreparePassenger(Passengers core, PassengerSeat passengerSeat)`` — Current prepare passenger.
 -  ``public virtual void PreparePose()`` — Current prepare pose.
--  ``public virtual bool ReleaseHand(bool left, Object owner)`` — // Only the reserving owner can return the hand to steering.
+-  ``public virtual bool ReleaseHand(bool left, Object owner)`` — Only the reserving owner can return the hand to steering.
 -  ``public virtual bool ReleaseSteeringHand(bool left)`` — Current release steering hand.
 -  ``public override void RenderPassenger(Passengers core)`` — Current render passenger.
 -  ``public override void ResetPassenger(Passengers core)`` — Current reset passenger.
--  ``public virtual bool TakeSteeringHand(bool left)`` — // Reattaches an available hand at its current nearest rim point; capture stays compliant.
--  ``public virtual bool TryReserveHand(bool left, Object owner, Transform palmTarget = null)`` — // Exclusively reserves a hand for another system. A null target releases its drives.
+-  ``public virtual bool TakeSteeringHand(bool left)`` — Restores an available hand to its saved leading grip, lower support or a fresh catch for the current turn.
+-  ``public virtual bool TryReserveHand(bool left, Object owner, Transform palmTarget = null)`` — Exclusively reserves a hand for another system. A null target releases its drives.
 -  ``public virtual bool TrySetLeadingHand(bool left)`` — Current try set leading hand.
 
 .. _uvs-scripting-gripsolving--vehiclemodule:
@@ -276,9 +276,9 @@ VehicleModule
 +===========================================================================================+========================================================================================================================================+
 | ``public virtual void Configure(VehicleController vehicle)``                              | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
-+-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetEnabled(bool value)``                                            | Changes module enabled state and publishes an actual requested-flag change.                                                            |
++-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool SupportsProfile(DriveProfile profile)``                             | Checks movement-family compatibility; this is independent of the Unity enabled flag.                                                   |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
@@ -286,9 +286,9 @@ VehicleModule
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | Event / callback                                                          | Role                                                                                                              |
 +===========================================================================+===================================================================================================================+
-| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
-+---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController> Configured``              | After controller-driven module configuration. Payload: the owning ``VehicleController``.                          |
++---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController, Command, float> Stepped`` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds.                 |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+

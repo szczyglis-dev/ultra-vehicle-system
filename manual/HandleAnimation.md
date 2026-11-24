@@ -151,7 +151,7 @@ For a non-humanoid Custom body, register your own fingertip/palm transform with 
 7. If the hand changes controls, request ownership through vehicle.handles.TryAcquire for an application-controlled target, or use [HandleController/ControlInteraction](ControlInteractions.md#example-reach-for-the-wiper-switch) for the built-in automatic transfer. Do not run two competing hand-transfer owners at the same time.
 8. Test weights 0, intermediate and 1. Zero must preserve the clip pose; the middle should smoothly combine it with IK; 1 should reach the fitted target. Existing wheel HandDriven/HandSteering/regrip policies still apply. Disable the automatic regrip module when your strategy owns those gestures.
 
-`ControlInteraction` **Animator** mode deliberately gives the hand to Animator ownership during its gesture; weighted package IK is then not run for that limb. For a sequential reach → authored gesture → IK return, use **IK then Animator** in [ControlInteraction](ControlInteractions.md#inspector-reach-with-ik-then-animate-a-switch-gesture); it also supports a physical seated ragdoll. For a continuously mixed animation/IK gesture, keep the limb in IK Handle mode and use your own sequence or the existing **Custom** interaction driver contract. Use one owner for the action's commit/completion/cancellation; do not wire a second toggle to contact if ControlInteraction.OnCommit already owns it.
+`ControlInteraction` **Animator** mode deliberately gives the hand to Animator ownership during its gesture; weighted package IK is then not run for that limb. For a sequential reach → authored gesture → IK return, use **IK then Animator** in [ControlInteraction](ControlInteractions.md#inspector-reach-with-ik-then-animate-a-switch-gesture); it also supports a physical seated ragdoll. For a continuously mixed animation/IK gesture, keep the limb in IK Handle mode and use your own sequence or the existing **Custom** interaction driver contract. Use one owner for the action's commit/completion/cancellation; do not wire a second toggle to contact if ControlInteraction.onCommit already owns it.
 
 ## Tutorial: animate only the fingers
 
@@ -198,7 +198,7 @@ Events are available as C# delegates and Inspector UnityEvents. Each phase invok
 
 ## Example: commit a requested press on contact
 
-Configure the seat hand to observe the switch and use Automatic contact or the binding's ContactEnter/ContactExit events. Call Arm from your input/gesture start. The first matching contact sample toggles once. Use this action owner instead of a second ControlInteraction.OnCommit toggle.
+Configure the seat hand to observe the switch and use Automatic contact or the binding's ContactEnter/ContactExit events. Call Arm from your input/gesture start. The first matching contact sample toggles once. Use this action owner instead of a second ControlInteraction.onCommit toggle.
 
 <!-- example: ContactCommittedSwitch.cs -->
 ```csharp

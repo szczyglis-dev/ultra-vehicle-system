@@ -43,6 +43,8 @@ Bound Wheel/native fields are greyed out where a vehicle/module owns them. Edit 
 
 Correct insufficient wheel travel, early chassis contact or excessive stiffness before lowering damping further. This response changes suspension coefficients; the optional bounce below adds a whole-vehicle push. See the [Suspension settings](InspectorReference/Drive.md#suspension) for defaults and limits.
 
+**Progressive Angular Landing** damps excess closing rotation while an uneven touchdown transfers load to the remaining wheels. It preserves the current heading rate relative to the supporting surface, including a banked, pitched chassis with asymmetric inertia. Movable ground receives the opposite torque, and the response is limited to remove rotational energy. **Landing Angular Damping**, **Landing Angular Maximum Deceleration**, the optional speed limit and contact grace tune this part independently of bounce.
+
 ## Optional whole-vehicle landing bounce
 
 **Landing Ground Bounce** adds bounded rebound assistance after a wheel landing. It is enabled by default for grounded profiles; switch it off to keep only native suspension compression and oscillation.
@@ -128,7 +130,7 @@ ContactEnvelope exposes edge-refinement and probe-interval controls; Suspension 
 
 ## Scene view gizmos
 
-Select the vehicle root to preview its suspension helpers together, or select an individual helper to inspect its geometry. These guides also work outside Play mode. Expand **Gizmos** at the bottom of each component Inspector to control anchors, connecting lines, reference axes, ranges and labels separately. Components with editable anchors also expose **Show editing handles**.
+Select the vehicle root to preview its suspension helpers together, or select an individual helper to inspect its geometry. These guides also work outside Play mode. Expand each component’s **Gizmos** section to control anchors, connecting lines, reference axes, ranges and labels separately. Components with editable anchors also expose **Show editing handles**.
 
 - **Suspension** shows each wheel’s full compression/extension stroke in yellow and its unloaded spring target in green. Outside Play mode the preview uses vehicle travel and Suspension settings, including enabled per-wheel ShockAbsorber overrides; in Play mode it uses the configured wheel values. The target is not the loaded ride height.
 - **ShockAbsorber** shows both mounting eyes, their current separation and minimum/maximum mechanical length. Red indicates travel outside the configured range.

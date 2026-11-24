@@ -8,14 +8,12 @@ Choose the movement family from the intended control behavior before tuning the 
 
 | Class | Responsibility |
 | --- | --- |
-| `AerobaticAirplaneProfile` | Supplies body-rate preset defaults; inherits all behavior. |
 | `AircraftControlSurfaces` | Presents the configured control-surface motion. |
 | `AirplaneGroundContact` | Tracks ground support and ground/air authority blending. |
 | `AirplaneProfile` | Owns all fixed-wing flight logic and editable configuration. |
 | `HelicopterProfile` | Supplies rotor-spooled lift, tilt-driven movement and altitude hold. |
 | `HoverProfile` | Supplies direct thrust, strafe, clearance support and assisted leveling. |
 | `HoverVisuals` | Applies configured hover mount and wheel tilt. |
-| `JetProfile` | Supplies relative-airflow fighter preset defaults; inherits all behavior. |
 | `LandingGear` | Owns deployment sequencing and physical gear-contact availability. |
 | `LandingGearPart` | Maps deployment progress to a door/strut pose. |
 | `LandingGearSuspensionPart` | Describes load-driven hinge response for a gear part. |
@@ -33,7 +31,7 @@ The profile is authoritative for the aircraft settings it writes during configur
 
 A propeller or jet mesh is presentation. Physical thrust acts on the root body through the movement implementation; visible spinning parts do not create thrust by their transform motion. This allows the same flight behavior to use another aircraft model, provided its contacts and presentation references are authored appropriately.
 
-Airplane uses assisted pitch/bank and flight-path behavior. `AerobaticAirplane` requests body pitch/roll/yaw rates without auto-leveling. Jet adds directional pressure/parasite/induced drag and G-limited lift/trajectory response. All use native forces/torques and shared ground-wheel mechanics.
+AirplaneProfile owns both control policies: `simpleSteering` enables assisted pitch/bank targets, otherwise it requests body pitch/roll/yaw rates. The independent aerodynamics selector and G/yaw limiters provide relative-airflow drag/lift and constrained trajectory response. Newly created profiles use Jet tuning; the demo light plane stores its own settings. Both policies use native forces/torques and shared ground-wheel mechanics.
 
 `AirplaneGroundContact` records native contact, applies takeoff grace, and blends ground/air authority. Gear wheels are free rolling: set `Drive` off. Tire feedback can include the contact-relative touchdown spin-up difference. Ground steering/brakes apply only through applicable contact handling.
 
@@ -113,24 +111,39 @@ The load-driven hinge is a reduced model driven by the configured wheel, not an 
 
 AGL is a gravity-aligned probe distinct from world-Y altitude. GForce subtracts gravity from velocity change; rest is 1 G, free fall 0 G. Reset/re-enable clears differentiation history. Use [cached telemetry](Events.md) rather than sampling the body separately in a display.
 
+## Unified fixed-wing handling
+
+All fixed-wing vehicles use **AirplaneProfile**, including jets. **Simple Steering** selects bounded pitch/bank attitude targets. Turn it off for unrestricted body-rate pitch, roll and yaw. **Aerodynamics** remains independent: select Simplified or Relative Airflow and tune thrust, drag, lift, control rates and limits. The demo jet retains its own serialized tuning on this shared profile. There are no separate aerobatic or jet profile classes.
+
+## Water landing, taxi and takeoff
+
+Expand **Airplane Profile → Water Landing** and enable it for a hydroplane. Assign a WaterProvider on WaterInteraction for an ocean, or use the nested Boat profile's flat-water height and bounds. An explicitly disabled/invalid provider never falls back to an invisible surface. The feature starts disabled for ordinary aircraft.
+
+Place **Float Offset** at the floats' intended waterline, measured from the rigidbody centre of mass in local axes. The default offset is zero; use a negative local Y when the float waterline lies below the centre of mass. The nested **Boat** block controls buoyancy depth, vertical damping, resistance, waves, rocking and water propulsion. These settings reuse the real BoatProfile hull implementation; they never overwrite aircraft mass, engine power, landing-gear configuration or velocity.
+
+On wet contact below **Landing Speed Ratio × Lift Speed**, **Boat Controls** assigns throttle and steering to boat handling. Yaw, then Steering, then Roll supplies the rudder. Throttle supports reverse; service brake requests opposing thrust. The usual aircraft reverse input also works during water control. Disable Boat Controls to keep flight control with passive float forces.
+
+Accelerate to **Takeoff Speed Ratio × Lift Speed** and request nose-up Pitch. The control gate selects flight while float support and water resistance continue until the floats leave the surface. Different landing/takeoff speed thresholds and Minimum Control Hold avoid oscillating controllers. Losing the water provider, leaving its area or disabling water landing immediately returns flight control. Grounded wheels retain runway handling.
+
+`Drive.IsWaterborne` reports float contact and `Drive.WaterControlGate.SecondaryActive` reports boat control. `ProfileControlGate` is a reusable two-strategy selector: Configure installs primary/secondary controllers, Step applies the requested selection after the hold time and Reset immediately returns primary. It manages control ownership only; applications decide their contact rules and execute the selected strategy. Per-vehicle water state is cleared on resets and force release.
+
 ## Complete public method and event index
 
 The lists below cover public methods and events for this topic and their package base contracts. Signatures include overloads. See [the detailed flight and landing gear API](../API/Aircraft.md) for arguments, return semantics, state and configuration. An override replaces the matching inherited implementation; it is not an additional call to make.
-
-### AerobaticAirplaneProfile
-
-[AerobaticAirplaneProfile](../API/Aircraft.md#aerobaticairplaneprofile) gives the full declared contract.
-
-| Method | Role |
-| --- | --- |
 
 ### AircraftControlMotion
 
 [AircraftControlMotion](../API/Aircraft.md#aircraftcontrolmotion) gives the full declared contract.
 
-| Method | Role |
+| Member | Behavior |
 | --- | --- |
+| `public virtual void Cancel()` | Cancels active movement and releases its operation ownership. |
+| `public virtual void CompleteCustomMotion()` | Completes the current custom movement operation successfully. |
+| `public virtual void ReportProgress(float value)` | Reports actual normalized progress from a custom pose owner. |
 | `public virtual void SetValue(float normalized)` | Applies normalized aircraft-control travel to its authored rotation/translation mapping. |
+| `public virtual void StartMotion(float target)` | Requests movement to a normalized destination using the selected motion mode. |
+| `public virtual void Stop()` | Stops the current movement operation without reporting successful completion. |
+| `public virtual bool TryGetPose(float normalized, out Vector3 position, out Quaternion rotation)` | Returns the prospective procedural pose for normalized progress; returns false when an external mode owns the geometry. |
 
 ### AircraftControlSurface
 
@@ -146,18 +159,18 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Smooths external or command-following pitch/roll/yaw, applies surface geometry and publishes changed presentation. |
-| `public virtual void SetControls(float pitch, float roll, float yaw)` | Takes external pitch/roll/yaw presentation ownership for configured control-surface entries; `FollowVehicle` restores mechanic-following. |
 | `public virtual void FollowVehicle()` | Releases external presentation ownership and resumes vehicle-state following. |
-| `public virtual void SetFlaps(float value)` | Updates normalized flap presentation for the configured aircraft control surfaces. |
 | `public virtual void SetAirbrake(float value)` | Updates the normalized aircraft airbrake presentation request. |
+| `public virtual void SetControls(float pitch, float roll, float yaw)` | Takes external pitch/roll/yaw presentation ownership for configured control-surface entries; `FollowVehicle` restores mechanic-following. |
+| `public virtual void SetFlaps(float value)` | Updates normalized flap presentation for the configured aircraft control surfaces. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Smooths external or command-following pitch/roll/yaw, applies surface geometry and publishes changed presentation. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event Action<Vector3> ControlsChanged` | When aircraft surface-control presentation changes. Payload: the component's pitch/roll/yaw Vector3 representation. |
-| `public event Action<float> FlapsChanged` | When flap presentation request changes. Payload: normalized flap value. |
 | `public event Action<float> AirbrakeChanged` | When airbrake presentation request changes. Payload: normalized airbrake value. |
+| `public event Action<Vector3> ControlsChanged` | When aircraft surface-control presentation changes. Payload: the component's pitch/roll/yaw Vector3 representation. |
 | `public event Action<bool> ExternalControlChanged` | When aircraft surface presentation changes external/follow-vehicle ownership. Payload: external-control bool. |
+| `public event Action<float> FlapsChanged` | When flap presentation request changes. Payload: normalized flap value. |
 
 ### AirplaneGroundContact
 
@@ -165,23 +178,24 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Counts operational gear contacts, including tire-tread support, updates airborne/takeoff grace and blends ground/flight authority. |
 | `public override void Configure(VehicleController vehicle)` | Restores prior contact material state, resets ground/air history and prepares applicable ground contact policy. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Counts operational gear contacts, including tire-tread support, updates airborne/takeoff grace and blends ground/flight authority. |
 | `public override bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 ### AirplaneProfile
 
 [AirplaneProfile](../API/Aircraft.md#airplaneprofile) gives the full declared contract.
 
-| Method | Role |
+| Member | Behavior |
 | --- | --- |
 | `public override bool CanUsePropulsionBoost(VehicleController vehicle)` | Checks the profile propulsion switch and required water/support context before activation. |
+| `public override void Configure(VehicleController vehicle)` | Ensures propulsion/ground-contact helpers and writes aircraft-owned engine, steering, braking, grip/travel and suspension settings. |
+| `public virtual Vector3 PressureDragAcceleration(Transform frame, Vector3 velocity)` | Evaluates jet pressure-drag acceleration from the supplied speed/state. |
+| `public Vector3 ResolveAngularRates(float speedKph)` | Returns speed-scaled pitch/yaw/roll rates in degrees/s. |
 | `public override float ResolveBoostDemand(VehicleController vehicle, Command command)` | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. |
 | `public override float ResolveDriveDemand(VehicleController vehicle, Command command)` | Maps the command and strategy state to propulsion demand for surrounding mechanics. |
 | `public override float ResolveExternalDriveIntent(VehicleController vehicle)` | Returns signed non-wheel propulsion intent used by shared coasting/contact policy. |
-| `public override void Configure(VehicleController vehicle)` | Ensures propulsion/ground-contact helpers and writes aircraft-owned engine, steering, braking, grip/travel and suspension settings. |
-| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Runs the common fixed-wing physics pipeline using the configured control and aerodynamic models. |
-| `public virtual Vector3 PressureDragAcceleration(Transform frame, Vector3 velocity)` | Evaluates jet pressure-drag acceleration from the supplied speed/state. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Runs the shared fixed-wing physics pipeline using the selected control/aerodynamic parameters and ground-contact authority. |
 
 ### DriveProfile
 
@@ -189,12 +203,12 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
-| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
-| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 | `public virtual DriveProfile Clone()` | Creates an independent serialized profile-configuration copy; configure it on its destination vehicle before use. |
+| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
+| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
 | `public virtual float ResolveDriveDemand(VehicleController vehicle, Command command)` | Maps the command and strategy state to propulsion demand for surrounding mechanics. |
 | `public virtual float ResolveExternalDriveIntent(VehicleController vehicle)` | Returns signed non-wheel propulsion intent used by shared coasting/contact policy. |
+| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 
 ### FreeProfile
 
@@ -211,8 +225,8 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public override bool CanUsePropulsionBoost(VehicleController vehicle)` | Checks the profile propulsion switch and required water/support context before activation. |
-| `public override float ResolveBoostDemand(VehicleController vehicle, Command command)` | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. |
 | `public override void Configure(VehicleController vehicle)` | Ensures a Propulsion helper exists for helicopter presentation/spool integration. |
+| `public override float ResolveBoostDemand(VehicleController vehicle, Command command)` | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Applies resistance, spool-dependent powered support, lift/height hold and commanded helicopter motion. |
 
 ### HoverVisuals
@@ -233,13 +247,6 @@ The lists below cover public methods and events for this topic and their package
 | `void Configure(VehicleController vehicle)` | Repeatable setup contract supplied with the owning `VehicleController`. |
 | `void Step(VehicleController vehicle, Command command, float deltaTime)` | Contract for one owner-supplied fixed tick; implement only the module responsibility and use the supplied Command/timestep. |
 
-### JetProfile
-
-[JetProfile](../API/Aircraft.md#jetprofile) gives the full declared contract.
-
-| Method | Role |
-| --- | --- |
-
 ### LandingGear
 
 [LandingGear](../API/Aircraft.md#landinggear) gives the full declared contract.
@@ -248,8 +255,8 @@ The lists below cover public methods and events for this topic and their package
 | --- | --- |
 | `public override void Configure(VehicleController vehicle)` | Connects suspension, initializes authored deployment once and synchronizes gear-part/contact policy. |
 | `public virtual void ResetGear(bool deployed)` | Synchronizes gear state immediately for spawn/reset, bypassing ordinary request interlocks. |
-| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Advances part delays/travel and gear state; retraction waits for unloaded suspension alignment before continuing. |
 | `public virtual bool SetDeployed(bool deployed)` | Requests landing-gear deployment/retraction subject to clearance, ground and alignment interlocks. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Advances part delays/travel and gear state; retraction waits for unloaded suspension alignment before continuing. |
 | `public virtual bool Toggle()` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. |
 
 | Event / callback | Role |
@@ -260,13 +267,14 @@ The lists below cover public methods and events for this topic and their package
 
 [LandingGearPart](../API/Aircraft.md#landinggearpart) gives the full declared contract.
 
-| Method | Role |
+| Member | Behavior |
 | --- | --- |
-| `public virtual void CaptureDeployedPose()` | Captures the current gear-part pose as the fully deployed baseline. |
-| `public override void SetValue(float normalized)` | Applies deployed fraction: 1 fully deployed, 0 fully retracted, retaining the captured deployed mesh offset and current suspension rotation. |
-| `public virtual void SetRetraction(float amount)` | Applies landing-gear travel with zero deployed and one retracted. |
 | `public virtual void Animate(bool deployed, float elapsed, float deltaTime)` | Applies gear-part deployment animation using its authored motion mapping. |
+| `public virtual void CaptureDeployedPose()` | Captures the current gear-part pose as the fully deployed baseline. |
 | `public virtual void SetImmediate(bool deployed)` | Synchronizes this part immediately to the requested deployed/retracted pose through its gear-part mapping. |
+| `public virtual void SetRetraction(float amount)` | Applies landing-gear travel with zero deployed and one retracted. |
+| `public override void SetValue(float normalized)` | Applies deployed fraction: 1 fully deployed, 0 fully retracted, retaining the captured deployed mesh offset and current suspension rotation. |
+| `public override bool TryGetPose(float normalized, out Vector3 position, out Quaternion rotation)` | Returns the gear pose for normalized progress, respecting its deployment geometry. |
 
 ### LandingGearSuspension
 
@@ -298,12 +306,12 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |

@@ -163,11 +163,11 @@ namespace VehicleDocumentationExamples.Cookbook
         public ProfileSwitcher switcher;
         public string targetId = "Hover";
         public float maximumSpeedKph = 10;
-        public UnityEvent rejected = new UnityEvent();
+        public UnityEvent onRejected = new UnityEvent();
         public void Select()
         {
             if (!vehicle || !switcher || vehicle.SpeedKph > maximumSpeedKph ||
-                !switcher.SwitchTo(targetId)) rejected.Invoke();
+                !switcher.SwitchTo(targetId)) onRejected.Invoke();
             // Register profiles in the switcher first; this script does not create them.
         }
     }
@@ -277,14 +277,14 @@ namespace VehicleDocumentationExamples.Cookbook
         public VehicleController vehicle;
         public Engine engine;
         public PassengerSeat driver;
-        public UnityEvent started = new UnityEvent(), rejected = new UnityEvent();
+        public UnityEvent onStarted = new UnityEvent(), onRejected = new UnityEvent();
         public void StartPressed()
         {
             if (!vehicle || !engine || !driver || !driver.Occupant || vehicle.IsMoving() ||
                 vehicle.Command.ServiceBrake < .5f || engine.IsRunning)
-            { rejected.Invoke(); return; }
+            { onRejected.Invoke(); return; }
             engine.StartEngine();
-            if (engine.IsRunning) started.Invoke(); else rejected.Invoke();
+            if (engine.IsRunning) onStarted.Invoke(); else onRejected.Invoke();
         }
     }
 }
@@ -310,7 +310,7 @@ namespace VehicleDocumentationExamples.Cookbook
     {
         [Min(0)] public float charge = 10;
         public GameObject visual;
-        public UnityEvent collected = new UnityEvent();
+        public UnityEvent onCollected = new UnityEvent();
         bool spent;
         public void Collect(VehicleController entrant)
         {
@@ -318,7 +318,7 @@ namespace VehicleDocumentationExamples.Cookbook
             if (nitro.AddNitro(charge) <= 0) return;
             spent = true;
             if (visual) visual.SetActive(false);
-            collected.Invoke();
+            onCollected.Invoke();
         }
     }
 }

@@ -84,7 +84,7 @@ Use a single deliberate combination of sampled waves and artificial rocking. If 
 
 ### Hull tilt safety limit
 
-**Maximum Hull Tilt** limits the assisted hull's pitch/roll in water (default 35°). The guard requires **Tilt Limit Enabled**, upright stabilization and both attitude axes. It limits powered tilting without locking the hull against collisions. Dependencies and individual settings are listed in the [Boat Profile reference](InspectorReference/Drive.md#boatprofile).
+**Maximum Hull Tilt** softly limits the assisted hull's pitch/roll in water (default 35°). The guard requires **Tilt Limit Enabled**, upright stabilization and both attitude axes. It limits powered tilting without locking the hull against collisions. Dependencies and individual settings are listed in the [Boat Profile reference](InspectorReference/Drive.md#boatprofile).
 
 ## Animate a boat propeller
 

@@ -10,9 +10,11 @@
 4. Assign a scene camera to the core's `viewCamera` and select **Orbit**, then check **Active** on the Orbit Camera submodule. Active starts unchecked. In Play Mode, mouse movement rotates the view and the wheel zooms.
 5. Adjust `distance`, `minimumDistance`, `maximumDistance`, `sensitivity`, `zoomSensitivity`, `followResponse`, `initialYaw`, `initialPitch` and `pitchLimits`. Obstruction settings control how the camera retracts at scenery.
 
+Each camera submodule has **Enable Look**, enabled by default. Turn it off to ignore pointer/look-delta rotation while retaining the current look angles. Following, scroll zoom and free-camera movement continue. Explicit `SetLook` calls remain available for scripted orientation. The camera core also suppresses pointer deltas passed to custom modules; custom input adapters should respect `enableLook` when reading their own controls.
+
 `requirePointerLock` optionally limits mouse look to a locked cursor. Your game decides when to lock/unlock it. Scroll zoom works while focused. `readMouseInput` lets you disable automatic mouse sampling and drive the view through code. `CanReadPointer` can reserve pointer input for a UI overlay.
 
-**Gravity Aligned Focus** keeps the orbit anchor height upright relative to gravity when the vehicle rolls or pitches. Enable it for vehicles that can tumble: the focus will not swing below the ground with the chassis. Ground obstruction avoidance remains enabled. The demo motorcycle uses this option.
+**Gravity Aligned Focus** keeps the orbit anchor height upright relative to gravity when the vehicle rolls or pitches. Enable it for vehicles that can tumble: the focus will not swing below the ground with the chassis. This changes the focus frame; obstruction casts still require **Avoid Obstacles**. The demo motorcycle uses this option.
 
 ## Set up the interior view
 
@@ -20,6 +22,22 @@
 2. Assign it to the Interior Camera submodule's `anchor`. The module follows that Transform's position and rotation directly; object names are irrelevant.
 3. Select **Interior** on `Cameras` and check **Active** on its Interior Camera submodule. Tune `positionOffset`, `rotationOffset`, `sensitivity`, `yawLimits` and `pitchLimits`.
 4. Set the interior `fieldOfView` and `nearClipPlane` to suit the cabin. The default interior near clip is **0.04 m**. The previous camera lens is restored when switching to Orbit, disabling camera controls or releasing the camera.
+
+### Keep the interior horizon level
+
+Enable **Limit Roll** to compensate camera bank while retaining vehicle heading, pitch and mouse look. **Maximum Roll** defaults to 0.3°; zero requests a level horizon. **Roll Response Time** smooths compensation, so the limit describes the stabilized target rather than a hard instantaneous bound during abrupt motion. The compensation eases out near a vertical viewing direction where horizon roll becomes ambiguous.
+
+**Stabilize Roll Position** also reduces the cabin eye point's sideways orbit around the chassis; **Position Roll Influence** selects how much authored mount roll remains (zero stays above the chassis, one follows the mount). Head-pinned views retain their actual head position. **Release Roll On Rollover**, enabled by default, fades stabilization between 75° and 105° of vehicle tilt and while following an ejected driver; ordinary collisions do not disable it. Motorcycle authoring enables roll and position stabilization automatically. Existing components retain their serialized settings.
+
+### Pin the interior view to the driver's head
+
+Enable **Pin To Head** on Interior Camera to parent the borrowed camera to the current humanoid driver's `headCameraAnchor`. Assign this field on **Humanoid Passenger** to an empty Transform below the head bone, slightly in front of the eyes, with local **+Z forward** and **+Y up**. The demo mannequin prefabs include **Head Camera Anchor**. The authored point replaces the cabin position/rotation offsets; mouse look and lens settings still apply.
+
+**Follow Head Position** starts enabled; **Follow Head Rotation** starts disabled. Each channel can be switched independently. With position following disabled, the camera holds the world position captured at pinning. With rotation following disabled, it retains the point's initial +Z/+Y orientation relative to the cabin anchor: turning, pitching or rolling the vehicle still turns the view, while head-bone motion does not. Mouse look remains available. Rebinding a different camera or head point captures a new starting pose.
+
+**Detach On Eject** is off by default: the camera remains attached to the ejected driver's head. Enable it to restore the camera's previous parent and return to the cabin view on ejection. Ordinary exits return to the cabin view. A replacement driver or FPP/TPP body supplies its own head point. Missing drivers or head points fall back to the normal cabin anchor.
+
+Switching views, detaching the camera or disabling camera control restores the camera's previous parent as well as its lens. Pinning starts disabled, so existing cabin setups retain their behavior.
 
 Both anchors are explicit Inspector references. Renaming an anchor does not affect the camera. Disabling the selected submodule pauses placement; it does not switch to another view automatically.
 

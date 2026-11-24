@@ -15,7 +15,7 @@ The demo's **HandPositions** folder contains shared presets linked from its vehi
 
 ## Closure helpers and Auto-apply closure
 
-**Auto-apply closure** is enabled by default. For a shared preset it appears directly below the shared-preset information box; for a local position it appears below **Preset**. The setting is saved with the preset or local position and applies to both hands and all their Closure sliders.
+**Auto-apply closure** is enabled by default. The setting is saved with the preset or local position and applies to both hands and all their Closure sliders.
 
 | Auto-apply closure | Changing a Closure slider |
 | --- | --- |

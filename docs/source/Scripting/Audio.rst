@@ -257,7 +257,7 @@ Audio
 
 -  ``public virtual void EnsureModules(System.Func<System.Type, AudioModule> addChannel = null)`` — Current ensure modules.
 
--  ``public virtual float FilterCornerSqueal(float skid, bool corner, float deltaTime)`` — // Smooths cornering squeal separately from short slip spikes so tire audio does not chatter.
+-  ``public virtual float FilterCornerSqueal(float skid, bool corner, float deltaTime)`` — Smooths cornering squeal separately from short slip spikes so tire audio does not chatter.
 
 -  ``public virtual void PlayEvent(EffectEvent effect)`` — Current play event.
 
@@ -340,21 +340,21 @@ DamageAudio
 
 See :doc:`setup and examples </DamageFeedback>` and the :ref:`full API <uvs-api-damagefeedback--damageaudio>`.
 
--  ``public event Action<DamageContact, AudioClip> Played``
 -  ``public event Action<DamageHit, DamageImpactProfile, AudioClip> DamagePlayed``
 -  ``public event Action<DamagePart, AudioClip> DetachmentPlayed``
--  ``public void SetMuteBodyPartOnDetach(bool value)``
+-  ``public event Action<DamageContact, AudioClip> Played``
+-  ``public virtual void ClearSounds()``
+-  ``public override void Configure(VehicleController vehicle)``
+-  ``public virtual void RefreshPartSounds()``
+-  ``public override void RenderAudio(Audio core, float deltaTime)``
 -  ``public virtual DamageImpactProfile ResolveProfile(DamageHit hit)``
 -  ``public virtual DamageImpactProfile ResolveProfile(DamagePart part)``
--  ``public virtual bool TryPlay(DamageHit hit)``
--  ``public override void Configure(VehicleController vehicle)``
--  ``public virtual void WarmUp()``
--  ``public virtual void RefreshPartSounds()``
--  ``protected override void OnEnable()``
--  ``protected override void OnDisable()``
--  ``public override void RenderAudio(Audio core, float deltaTime)``
+-  ``public void SetMuteBodyPartOnDetach(bool value)``
 -  ``public override void SuspendAudio()``
--  ``public virtual void ClearSounds()``
+-  ``public virtual bool TryPlay(DamageHit hit)``
+-  ``public virtual void WarmUp()``
+-  ``protected override void OnDisable()``
+-  ``protected override void OnEnable()``
 
 .. _uvs-scripting-audio--engineaudio:
 
@@ -406,10 +406,26 @@ EventAudio
 
 :ref:`EventAudio <uvs-api-audio--eventaudio>` gives the full declared contract.
 
--  ``public event System.Action<EffectEvent, AudioClip> Played`` — // Reports the accepted effect event and recording after playback starts.
+-  ``public event System.Action<EffectEvent, AudioClip> Played`` — Reports the accepted effect event and recording after playback starts.
 -  ``public virtual void PlayEvent(EffectEvent effect)`` — Current play event.
 -  ``public override void RenderAudio(Audio owner, float deltaTime)`` — Current render audio.
 -  ``public override void SuspendAudio()`` — Current suspend audio.
+
+.. _uvs-scripting-audio--handleaudio:
+
+HandleAudio
+~~~~~~~~~~~
+
+:ref:`HandleAudio <uvs-api-audio--handleaudio>` gives the full declared contract.
+
+-  ``public virtual void CancelAutomaticChange()`` — Restores manual audio if automatic motion is interrupted.
+-  ``public override void Configure(VehicleController owner)`` — Refreshes the binding during vehicle configuration.
+-  ``public virtual bool PlayCue(int index)`` — Requests one configured cue through the camera/master gates and its cooldown. Does not require a matching automatic trigger.
+-  ``public virtual void RefreshBinding()`` — Reconnects the assigned handle and primes cue thresholds silently. Call after a same-frame runtime binding change; ordinary field changes are also detected by the next audio render.
+-  ``public override void RenderAudio(Audio core, float deltaTime)`` — Detects source changes, applies the listening-view gate and renders the movement loop.
+-  ``public virtual void SetAutomaticChange(Vector3 target)`` — Marks an automatic movement; audio is opt-in until its target settles.
+-  ``public virtual void StopSounds()`` — Stops the cue and movement-loop voices, including supplied sources used by this binding. Does not reset cue cooldowns or PlayedCount.
+-  ``public override void SuspendAudio()`` — Stops playback when the owning Audio core or channel is suspended.
 
 .. _uvs-scripting-audio--hornaudio:
 
@@ -506,9 +522,9 @@ VehicleAudioSettings
 ~~~~~~~~~~~~~~~~~~~~
 
 -  **VehicleAudioSettings** — ``public void ApplyTo(AudioSource target)`` — Applies mixer/spatial configuration once per registered source until refreshed; unregistered sources apply on each call. Does not start playback or replace dynamic gain/pitch.
--  **VehicleAudioSettings** — ``public void RefreshConfiguration()`` — Invalidates this settings block for registered sources so static spatial/routing edits apply at their next use.
 -  **VehicleAudioSettings** — ``public float PitchAt(float activity)`` — Maps normalized activity through Pitch Range and clamps to the supported pitch domain.
 -  **VehicleAudioSettings** — ``public float RandomPitch()`` — Returns a clamped random pitch using Pitch and Pitch Range.
+-  **VehicleAudioSettings** — ``public void RefreshConfiguration()`` — Invalidates this settings block for registered sources so static spatial/routing edits apply at their next use.
 -  **VehicleAudioSettings** — ``public AudioSource ResolveSource(Transform defaultParent, string name, bool loop, out bool created)`` — Returns an assigned source, a source on Audio Anchor, or a generated child source. The created result identifies ownership: destroy only generated sources.
 
 .. _uvs-scripting-audio--wiperaudioentry:

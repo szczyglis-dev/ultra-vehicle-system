@@ -16,7 +16,7 @@ Install the package
 4. In the **Import Unity Package** window, keep the package files selected. Keep **Documentation** for the manual and **Demo** for the example scene and vehicles, then click **Import**.
 5. Find the imported content under ``Assets/Szczyglis/UltraVehicleSystem``. The manual is in ``Documentation``; the example scene is ``Demo/Demo.unity``.
 
-The package requires Unity **6000.0.84f1** or newer and Unity Input System **1.19.0**. Install Input System through Package Manager if it is not already present. The supplied demo uses URP materials. Use a compatible URP project for its intended appearance; when using another render pipeline, supply suitable materials for the sample models and effects. The vehicle mechanics do not require URP.
+The package requires Unity **6000.0.84f1** or newer and Unity Input System **1.19.0**. Install Input System through Package Manager if it is not already present. The supplied demo uses URP materials. Use a compatible URP project for its intended appearance; when using another render pipeline, supply suitable materials for the sample models and effects. The vehicle mechanics do not require URP. Supplied shaders are imported automatically for the installed render pipelines; keep the package’s Editor folder so these shaders can be imported and built.
 
 .. _uvs-gettingstarted--run-the-supplied-scene:
 

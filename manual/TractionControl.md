@@ -66,3 +66,9 @@ If `DrivingAssists` is enabled, configure the shared values and requested enable
 | Turning the component off does not persist | Enabled DrivingAssists owns the state |
 
 Use wheel diagnostics and the same road test before increasing engine power. Detailed contact-capacity calculations and a runtime control example are in [Drive dynamics](Scripting/DriveDynamics.md) and [API](API/DriveDynamics.md).
+
+## ABS
+
+Add optional **Drive > Brakes > ABS** (`AntiLockBrakes`) to reduce service-brake pressure separately on a tire approaching lock-up, then rebuild it as the tire rolls again. **Target Slip**, **Recovery Slip** and the release/recovery times tune intervention; **Minimum Speed Kph** preserves normal stopping and holding. Mechanical handbrakes remain independent. New-vehicle setup leaves ABS optional; demo road vehicles include it disabled initially, and **Period (`.`)** toggles it.
+
+Use `SetAbsEnabled(bool)` at runtime; `Active`, `MaximumSlip`, `MinimumPressureScale` and `GetPressureScale(Wheel)` expose intervention. See [API](API/DriveDynamics.md#antilockbrakes) and [Inspector settings](InspectorReference/Drive.md#antilockbrakes).

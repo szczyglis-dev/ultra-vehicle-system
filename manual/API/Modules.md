@@ -45,7 +45,7 @@ Groups and orders registered modules within one category.
 
 ## ExecutionPhase
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Defines the allowed execution phase choices used by this topic.
 
@@ -116,7 +116,7 @@ Configuration/implementation type for external reference attribute within module
 
 ## IControllerModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for icontroller module within module lifecycle and scheduling.
 
@@ -124,7 +124,7 @@ Configuration/implementation type for icontroller module within module lifecycle
 
 ## IDriveModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for idrive module within module lifecycle and scheduling.
 
@@ -132,7 +132,7 @@ Configuration/implementation type for idrive module within module lifecycle and 
 
 ## IEffectsModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for ieffects module within module lifecycle and scheduling.
 
@@ -140,7 +140,7 @@ Configuration/implementation type for ieffects module within module lifecycle an
 
 ## IEngineModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for iengine module within module lifecycle and scheduling.
 
@@ -148,7 +148,7 @@ Configuration/implementation type for iengine module within module lifecycle and
 
 ## IExteriorModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for iexterior module within module lifecycle and scheduling.
 
@@ -156,7 +156,7 @@ Configuration/implementation type for iexterior module within module lifecycle a
 
 ## IInteriorModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for iinterior module within module lifecycle and scheduling.
 
@@ -164,7 +164,7 @@ Configuration/implementation type for iinterior module within module lifecycle a
 
 ## IPhysicsModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for iphysics module within module lifecycle and scheduling.
 
@@ -172,7 +172,7 @@ Configuration/implementation type for iphysics module within module lifecycle an
 
 ## IVehicleModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Defines category interfaces and the cross-category `ExecutionPhase` sequence.
 
@@ -194,7 +194,7 @@ Defines category interfaces and the cross-category `ExecutionPhase` sequence.
 
 ## IVehicleResetHandler
 
-**Runtime/Core/IVehicleResetHandler.cs**
+**Runtime/Contracts/Core/IVehicleResetHandler.cs**
 
 Presentation or lifecycle contract for independent vehicle components.
 
@@ -206,7 +206,7 @@ Presentation or lifecycle contract for independent vehicle components.
 
 ## IWorldModule
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Configuration/implementation type for iworld module within module lifecycle and scheduling.
 
@@ -226,7 +226,7 @@ Configuration/implementation type for module catalog within module lifecycle and
 
 ## ModuleCategory
 
-**Runtime/Core/IVehicleModule.cs**
+**Runtime/Contracts/Core/IVehicleModule.cs**
 
 Defines the allowed module category choices used by this topic.
 
@@ -334,7 +334,7 @@ Exposes lifecycle notifications around registered module work.
 
 ## VehicleResetReason
 
-**Runtime/Core/IVehicleResetHandler.cs**
+**Runtime/Contracts/Core/IVehicleResetHandler.cs**
 
 Reason for clearing transient vehicle state.
 

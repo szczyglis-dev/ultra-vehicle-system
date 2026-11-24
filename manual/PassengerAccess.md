@@ -20,12 +20,12 @@ Controller choice and boarding adapter choice are independent. A custom AccessMo
 
 1. Prepare one vehicle with an enabled **Passengers** module and one **Passenger Seat**. Validate immediate entry/exit and the seated fit first, using [Passengers](Passengers.md) and [Seats](Seats.md).
 2. For a player who starts outside, disable **Passengers > Spawn On Start** and **Passenger Seat > Spawn On Start**. Keep the player in the scene; do not spawn another driver into their destination. For the demo's initially seated driver, retain the authored startup policy instead.
-3. On the character root add **Humanoid Passenger**, **Humanoid IK**, **Humanoid Access Motion** and **Passenger Access**. Use **Humanoid Passenger > Animator / Pelvis / Ik**, then map the IK bones. **Humanoid IK > Match Target Rotation** is above **Auto-fill**. Review auto-filled references rather than assuming every character uses the demo skeleton.
+3. On the character root add **Humanoid Passenger**, **Humanoid IK**, **Humanoid Access Motion** and **Passenger Access**. Use **Humanoid Passenger > Animator / Pelvis / Ik**, then map the IK bones. Review auto-filled references rather than assuming every character uses the demo skeleton.
 4. Set **Passenger Access > Passenger** to that Humanoid Passenger and **Passenger Access > Motion** to that Humanoid Access Motion. Save these references on the prefab; runtime auto-discovery is a fallback.
 5. Add **Seat Access** to the destination seat. Assign **Seat Access > Seat** and, optionally, **Seat Access > Door**. The seat's **Passenger Seat > Spine Anchor** is the seated pelvis endpoint, not the standing feet endpoint.
 6. Assign **Seat Access > Per-seat animation and side > Side / Animation Profile / Open Door Animation Profile**. A profile selects clips/controller/timing; Side does not mirror animations. Use separate left/right profiles when required. See [Bind animations](#bind-animations).
-7. Create standing and doorway markers outside the character hierarchy. Assign **Seat Access > Per-seat animation and side > Outside / Doorway** below the profiles. Set **Seat Access > Settings > Use Outside Rotation**, ground projection and clearance settings. Use **Seat Access > Select outside marker (move / rotate in Scene view)** below Gizmos to edit the marker.
-8. Optionally assign **Humanoid Access Motion > Default Profile** as a fallback. For an Animator/Animator + IK seated pose, assign **Humanoid Access Motion > Seated Pose Controller** to the seated controller. A seat-specific profile takes precedence; the adapter handles initially open doors separately.
+7. Create standing and doorway markers outside the character hierarchy. Assign **Seat Access > Per-seat animation and side > Outside / Doorway**. Set **Seat Access > Settings > Use Outside Rotation**, ground projection and clearance settings. Use **Seat Access > Select outside marker (move / rotate in Scene view)** to edit the marker.
+8. Optionally assign **Humanoid Access Motion > Default Profile** as a fallback. For an Animator/Animator + IK seated pose, or Animator-owned limbs on a Ragdoll passenger, assign **Humanoid Access Motion > Seated Pose Controller** to the seated controller. A seat-specific profile takes precedence; the adapter handles initially open doors separately.
 9. Prepare the profile's actual clips, states and door markers. Verify playback speed and useful clip ranges before testing alignment. Missing/mistimed markers or an invalid played state can prevent door opening and completion; increasing seat speed limits will not repair that.
 10. From your input script call `passengerAccess.TryEnter(seatAccess)`. After seating call `passengerAccess.TryExit()`. A true return admits the sequence; wait for Finish/Cancelled before restoring walking or deciding vehicle possession.
 11. Connect **Passenger Access > Signals and callbacks > On Enter Begin / On Exit Begin** to your movement/input lock. Connect **On Enter Finish / On Exit Finish / On Enter Cancelled / On Exit Cancelled** to outcome handling. Check actual `passenger.Seat` in that handling. The seat-side equivalents are under **Seat Access > Signals and callbacks**.
@@ -44,7 +44,7 @@ Demo manikin prefabs already carry Passenger Access and Humanoid Access Motion w
 | Outside/doorway references | Seat Access > Per-seat animation and side > Outside / Doorway |
 | Ground, admission, timeout and clearance | Seat Access > Settings > [option] |
 | Vehicle-side lifecycle | Seat Access > Signals and callbacks > [event] |
-| Select outside marker | Seat Access > Select outside marker (move / rotate in Scene view), below Gizmos |
+| Select outside marker | Seat Access > Select outside marker (move / rotate in Scene view) |
 | Fallback profile and seated controller | Humanoid Access Motion > Default Profile / Seated Pose Controller |
 
 For API definitions and complete custom implementations, continue with [Access scripting](Scripting/PassengerAccess.md#tutorial-custom-motion-with-the-built-in-coordinator).
@@ -139,7 +139,7 @@ Do not use `ControlInteractionAnimationEvents` for these markers: that relay com
 
 **Horizontal Scale** adjusts motion adaptation across the cabin. **Enter Placement** and **Exit Placement** control how strongly the outside alignment contributes over the clip. **Seat Pose** blends toward the configured seated pose before physical seat handover. Make it reach its final seated weight before handing the character to seat physics.
 
-For an Animator or Animator + IK passenger, set **Humanoid Access Motion > Seated Pose Controller** to the controller used after seating. Entry samples its default seated state, blends into that pose (including steering hands) and restores this controller on seating. Leave it empty for the existing IK/reference target. The CarAnimator example supplies its seated controller through this public field.
+For an Animator or Animator + IK passenger, set **Humanoid Access Motion > Seated Pose Controller** to the controller used after seating. The same setting supplies Animator-owned limbs on a Ragdoll passenger while preserving the physical torso and IK-owned chains. Entry samples the seated pose (including steering hands) and restores its controller before attachment creates the physical animation source. Leave it empty for the existing IK/reference target. The CarAnimator example supplies its seated controller through this public field.
 
 Use these after the seat and outside markers are correct. Large adaptation values should not compensate for a clip designed for the opposite side or a very different vehicle. Separate profiles are appropriate for left/right doors or substantially different cabin geometries.
 

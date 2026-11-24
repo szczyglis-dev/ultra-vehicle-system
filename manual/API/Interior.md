@@ -112,11 +112,14 @@ Concrete animator for service-brake, clutch and handbrake levers. Select the mec
 | `public AnchoredControlInput input` | Hidden fallback channel when Data Source is empty: ServiceBrake (default), Clutch or Handbrake. An assigned source overrides this field. |
 | `public override Vector3 InteractionValue { get; }` | Displayed control values exposed to the paired contact for generic value events; does not command vehicle mechanics. |
 | `public AnchoredRotation motion` | Animator-owned moving geometry, independent pivot/reference, axis and travel mapping. Parent the IK contact under the moving geometry. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public override ExecutionPhase Phase { get; }` | Runs in the presentation phase, independently of vehicle mechanics. |
 | `public float pressDuration` | Seconds for full released-to-pressed travel; smaller demands stop proportionally earlier. |
 | `public float pressedAngle` | Lever angle in degrees at displayed value one. |
 | `public float releasedAngle` | Lever angle in degrees at displayed value zero. |
 | `public float releaseDuration` | Seconds to fade after releasing the request; zero stops immediately. |
+| `public override Vector3 RequestedInteractionValue { get; }` | Requested control value before hand-contact admission and displayed interpolation. HandleAudio RequestedValue timing uses this channel; InteractionValue remains the actual displayed control state. |
+| `public float TargetValue { get; private set; }` | Normalized requested lever position, sampled before waiting for hand contact or animating the lever. |
 | `public float Value { get; private set; }` | Current normalized displayed position. |
 
 
@@ -152,23 +155,28 @@ Preserves a neutral pose relative to an independent pivot frame.
 | `public Vector3 Axis { get; }` | Read-only/resolved axis for `AnchoredRotation`. |
 | `public virtual bool IsValid { get; }` | Current is valid predicate; read it instead of maintaining a second application flag. |
 | `public Vector3 localAxis` | Local axis around which the configured motion or operation takes place. Initial value: `Vector3.right`. |
+| `public AircraftControlMotionMode mode` | Procedural rotation/translation, a sampled clip, or callback-only custom movement. |
 | `public Transform movingPart` | Assign the moving part reference used by AnchoredRotation. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
+| `public PartMotionPlayback playback` | Animation/custom binding and lifecycle callbacks. |
+| `public bool reverse` | Invert this control’s visual motion without changing the logical command value. |
+| `public PartMotionSignals Signals { get; }` | Notifications for requests, progress and operation termination. |
+| `public Vector2 valueRange` | Offset range used by direct SetAngle calls in non-rotation modes. Owner animators supply normalized values directly. |
 
 
 ### Methods
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public virtual void CaptureRestPose()` | Captures the currently authored rest pose for this geometry mapper or blade. | No arguments; no returned value. |
-| `public virtual Vector3 GetPointAtAngle(Vector3 meshLocalPoint, float degrees)` | Returns the neutral-frame point after applying a specified rotation angle. | `meshLocalPoint` — Impact point in the deformed mesh's local coordinates. `degrees` — Requested angle in degrees. **Returns:** Returned Vector3; ownership remains as specified by the creating/lookup operation. |
-| `public virtual void SetAngle(float degrees)` | Immediately applies a moving-part/geometry rotation in degrees. | `degrees` — Requested angle in degrees. |
-| `public virtual bool TryGetPose(float degrees, out Vector3 position, out Quaternion orientation)` | Computes a pose from the captured anchored rest frame when geometry references are valid. | `degrees` — Requested angle in degrees. `position` — Requested point or switch detent; see its declared type and owning operation. `orientation` — Orientation, interpreted by this operation in the declared type. **Returns:** `true` if admitted/applied; inspect the described completion boundary and any out values. |
-
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reverse` | Invert this control’s visual motion without changing the logical command value. |
+| `public virtual void Cancel()` | Cancels active movement and releases its operation ownership. | — |
+| `public virtual void CaptureRestPose()` | Captures the currently authored rest pose for this geometry mapper or blade. | — |
+| `public virtual void Complete()` | Completes the current custom movement operation successfully. | — |
+| `public virtual Vector3 GetPointAtAngle(Vector3 meshLocalPoint, float degrees)` | Returns the neutral-frame point after applying a specified rotation angle. | — |
+| `public virtual void SetAngle(float degrees)` | Immediately applies a moving-part/geometry rotation in degrees. | — |
+| `public virtual void SetValue(float normalized, float offset)` | Applies a normalized control value and signed offset through the selected movement mode. | — |
+| `public virtual void StartMotion(float target)` | Requests movement to a normalized destination using the selected motion mode. | — |
+| `public virtual void Tick(float deltaTime)` | Advances the active movement using elapsed seconds. | — |
+| `public virtual bool TryGetPose(float degrees, out Vector3 position, out Quaternion orientation)` | Computes a pose from the captured anchored rest frame when geometry references are valid. | — |
+| `public virtual bool TryGetTranslationPose(float metres, out Vector3 position, out Quaternion orientation)` | Returns the world pose for the requested translation in metres; returns false when the anchor cannot be resolved. | — |
 
 ## CarHud
 
@@ -258,6 +266,7 @@ Shared control presentation base. It references an optional IK handle, coordinat
 | `public bool fakeSyncHandleMotion` | Default false. Outbound reach uses the contact pose captured before visual motion; after arrival it follows the live anchor. |
 | `public VehicleHandle handle` | Optional IK contact for this animated control. Set its anchor on the moving grip and author limb/pose settings on that component. An unassigned handle permits immediate visual motion. |
 | `public virtual Vector3 InteractionValue { get; }` | Displayed control values exposed to the paired contact for generic value events; does not command vehicle mechanics. |
+| `public virtual Vector3 RequestedInteractionValue { get; }` | Requested control value before hand-contact admission and displayed interpolation. HandleAudio RequestedValue timing uses this channel; InteractionValue remains the actual displayed control state. |
 | `public bool showGizmos` | Shows this component’s scene guides and editing handles. Enabled by default; Inspector: **Gizmos > Show gizmos**. Does not change gameplay or physics. |
 | `public bool waitForHandle` | Default true. Wait for the real palm/foot within 2.5 cm after transit, plus finger blending for hands. Mechanics remain immediate; steering is excluded. |
 
@@ -365,6 +374,13 @@ Follows accepted gearbox selections and coordinates a timed hand reach before mo
 
 **Inherits / implements:** `ControlAnimator`.
 
+### Events and Inspector callbacks
+
+| Member | Meaning |
+| --- | --- |
+| `public UnityEngine.Events.UnityEvent<int> onGearRequested` | Accepted gear request, also available in Custom mode before motion starts. |
+
+
 ### State and configuration
 
 | Member | Meaning |
@@ -378,10 +394,15 @@ Follows accepted gearbox selections and coordinates a timed hand reach before mo
 | `public override Vector3 InteractionValue { get; }` | Displayed control values exposed to the paired contact for generic value events; does not command vehicle mechanics. |
 | `public bool IsMoving { get; private set; }` | Whether pose interpolation is active; excludes waiting for a hand. |
 | `public GearLeverMotionMode mode` | Rotation or Translation. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public Transform movingPart` | `Transform` whose pose this mapper owns; keep imported-mesh offsets on its child. |
 | `public override ExecutionPhase Phase { get; }` | Runs in the presentation phase, independently of vehicle mechanics. |
+| `public PartMotionPlayback playback` | Clip/custom implementation and lifecycle callbacks. Custom drivers can read RequestedGear from the owner. |
 | `public GearLeverPosition[] positions` | Unique signed gear numbers and their absolute poses. Defaults include R, N and gears 1–6. |
+| `public int RequestedGear { get; }` | Target gear for the current visual request, including a pending hand-contact wait. |
+| `public override Vector3 RequestedInteractionValue { get; }` | Requested control value before hand-contact admission and displayed interpolation. HandleAudio RequestedValue timing uses this channel; InteractionValue remains the actual displayed control state. |
 | `public float shiftDuration` | Visual lever travel duration in seconds; independent of gearbox torque transfer. Initial value: `.18f`. |
+| `public PartMotionSignals Signals { get; }` | Notifications for requests, progress and operation termination. |
 
 
 ### Methods
@@ -389,10 +410,12 @@ Follows accepted gearbox selections and coordinates a timed hand reach before mo
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
 | `public bool AnimateGear(int gear)` | Queues the latest accepted visual target without changing the gearbox. Returns false on invalid rig/pose. | — |
+| `public override void CancelMotion()` | Cancels active movement and releases its operation ownership. | — |
 | `public override void Configure(VehicleController vehicle)` | Restores prior contact material state, resets ground/air history and prepares applicable ground contact policy. | — |
 | `public void RefreshBinding()` | Unsubscribes the old gearbox, releases any hand and silently synchronizes the new source. | — |
 | `public bool SetImmediate(int gear)` | Silently applies a configured pose and releases active ownership. Returns false on invalid rig/pose. | — |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Samples vehicle/command state for this control during the module update; visual behavior is owned here, never by the IK handle. | — |
+| `public override void StopMotion()` | Stops the current movement operation without reporting successful completion. | — |
 | `public void Tick(float deltaTime)` | Advances visual travel and optional limb synchronization for a finite nonnegative elapsed duration. | — |
 | `public bool TryGetPosition(int gear, out GearLeverPosition position)` | Returns a unique finite pose; rejects duplicates, missing gears and values below -1. | — |
 
@@ -403,6 +426,13 @@ Follows accepted gearbox selections and coordinates a timed hand reach before mo
 - `Rotation`: Euler rotation around the floor anchor.
 - `Translation`: position offset in anchor axes, with anchor orientation.
 
+| Value | Meaning |
+| --- | --- |
+| Rotation | `Rotation` — Inspector display label for this mode. |
+| Translation | `Translation` — Inspector display label for this mode. |
+| Animation | `Animation` — Clip-sampled movement. |
+| Custom | `Custom` — Application-owned movement through callbacks or a custom driver. |
+
 ## GearLeverPosition
 
 **Runtime/Interior/Animators/GearLeverAnimator.cs**
@@ -411,6 +441,7 @@ Follows accepted gearbox selections and coordinates a timed hand reach before mo
 
 | Member | Meaning |
 | --- | --- |
+| `public AnimationClip clip` | Optional transition clip into this gear, from its start pose to its selected pose. Falls back to the shared clip. |
 | `public int gear` | Unique signed gear number: -1 reverse, 0 neutral, positive forward gear. |
 | `public Vector3 position` | Absolute local offset in the anchor frame, used in Translation mode. |
 | `public Vector3 rotation` | Absolute Euler angles in the anchor frame, used in Rotation mode. |
@@ -439,8 +470,10 @@ Receives accepted gear changes through IGearShiftAnimator, coalesces downshifts,
 | `public override Vector3 InteractionValue { get; }` | Displayed control values exposed to the paired contact for generic value events; does not command vehicle mechanics. |
 | `public virtual bool IsMoving { get; protected set; }` | Whether paddle press/return motion is active; excludes waiting for a hand. |
 | `public AnchoredRotation motion` | Animator-owned moving geometry, independent pivot/reference, axis and travel mapping. Parent the IK contact under the moving geometry. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public float pressDuration` | Seconds for full released-to-pressed travel; smaller demands stop proportionally earlier. |
 | `public float pressedAngle` | Pedal angle in degrees at displayed value one. |
+| `public override Vector3 RequestedInteractionValue { get; }` | Requested control value before hand-contact admission and displayed interpolation. HandleAudio RequestedValue timing uses this channel; InteractionValue remains the actual displayed control state. |
 | `public float returnDuration` | Return travel duration in seconds, independent of outbound travel. |
 | `public virtual float Value { get; protected set; }` | Current displayed pedal travel in 0–1; it can lag `TargetValue` while motion is smoothed. |
 
@@ -532,24 +565,28 @@ Reusable geometry mapping for animator-owned rotation or translation in an indep
 | `public float minimum` | Offset at normalized value zero: degrees in rotation mode, local distance in translation mode. |
 | `public AircraftControlMotionMode mode` | Chooses rotation (degrees) or translation (local distance) for minimum/maximum/offset. |
 | `public Transform movingPart` | `Transform` whose pose this mapper owns; keep imported-mesh offsets on its child. |
+| `public PartMotionPlayback playback` | Animation/custom implementation and lifecycle callbacks for this handle geometry. |
+| `public bool reverse` | Invert this control’s visual motion without changing the logical command value. |
+| `public PartMotionSignals Signals { get; }` | Notifications for requests, progress and operation termination. |
 
 
 ### Methods
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
+| `public virtual void Cancel()` | Cancels active movement and releases its operation ownership. | — |
+| `public virtual void Complete()` | Completes the current custom movement operation successfully. | — |
+| `public virtual void ReportProgress(float value)` | Reports actual normalized progress from a custom pose owner. | — |
 | `public virtual void SetOffset(float offset)` | Resets `movingPart` to the independent anchor and applies rotation in degrees or translation in local units. Invalid/nonfinite/self-descendant frames are ignored. | — |
 | `public virtual void SetValue(float value)` | Clamps a fraction to 0–1, maps it between minimum and maximum, then applies `SetOffset`. Rotation uses degrees; translation uses local distance. | — |
-
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reverse` | Invert this control’s visual motion without changing the logical command value. |
+| `public virtual void StartMotion(float target)` | Requests movement to a normalized destination using the selected motion mode. | — |
+| `public virtual void Stop()` | Stops the current movement operation without reporting successful completion. | — |
+| `public virtual void Tick(float deltaTime)` | Advances the active movement using elapsed seconds. | — |
+| `public virtual bool TryGetPose(float offset, out Vector3 position, out Quaternion rotation)` | Preserve the authored mesh offset: changing the axis frame must not snap the mesh onto it. | — |
 
 ## IGearShiftAnimator
 
-**Runtime/Interior/Animators/IGearShiftAnimator.cs**
+**Runtime/Contracts/Interior/IGearShiftAnimator.cs**
 
 Presentation contract for accepted gear changes. Implement it on visual gear controls; IK handles do not consume gearbox events.
 
@@ -561,7 +598,7 @@ Presentation contract for accepted gear changes. Implement it on visual gear con
 
 ## IInteriorValueSource
 
-**Runtime/Interior/Controls/Source/InteriorValueSource.cs**
+**Runtime/Contracts/Interior/IInteriorValueSource.cs**
 
 Configuration/implementation type for iinterior value source within cockpit instruments and bindings.
 
@@ -662,7 +699,7 @@ Base adapter for an `IInteriorValueSource` value producer.
 
 ## ISteeringIntentSource
 
-**Runtime/Interior/Controls/Source/SteeringSource.cs**
+**Runtime/Contracts/Interior/ISteeringIntentSource.cs**
 
 Optional extension for an IInteriorValueSource that separates requested steering from the resolved visual steering value. SteeringHandRegrip uses intent to distinguish an active turn from passive return. Custom scalar-only sources retain their existing ReadValue behavior.
 
@@ -697,10 +734,12 @@ Samples an interchangeable IInteriorValueSource (or built-in resolved/command fa
 | `public HandleInput input` | Command channel selected when resolving this pedal's demand. |
 | `public override Vector3 InteractionValue { get; }` | Displayed control values exposed to the paired contact for generic value events; does not command vehicle mechanics. |
 | `public AnchoredRotation motion` | Animator-owned moving geometry, independent pivot/reference, axis and travel mapping. Parent the IK contact under the moving geometry. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public float pressDuration` | Seconds for full released-to-pressed travel; smaller demands stop proportionally earlier. |
 | `public float pressedAngle` | Pedal angle in degrees at displayed value one. |
 | `public float releasedAngle` | Pedal angle in degrees at displayed value zero. |
 | `public float releaseDuration` | Seconds to fade after releasing the request; zero stops immediately. |
+| `public override Vector3 RequestedInteractionValue { get; }` | Requested control value before hand-contact admission and displayed interpolation. HandleAudio RequestedValue timing uses this channel; InteractionValue remains the actual displayed control state. |
 | `public virtual float TargetValue { get; protected set; }` | Requested pedal demand in 0–1; displayed Value approaches it with press/release travel. |
 | `public bool useResolvedPedals` | For throttle/brake, use the vehicle's resolved propulsion and service brake rather than the shared forward/reverse input. |
 | `public virtual float Value { get; protected set; }` | Current displayed pedal travel in 0–1; it can lag `TargetValue` while motion is smoothed. |
@@ -850,8 +889,8 @@ Displays a bounded value as rotation, optionally following an IInteriorValueSour
 
 | Member | Meaning |
 | --- | --- |
-| `public UnityEvent<float> onValueChanged` | After this control's value changes. Payload: the event's value type; `PedalAnimator` reports displayed travel, `SwitchAnimator` reports a changed bool request. |
 | `public event System.Action<float> ValueChanged` | When the requested instrument value changes. Payload: value in configured source units; this is not a motion-arrival notification. |
+| `public UnityEvent<float> onValueChanged` | After this control's value changes. Payload: the event's value type; `PedalAnimator` reports displayed travel, `SwitchAnimator` reports a changed bool request. |
 
 
 ### State and configuration
@@ -866,6 +905,7 @@ Displays a bounded value as rotation, optionally following an IInteriorValueSour
 | `public float minimumAngle` | Lower rotation angle in degrees for the configured motion. Initial value: `-135`. |
 | `public float minimumValue` | Lower input/value endpoint mapped to the motion or instrument range. |
 | `public AnchoredRotation motion` | Animator-owned moving geometry, independent pivot/reference, axis and travel mapping. Parent the IK contact under the moving geometry. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public virtual float NormalizedValue { get; }` | Read-only/resolved normalized value for `RotaryHandle`. |
 | `public float response` | Response rate toward the requested state. Higher values generally follow changes faster; consult the component for zero behavior. Initial value: `18`. |
 | `public virtual float Value { get; }` | Requested/current instrument-domain value exposed by this control, not a universal 0–1 axis. |
@@ -965,11 +1005,12 @@ Owns joystick pitch/roll model motion and taxi steering presentation. JoystickHa
 | `public Transform leftHandRest` | Independent left-hand palm target, in cabin space. Reserved through the steering hand API. |
 | `public Vector3 localPitchAxis` | Direction vector defining local pitch axis in the local frame used by this mechanism; it is not an absolute world position. Initial value: `Vector3.right`. |
 | `public Vector3 localRollAxis` | Local axis used to apply roll input to the handle or stick. Initial value: `Vector3.forward`. |
-| `public float maximumPitch` | Pitch attitude limit in the assisted profile. Aerobatic profiles use angular rates instead. |
+| `public float maximumPitch` | Pitch attitude limit in the assisted profile. With Simple Steering disabled, aircraft use angular rates instead. |
 | `public float maximumRoll` | Upper local roll angle in degrees. Initial value: `6`. |
 | `public float maximumRollOffset` | Maximum roll offset for this control. |
 | `public float minimumRoll` | Lower local roll angle in degrees. Initial value: `-6`. |
 | `public HandleMotion motion` | Animator-owned moving geometry, independent pivot/reference, axis and travel mapping. Parent the IK contact under the moving geometry. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public MonoBehaviour pitchSource` | Independent IInteriorValueSource for normalized pitch (-1..1); empty uses Command.Pitch. Uses the same disabled/non-finite handling as Data Source. |
 | `public Transform rotationPivot` | Floor/base pivot. Place the stick mesh and its grip targets below this transform. |
 | `public override bool SupportsHandRegrip { get; }` | Read-only/resolved supports hand regrip for `SteeringStickAnimator`. |
@@ -995,17 +1036,24 @@ Configuration/implementation type for steering wheel animator within cockpit ins
 
 | Member | Meaning |
 | --- | --- |
+| `public Transform anchor` | Optional independent rotation pivot and local axis frame. The wheel keeps its authored neutral pose. |
 | `public float boatSteeringResponse` | Boat helm rendering response per second. Zero follows the resolved rudder immediately. |
 | `public MonoBehaviour dataSource` | Optional component implementing IInteriorValueSource. Overrides built-in sampling; any application MonoBehaviour can implement the interface. An assigned disabled, invalid or non-finite source produces zero. Empty uses the documented built-in default (Rotary remains API-driven). |
 | `public virtual float DisplayedAngle { get; protected set; }` | Read-only/resolved displayed angle for `SteeringWheelAnimator`. |
 | `public virtual float HandSteeringInput { get; }` | Requested steering from ISteeringIntentSource when available; scalar-only custom sources use ReadValue. Without a source, reads Command.Steering. |
 | `public bool invert` | Reverses the sign of the assigned control input before applying control-surface motion. |
 | `public Vector3 localRotationAxis` | Direction vector defining local rotation axis in the local frame used by this mechanism; it is not an absolute world position. Initial value: `Vector3.forward`. |
+| `public AircraftControlMotionMode motionMode` | Procedural rotation/translation, clip animation, or callback-only custom steering motion. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public bool overrideSteeringAngle` | Use this animator’s visual full-lock angle instead of the vehicle’s shared steering-wheel angle. Default false; does not change physical wheel steering. |
 | `public override ExecutionPhase Phase { get; }` | Runs in the presentation phase, independently of vehicle mechanics. |
+| `public PartMotionPlayback playback` | Animation/custom steering motion and lifecycle callbacks. |
+| `public bool showGizmos` | Show mode-specific steering motion guides in the Scene view. |
+| `public PartMotionSignals Signals { get; }` | Notifications for requests, progress and operation termination. |
 | `public float steeringAngleAtFullLock` | Degrees from neutral to full lock on either side when override is enabled. Default 35; nonnegative. |
 | `public Transform steeringWheel` | Assign the steering wheel reference used by SteeringWheelAnimator. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
 | `public virtual bool SupportsHandRegrip { get; }` | Read-only/resolved supports hand regrip for `SteeringWheelAnimator`. |
+| `public float translationTravel` | Metres of translation from neutral at full steering, in either direction. |
 | `public VehicleController vehicle` | Assign the vehicle VehicleController component/asset used by Audio. |
 | `public virtual float VisualSteeringAngleAtFullLock { get; }` | Resolved visual steering travel, taking the local override into account. Hand-regrip eligibility uses this value. |
 
@@ -1015,6 +1063,7 @@ Configuration/implementation type for steering wheel animator within cockpit ins
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
 | `public virtual void CalibrateRestPose()` | Captures the model's current neutral presentation frame for later control animation. | — |
+| `public override void CancelMotion()` | Cancels active movement and releases its operation ownership. | — |
 | `public virtual void PrepareHandPose()` | Prepares the hand pose associated with this cockpit animator. | — |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Samples vehicle/command state for this control during the module update; visual behavior is owned here, never by the IK handle. | — |
 
@@ -1030,12 +1079,12 @@ Owns binary or three-position detents, requested/actual state, visual travel and
 
 | Member | Meaning |
 | --- | --- |
-| `public UnityEvent<SwitchPosition> onPositionChanged` | After a changed switch detent request. Payload: `SwitchPosition`; silent immediate synchronization does not invoke it. |
-| `public UnityEvent<bool> onValueChanged` | After this control's value changes. Payload: the event's value type; `PedalAnimator` reports displayed travel, `SwitchAnimator` reports a changed bool request. |
 | `public event Action<SwitchPosition> PositionChanged` | When requested switch detent changes. Payload: `SwitchPosition`; distinguish all three positions with this event. |
 | `public event Action<SwitchPosition> PositionReached` | When switch travel settles at its detent. Payload: `SwitchPosition`. |
 | `public event Action<bool> Switched` | When switch presentation settles. Payload: bool `IsOn`; negative and positive three-position states both count as on. |
 | `public event Action<bool> ValueChanged` | When the requested binary `IsOn` state changes. Payload: bool. Moving between negative and positive detents keeps `IsOn` `true` and does not emit this event. Immediate synchronization is silent. |
+| `public UnityEvent<SwitchPosition> onPositionChanged` | After a changed switch detent request. Payload: `SwitchPosition`; silent immediate synchronization does not invoke it. |
+| `public UnityEvent<bool> onValueChanged` | After this control's value changes. Payload: the event's value type; `PedalAnimator` reports displayed travel, `SwitchAnimator` reports a changed bool request. |
 
 
 ### State and configuration
@@ -1048,8 +1097,10 @@ Owns binary or three-position detents, requested/actual state, visual travel and
 | `public virtual bool IsMoving { get; }` | Whether displayed switch travel differs from its requested detent target. |
 | `public virtual bool IsOn { get; }` | For a switch, Position is not Neutral; negative and positive both count as on. |
 | `public HandleMotion motion` | Animator-owned moving geometry, independent pivot/reference, axis and travel mapping. Parent the IK contact under the moving geometry. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
 | `public float neutralOffset` | Middle-detent geometry offset in degrees or local distance, according to motion.mode. |
 | `public virtual SwitchPosition Position { get; protected set; }` | Requested switch detent, distinct from displayed travel and arrival. |
+| `public override Vector3 RequestedInteractionValue { get; }` | Requested control value before hand-contact admission and displayed interpolation. HandleAudio RequestedValue timing uses this channel; InteractionValue remains the actual displayed control state. |
 | `public bool threePosition` | Enables Negative/Neutral/Positive detents; without it Negative requests throw. |
 | `public float transitionDuration` | Seconds for visible detent travel; settlement events follow that travel. |
 | `public virtual float Value { get; protected set; }` | Current displayed pedal travel in 0–1; it can lag `TargetValue` while motion is smoothed. |
@@ -1103,7 +1154,10 @@ Owns throttle grip geometry and displayed throttle, including optional external 
 | `public virtual Transform HandAnchor { get; }` | Read-only/resolved hand anchor for `ThrottleAnimator`. |
 | `public override Vector3 InteractionValue { get; }` | Displayed control values exposed to the paired contact for generic value events; does not command vehicle mechanics. |
 | `public HandleMotion motion` | Animator-owned moving geometry, independent pivot/reference, axis and travel mapping. Parent the IK contact under the moving geometry. |
+| `public override PartMotionPlayback MotionPlayback { get; }` | Motion playback owned by this control animator. |
+| `public override Vector3 RequestedInteractionValue { get; }` | Requested control value before hand-contact admission and displayed interpolation. HandleAudio RequestedValue timing uses this channel; InteractionValue remains the actual displayed control state. |
 | `public float response` | Response rate toward the requested state. Higher values generally follow changes faster; consult the component for zero behavior. Initial value: `5`. |
+| `public virtual float TargetValue { get; protected set; }` | Normalized requested throttle position, sampled before waiting for hand contact or animating the grip. |
 | `public bool useExternalValue` | Uses explicit cockpit presentation instead of following vehicle throttle. |
 | `public bool useLeftHand` | Uses the driver's left hand rather than the right for this control. |
 | `public VehicleController vehicle` | Assign the vehicle VehicleController component/asset used by Audio. |
@@ -1147,7 +1201,18 @@ Shared base for instrument geometry ownership. Set Automatic Motion off when an 
 | --- | --- |
 | `public bool automaticMotion` | Default true. Allows this animator to write model transforms; disable when an external animation system owns the visible control. |
 | `public sealed override ModuleCategory Category { get; }` | Interior scheduling category. Inspector groups this base separately from ordinary Interior modules. |
+| `public virtual PartMotionPlayback MotionPlayback { get; }` | Drivers and Inspector UnityEvents use the same progress/completion contract. Controllers still supply the demand; Custom implementations own the actual pose. |
 | `public override ExecutionPhase Phase { get; }` | Runs in the presentation phase, independently of vehicle mechanics. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public virtual void CancelMotion()` | Cancels active movement and releases its operation ownership. | — |
+| `public virtual void CompleteCustomMotion()` | Completes the shared custom-motion request so contact and completion listeners can advance. | — |
+| `public virtual void ReportMotionProgress(float value)` | Lets a custom motion driver publish normalized progress through the shared playback lifecycle. | — |
+| `public virtual void StopMotion()` | Stops the current movement operation without reporting successful completion. | — |
 
 ## VehicleValueSource
 
@@ -1178,18 +1243,16 @@ Configuration/implementation type for yoke animator within cockpit instruments a
 | `public float controlResponse` | Visual pitch and airborne roll response per second. Taxi roll follows wheel steering directly. |
 | `public override float HandSteeringInput { get; }` | Read-only/resolved hand steering input for `YokeAnimator`. |
 | `public Vector3 localPitchTravelAxis` | Direction vector defining local pitch travel axis in the local frame used by this mechanism; it is not an absolute world position. Initial value: `Vector3.forward`. |
+| `public Transform pitchAnchor` | Optional independent local axis frame for column translation. Keep it outside the sliding column. |
 | `public Transform pitchSlide` | Sliding column, with the rotating yoke below it. Leave empty to slide the yoke itself. |
 | `public MonoBehaviour pitchSource` | Independent IInteriorValueSource for normalized pitch (-1..1); empty uses Command.Pitch. Uses the same disabled/non-finite handling as Data Source. |
 | `public float pitchTravel` | Pitch travel in metres in the owning system's space. Initial value: `.035f`. |
+| `public bool reversePitch` | Reverse column translation independently of steering-wheel Invert. |
 
 
 ### Methods
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public override void CalibrateRestPose()` | Captures the model's current neutral presentation frame for later control animation. | No arguments; no returned value. |
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reversePitch` | Reverse column translation independently of steering-wheel Invert. |
+| `public override void CalibrateRestPose()` | Captures the model's current neutral presentation frame for later control animation. | — |
+| `public virtual void GetPitchFrame(out Vector3 origin, out Vector3 direction)` | Returns the pitch translation frame used to position the yoke and its contact targets. | — |

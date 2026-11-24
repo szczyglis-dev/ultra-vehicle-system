@@ -219,9 +219,9 @@ ObjectDropper
 +============================================================================================+==================================================================================================+
 | ``public override void Configure(VehicleController vehicle)``                              | Assigns the vehicle owner used to validate payload release.                                      |
 +--------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Decrements payload-release cooldown; selection and release remain explicit ``TryDrop`` requests. |
-+--------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | ``public virtual void SetDroppingEnabled(bool value)``                                     | Changes payload-release availability through the dropper's action/event path.                    |
++--------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Decrements payload-release cooldown; selection and release remain explicit ``TryDrop`` requests. |
 +--------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | ``public virtual bool TryDrop(DroppableObject item)``                                      | Requests release of a selected eligible payload, respecting owner, enable and cooldown policy.   |
 +--------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------+
@@ -244,11 +244,11 @@ Rocket
 +-----------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | Method                                                    | Role                                                                                                  |
 +===========================================================+=======================================================================================================+
+| ``public virtual void Detonate(Vector3 point)``           | Ends the rocket through its explosion path at the supplied world point.                               |
++-----------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``public virtual Rocket Launch(VehicleController owner)`` | Creates/initializes launched-rocket behavior from the mounted store and carrier state.                |
 +-----------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``public virtual void StopMotor()``                       | Stops the rocket motor and its owned loop/emission without implying immediate projectile destruction. |
-+-----------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
-| ``public virtual void Detonate(Vector3 point)``           | Ends the rocket through its explosion path at the supplied world point.                               |
 +-----------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
 
 +---------------------------------------------------+--------------------------------------------------------------------------------+
@@ -269,11 +269,11 @@ RocketLauncher
 +============================================================================================+=====================================================================================================+
 | ``public override void Configure(VehicleController vehicle)``                              | Assigns the vehicle owner used by launched stores.                                                  |
 +--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
-| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Decrements launcher cooldown and requests another shot while automatic held-trigger policy applies. |
-+--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
 | ``public virtual void SetFiringEnabled(bool value)``                                       | Changes weapon firing availability and publishes its state transition.                              |
 +--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
 | ``public virtual void SetTrigger(bool held)``                                              | Supplies held trigger intent; firing mode/cooldown determine actual shots.                          |
++--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Decrements launcher cooldown and requests another shot while automatic held-trigger policy applies. |
 +--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
 | ``public virtual bool TryFire()``                                                          | Requests one shot/store release subject to enable, valid setup and cooldown policy.                 |
 +--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
@@ -281,11 +281,11 @@ RocketLauncher
 +-------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
 | Event / callback                                      | Role                                                                                                                  |
 +=======================================================+=======================================================================================================================+
-| ``public event Action<bool> TriggerChanged``          | When held trigger intent changes. Payload: bool; a ``true`` trigger does not guarantee a shot.                        |
+| ``public event Action<RocketLauncher, Rocket> Fired`` | After an admitted shot creates/releases its projectile. Payload: weapon owner and spawned projectile/store component. |
 +-------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
 | ``public event Action<bool> FiringEnabledChanged``    | When weapon firing availability changes. Payload: bool.                                                               |
 +-------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
-| ``public event Action<RocketLauncher, Rocket> Fired`` | After an admitted shot creates/releases its projectile. Payload: weapon owner and spawned projectile/store component. |
+| ``public event Action<bool> TriggerChanged``          | When held trigger intent changes. Payload: bool; a ``true`` trigger does not guarantee a shot.                        |
 +-------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-weapons--vehiclemodule:
@@ -300,9 +300,9 @@ VehicleModule
 +===========================================================================================+========================================================================================================================================+
 | ``public virtual void Configure(VehicleController vehicle)``                              | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
-+-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetEnabled(bool value)``                                            | Changes module enabled state and publishes an actual requested-flag change.                                                            |
++-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool SupportsProfile(DriveProfile profile)``                             | Checks movement-family compatibility; this is independent of the Unity enabled flag.                                                   |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
@@ -310,9 +310,9 @@ VehicleModule
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | Event / callback                                                          | Role                                                                                                              |
 +===========================================================================+===================================================================================================================+
-| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
-+---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController> Configured``              | After controller-driven module configuration. Payload: the owning ``VehicleController``.                          |
++---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController, Command, float> Stepped`` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds.                 |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
@@ -327,27 +327,27 @@ WeaponBarrel
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | Method                                                                                     | Role                                                                                                                          |
 +============================================================================================+===============================================================================================================================+
+| ``public virtual void AimAt(Transform target)``                                            | Starts or updates world-target tracking around the configured allowed axis; the overload selects a point or a live transform. |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void AimAt(Vector3 point)``                                               | Starts or updates world-target tracking around the configured allowed axis; the overload selects a point or a live transform. |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public override void Configure(VehicleController vehicle)``                              | Assigns the vehicle owner and rebuilds owner-collider exclusions for spawned projectiles.                                     |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void RefreshCollisionFilter()``                                           | Rebuilds the owner-collider exclusion set supplied to subsequently spawned projectiles.                                       |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Attempts at most one automatic shot for a positive timestep while the trigger is held.                                        |
+| ``public virtual void SetAimAngle(float angle)``                                           | Requests a bounded barrel elevation angle in degrees.                                                                         |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SetFireMode(WeaponFireMode mode)``                                   | Chooses single/automatic firing policy for subsequent trigger input.                                                          |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetFiringEnabled(bool value)``                                       | Changes weapon firing availability and publishes its state transition.                                                        |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetMovementInput(float input)``                                      | Supplies barrel elevation rate input rather than a fixed aim target.                                                          |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SetAimAngle(float angle)``                                           | Requests a bounded barrel elevation angle in degrees.                                                                         |
+| ``public virtual void SetTrigger(bool held)``                                              | Supplies held trigger intent; firing mode/cooldown determine actual shots.                                                    |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void AimAt(Vector3 point)``                                               | Starts or updates world-target tracking around the configured allowed axis; the overload selects a point or a live transform. |
-+--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void AimAt(Transform target)``                                            | Starts or updates world-target tracking around the configured allowed axis; the overload selects a point or a live transform. |
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Attempts at most one automatic shot for a positive timestep while the trigger is held.                                        |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void StopAiming()``                                                       | Releases barrel target tracking without inventing a new aim target.                                                           |
-+--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SetFireMode(WeaponFireMode mode)``                                   | Chooses single/automatic firing policy for subsequent trigger input.                                                          |
-+--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SetTrigger(bool held)``                                              | Supplies held trigger intent; firing mode/cooldown determine actual shots.                                                    |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool TryFire()``                                                          | Requests one shot/store release subject to enable, valid setup and cooldown policy.                                           |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
@@ -355,11 +355,11 @@ WeaponBarrel
 +------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
 | Event / callback                                           | Role                                                                                                                  |
 +============================================================+=======================================================================================================================+
-| ``public event Action<bool> TriggerChanged``               | When held trigger intent changes. Payload: bool; a ``true`` trigger does not guarantee a shot.                        |
+| ``public event Action<WeaponBarrel, MonoBehaviour> Fired`` | After an admitted shot creates/releases its projectile. Payload: weapon owner and spawned projectile/store component. |
 +------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
 | ``public event Action<bool> FiringEnabledChanged``         | When weapon firing availability changes. Payload: bool.                                                               |
 +------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
-| ``public event Action<WeaponBarrel, MonoBehaviour> Fired`` | After an admitted shot creates/releases its projectile. Payload: weapon owner and spawned projectile/store component. |
+| ``public event Action<bool> TriggerChanged``               | When held trigger intent changes. Payload: bool; a ``true`` trigger does not guarantee a shot.                        |
 +------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-weapons--weaponeffects:
@@ -382,8 +382,10 @@ WeaponRecoil
 
 :ref:`WeaponRecoil <uvs-api-weapons--weaponrecoil>` gives the full declared contract.
 
-+---------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Method                                                        | Role                                                                        |
-+===============================================================+=============================================================================+
-| ``public override void Configure(VehicleController vehicle)`` | Refreshes accepted-shot bindings while this recoil presentation is enabled. |
-+---------------------------------------------------------------+-----------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Member                                                                                 | Behavior                                                                    |
++========================================================================================+=============================================================================+
+| ``public override void Configure(VehicleController vehicle)``                          | Refreshes accepted-shot bindings while this recoil presentation is enabled. |
++----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| ``public virtual void GetTranslationFrame(out Vector3 origin, out Vector3 direction)`` | Returns the world-space origin and axis of the authored recoil travel.      |
++----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+

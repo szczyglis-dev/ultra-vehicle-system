@@ -56,9 +56,9 @@ Owns one vehicle: its root body, input sampling, wheel configuration, registry a
 | --- | --- |
 | `public event Action<Telemetry> AfterPhysicsStep` | After the package module pipeline. Payload: Telemetry snapshot; this is not a separate native Physics.Simulate completion. |
 | `public event Action<Collision> Collided` | During the live Unity collision callback. Payload: Collision; copy required data before deferring work. |
-| `public event Action<Collision> ContactPersisted` | Live sustained native contact; copy values before retaining or deferring them. |
 | `public event Action<Command> CommandSampled` | After the selected provider is sampled. Payload: the Command used for that vehicle tick. |
 | `public event Action ConfigurationChanged` | After validated wheel/module configuration is applied. No payload. |
+| `public event Action<Collision> ContactPersisted` | Live sustained native contact; copy values before retaining or deferring them. |
 | `public event Action<DriveProfile> DriveProfileChanged` | After an immediate profile change is configured successfully. Payload: the selected `DriveProfile`. |
 | `public event Action<Impact> Impacted` | After collision information has been copied. Payload: Impact snapshot safe to retain beyond the callback. |
 | `public event Action<MonoBehaviour> InputSourceChanged` | After assigning input ownership. Payload: selected `MonoBehaviour`, or `null` for released input. |
@@ -88,12 +88,12 @@ Owns one vehicle: its root body, input sampling, wheel configuration, registry a
 | `public virtual bool ForcesReleased { get; }` | Effective manual or ignition-policy force release. Native physics and observation remain active. |
 | `public virtual float ForwardSpeed { get; }` | Signed root velocity projected onto the configured propulsion direction, in m/s. |
 | `public HandleController handles { get; }` | Per-vehicle registry, limb scheduler and request entry point. Initialized during vehicle Awake. |
-| `public virtual Passengers passengers { get; }` | First registered passenger core, including disabled cores; null if absent. Resolves through TryGetModule on each access, with no component creation or stale cache. Use GetModules for deliberate multi-core setups. |
-| `public virtual Body parts { get; }` | Registered body-part controller, including a disabled module; null if absent. Resolves through TryGetModule on each access without creating components or caching stale references. Use Open/Close/Toggle/GetPart for ID-based operations, parts for the configured VehicleBodyPart array and damageParts for damage boundaries. |
 | `public MonoBehaviour inputSource` | Selected `MonoBehaviour` implementing IVehicleInput; use `SetInputSource` for an ownership change. |
 | `public virtual bool IsDirectControl { get; }` | Whether direct-pose ownership is currently active; source flag changes are applied at the next fixed tick. |
 | `public VehicleModule[] modules` | Registered mechanics components configured and stepped by the controller. Discover modules after adding or removing systems. Initial value: `Array.Empty<VehicleModule>()`. |
 | `public virtual IReadOnlyList<VehicleModule> Modules { get; }` | Read-only/resolved modules for `VehicleController`. |
+| `public virtual Body parts { get; }` | Registered body-part controller, including a disabled module; null if absent. Resolves through TryGetModule on each access without creating components or caching stale references. Use Open/Close/Toggle/GetPart for ID-based operations, parts for the configured VehicleBodyPart array and damageParts for damage boundaries. |
+| `public virtual Passengers passengers { get; }` | First registered passenger core, including disabled cores; null if absent. Resolves through TryGetModule on each access, with no component creation or stale cache. Use GetModules for deliberate multi-core setups. |
 | `public VehicleSensors sensors { get; }` | Stable per-vehicle read-only [physics sensor readings](PhysicsSensors.md#vehiclesensors), updated with telemetry. |
 | `public virtual float ServiceBrake { get; internal set; }` | Resolved service-brake demand consumed by downstream mechanics and pedal presentation. |
 | `public Settings settings` | Shared vehicle mass, speed, torque, steering, grip and suspension tuning. Inspector: **Vehicle Controller > Setup > Configuration**. Initial value: `new Settings()`. |
@@ -105,6 +105,7 @@ Owns one vehicle: its root body, input sampling, wheel configuration, registry a
 | `public virtual float SteeringRatio { get; }` | Column-angle to road-wheel-angle conversion ratio. |
 | `public virtual float SteeringWheelAngle { get; }` | Logical unwrapped steering-column degrees, before mesh-axis inversion. |
 | `public virtual float SteeringWheelRotationAtFullLock { get; }` | Column travel in degrees per side at full road-wheel steering. |
+| `public TelemetrySettings telemetry` | Optional capture groups at Setup > Telemetry. Wheel Details defaults off; other groups default on. Changes apply at the next physics publication without reconfiguration. |
 | `public virtual Telemetry Telemetry { get; protected set; }` | Latest cached vehicle snapshot published after the module pipeline. |
 | `public virtual Vector3 Velocity { get; }` | Current world velocity in m/s, measured from direct poses in direct mode or read from Rigidbody in physical mode. |
 | `public virtual IReadOnlyList<Wheel> Wheels { get; }` | Controller-managed runtime wheel adapters in configured order. |
@@ -149,7 +150,3 @@ Owns one vehicle: its root body, input sampling, wheel configuration, registry a
 | `public virtual bool TrySetDriveProfile(DriveProfile profile, out string error)` | Validates/configures an immediate profile change with current settings and rejects incompatible/transitioning requests. | `profile` — Movement/surface configuration, according to its declared type. `error` — Output validation/refusal explanation; inspect when the operation returns `false`. **Returns:** `true` if admitted/applied; inspect the described completion boundary and any out values. |
 | `public virtual bool UnregisterModule(VehicleModule module)` | Removes a module from future pipeline membership; independent callbacks/resources require their own disable/cleanup. | `module` — Existing module component whose membership changes. **Returns:** Predicate/result flag described by this operation; it is not a completion notification unless explicitly stated. |
 | `public virtual bool ValidateWheelSetup(out string error)` | Checks profile wheel requirements, native ownership, duplicates and finite minimum geometry/mass. | `error` — Output validation/refusal explanation; inspect when the operation returns `false`. **Returns:** Predicate/result flag described by this operation; it is not a completion notification unless explicitly stated. |
-
-| Declaration | Usage |
-| --- | --- |
-| `public TelemetrySettings telemetry` | Optional capture groups at Setup > Telemetry, directly below Configuration. Wheel Details defaults off; other groups default on. Changes apply at the next physics publication without reconfiguration. |

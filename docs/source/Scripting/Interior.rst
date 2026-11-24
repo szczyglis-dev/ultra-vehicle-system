@@ -409,10 +409,31 @@ AnchoredControlAnimator
 AnchoredRotation
 ~~~~~~~~~~~~~~~~
 
--  **AnchoredRotation** — ``public virtual void CaptureRestPose()`` — Captures the currently authored rest pose for this geometry mapper or blade.
--  **AnchoredRotation** — ``public virtual Vector3 GetPointAtAngle(Vector3 meshLocalPoint, float degrees)`` — Returns the neutral-frame point after applying a specified rotation angle.
--  **AnchoredRotation** — ``public virtual void SetAngle(float degrees)`` — Immediately applies a moving-part/geometry rotation in degrees.
--  **AnchoredRotation** — ``public virtual bool TryGetPose(float degrees, out Vector3 position, out Quaternion orientation)`` — Computes a pose from the captured anchored rest frame when geometry references are valid.
+:ref:`AnchoredRotation <uvs-api-interior--anchoredrotation>` gives the full declared contract.
+
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| Member                                                                                                        | Behavior                                                                                                          |
++===============================================================================================================+===================================================================================================================+
+| ``public virtual void Cancel()``                                                                              | Cancels active movement and releases its operation ownership.                                                     |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void CaptureRestPose()``                                                                     | Captures the currently authored rest pose for this geometry mapper or blade.                                      |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Complete()``                                                                            | Completes the current custom movement operation successfully.                                                     |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual Vector3 GetPointAtAngle(Vector3 meshLocalPoint, float degrees)``                             | Returns the neutral-frame point after applying a specified rotation angle.                                        |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SetAngle(float degrees)``                                                               | Immediately applies a moving-part/geometry rotation in degrees.                                                   |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SetValue(float normalized, float offset)``                                              | Applies a normalized control value and signed offset through the selected movement mode.                          |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void StartMotion(float target)``                                                             | Requests movement to a normalized destination using the selected motion mode.                                     |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Tick(float deltaTime)``                                                                 | Advances the active movement using elapsed seconds.                                                               |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool TryGetPose(float degrees, out Vector3 position, out Quaternion orientation)``           | Computes a pose from the captured anchored rest frame when geometry references are valid.                         |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool TryGetTranslationPose(float metres, out Vector3 position, out Quaternion orientation)`` | Returns the world pose for the requested translation in metres; returns false when the anchor cannot be resolved. |
++---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-interior--carhud:
 
@@ -476,13 +497,31 @@ GasSource
 GearLeverAnimator
 ~~~~~~~~~~~~~~~~~
 
--  **GearLeverAnimator** — ``public bool AnimateGear(int gear)`` — Queues the latest accepted visual target without changing the gearbox. Returns false on invalid rig/pose.
--  **GearLeverAnimator** — ``public override void Configure(VehicleController vehicle)`` — Restores prior contact material state, resets ground/air history and prepares applicable ground contact policy.
--  **GearLeverAnimator** — ``public void RefreshBinding()`` — Unsubscribes the old gearbox, releases any hand and silently synchronizes the new source.
--  **GearLeverAnimator** — ``public bool SetImmediate(int gear)`` — Silently applies a configured pose and releases active ownership. Returns false on invalid rig/pose.
--  **GearLeverAnimator** — ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` — Samples vehicle/command state for this control during the module update; visual behavior is owned here, never by the IK handle.
--  **GearLeverAnimator** — ``public void Tick(float deltaTime)`` — Advances visual travel and optional limb synchronization for a finite nonnegative elapsed duration.
--  **GearLeverAnimator** — ``public bool TryGetPosition(int gear, out GearLeverPosition position)`` — Returns a unique finite pose; rejects duplicates, missing gears and values below -1.
+:ref:`GearLeverAnimator <uvs-api-interior--gearleveranimator>` gives the full declared contract.
+
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                                                     | Behavior                                                                                                                        |
++============================================================================================+=================================================================================================================================+
+| ``public bool AnimateGear(int gear)``                                                      | Queues the latest accepted visual target without changing the gearbox. Returns false on invalid rig/pose.                       |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public override void CancelMotion()``                                                    | Cancels active movement and releases its operation ownership.                                                                   |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public override void Configure(VehicleController vehicle)``                              | Restores prior contact material state, resets ground/air history and prepares applicable ground contact policy.                 |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public void RefreshBinding()``                                                           | Unsubscribes the old gearbox, releases any hand and silently synchronizes the new source.                                       |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool SetImmediate(int gear)``                                                     | Silently applies a configured pose and releases active ownership. Returns false on invalid rig/pose.                            |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Samples vehicle/command state for this control during the module update; visual behavior is owned here, never by the IK handle. |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public override void StopMotion()``                                                      | Stops the current movement operation without reporting successful completion.                                                   |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public void Tick(float deltaTime)``                                                      | Advances visual travel and optional limb synchronization for a finite nonnegative elapsed duration.                             |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool TryGetPosition(int gear, out GearLeverPosition position)``                   | Returns a unique finite pose; rejects duplicates, missing gears and values below -1.                                            |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public UnityEngine.Events.UnityEvent<int> onGearRequested``                              | Accepted gear request, also available in Custom mode before motion starts.                                                      |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-interior--gearpaddleanimator:
 
@@ -525,8 +564,29 @@ HandleCommandInput
 HandleMotion
 ~~~~~~~~~~~~
 
--  **HandleMotion** — ``public virtual void SetOffset(float offset)`` — Resets ``movingPart`` to the independent anchor and applies rotation in degrees or translation in local units. Invalid/nonfinite/self-descendant frames are ignored.
--  **HandleMotion** — ``public virtual void SetValue(float value)`` — Clamps a fraction to 0–1, maps it between minimum and maximum, then applies ``SetOffset``. Rotation uses degrees; translation uses local distance.
+:ref:`HandleMotion <uvs-api-interior--handlemotion>` gives the full declared contract.
+
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                                                          | Behavior                                                                                                                                                             |
++=================================================================================================+======================================================================================================================================================================+
+| ``public virtual void Cancel()``                                                                | Cancels active movement and releases its operation ownership.                                                                                                        |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Complete()``                                                              | Completes the current custom movement operation successfully.                                                                                                        |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void ReportProgress(float value)``                                             | Reports actual normalized progress from a custom pose owner.                                                                                                         |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SetOffset(float offset)``                                                 | Resets ``movingPart`` to the independent anchor and applies rotation in degrees or translation in local units. Invalid/nonfinite/self-descendant frames are ignored. |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SetValue(float value)``                                                   | Clamps a fraction to 0–1, maps it between minimum and maximum, then applies ``SetOffset``. Rotation uses degrees; translation uses local distance.                   |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void StartMotion(float target)``                                               | Requests movement to a normalized destination using the selected motion mode.                                                                                        |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Stop()``                                                                  | Stops the current movement operation without reporting successful completion.                                                                                        |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Tick(float deltaTime)``                                                   | Advances the active movement using elapsed seconds.                                                                                                                  |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool TryGetPose(float offset, out Vector3 position, out Quaternion rotation)`` | Preserve the authored mesh offset: changing the axis frame must not snap the mesh onto it.                                                                           |
++-------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-interior--igearshiftanimator:
 
@@ -616,8 +676,8 @@ RollSource
 RotaryAnimator
 ~~~~~~~~~~~~~~
 
--  **RotaryAnimator** — ``public UnityEvent<float> onValueChanged`` — After this control's value changes. Payload: the event's value type; ``PedalAnimator`` reports displayed travel, ``SwitchAnimator`` reports a changed bool request.
 -  **RotaryAnimator** — ``public event System.Action<float> ValueChanged`` — When the requested instrument value changes. Payload: value in configured source units; this is not a motion-arrival notification.
+-  **RotaryAnimator** — ``public UnityEvent<float> onValueChanged`` — After this control's value changes. Payload: the event's value type; ``PedalAnimator`` reports displayed travel, ``SwitchAnimator`` reports a changed bool request.
 -  **RotaryAnimator** — ``public virtual void Bind(MonoBehaviour valueSource)`` — Sets the ongoing instrument value source; ``null`` releases source ownership for explicit value API control.
 -  **RotaryAnimator** — ``public virtual void SetImmediate(float value)`` — Takes external value ownership, clamps normalized travel and applies it immediately; ``onValueChanged`` reports an actual displayed-value change.
 -  **RotaryAnimator** — ``public virtual void SetNormalizedValue(float normalized)`` — Maps a normalized fraction across an instrument's configured physical value range.
@@ -660,21 +720,31 @@ SteeringStickAnimator
 SteeringWheelAnimator
 ~~~~~~~~~~~~~~~~~~~~~
 
--  **SteeringWheelAnimator** — ``public virtual void CalibrateRestPose()`` — Captures the model's current neutral presentation frame for later control animation.
--  **SteeringWheelAnimator** — ``public virtual void PrepareHandPose()`` — Prepares the hand pose associated with this cockpit animator.
--  **SteeringWheelAnimator** — ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` — Samples vehicle/command state for this control during the module update; visual behavior is owned here, never by the IK handle.
+:ref:`SteeringWheelAnimator <uvs-api-interior--steeringwheelanimator>` gives the full declared contract.
+
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                                                     | Behavior                                                                                                                        |
++============================================================================================+=================================================================================================================================+
+| ``public virtual void CalibrateRestPose()``                                                | Captures the model's current neutral presentation frame for later control animation.                                            |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public override void CancelMotion()``                                                    | Cancels active movement and releases its operation ownership.                                                                   |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void PrepareHandPose()``                                                  | Prepares the hand pose associated with this cockpit animator.                                                                   |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Samples vehicle/command state for this control during the module update; visual behavior is owned here, never by the IK handle. |
++--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-interior--switchanimator:
 
 SwitchAnimator
 ~~~~~~~~~~~~~~
 
--  **SwitchAnimator** — ``public UnityEvent<SwitchPosition> onPositionChanged`` — After a changed switch detent request. Payload: ``SwitchPosition``; silent immediate synchronization does not invoke it.
--  **SwitchAnimator** — ``public UnityEvent<bool> onValueChanged`` — After this control's value changes. Payload: the event's value type; ``PedalAnimator`` reports displayed travel, ``SwitchAnimator`` reports a changed bool request.
 -  **SwitchAnimator** — ``public event Action<SwitchPosition> PositionChanged`` — When requested switch detent changes. Payload: ``SwitchPosition``; distinguish all three positions with this event.
 -  **SwitchAnimator** — ``public event Action<SwitchPosition> PositionReached`` — When switch travel settles at its detent. Payload: ``SwitchPosition``.
 -  **SwitchAnimator** — ``public event Action<bool> Switched`` — When switch presentation settles. Payload: bool ``IsOn``; negative and positive three-position states both count as on.
 -  **SwitchAnimator** — ``public event Action<bool> ValueChanged`` — When the requested binary ``IsOn`` state changes. Payload: bool. Moving between negative and positive detents keeps ``IsOn`` ``true`` and does not emit this event. Immediate synchronization is silent.
+-  **SwitchAnimator** — ``public UnityEvent<SwitchPosition> onPositionChanged`` — After a changed switch detent request. Payload: ``SwitchPosition``; silent immediate synchronization does not invoke it.
+-  **SwitchAnimator** — ``public UnityEvent<bool> onValueChanged`` — After this control's value changes. Payload: the event's value type; ``PedalAnimator`` reports displayed travel, ``SwitchAnimator`` reports a changed bool request.
 -  **SwitchAnimator** — ``public virtual void Prepare()`` — Initializes the contact or synchronizes its initial state without requesting a limb.
 -  **SwitchAnimator** — ``public virtual void SetImmediate(bool value)`` — Silently synchronizes Positive/Neutral, displayed value and motion without request or settlement callbacks.
 -  **SwitchAnimator** — ``public virtual void SetPosition(SwitchPosition position)`` — Requests a detent. Invalid enum values throw ``ArgumentOutOfRangeException``; Negative in binary mode throws ``InvalidOperationException``. A changed request starts travel and emits request events.
@@ -702,20 +772,36 @@ TwistThrottleAnimator
 
 :ref:`TwistThrottleAnimator <uvs-api-interior--twistthrottleanimator>` gives the full declared contract.
 
+.. _uvs-scripting-interior--vehiclehandleanimator:
+
+VehicleHandleAnimator
+~~~~~~~~~~~~~~~~~~~~~
+
+:ref:`VehicleHandleAnimator <uvs-api-interior--vehiclehandleanimator>` gives the full declared contract.
+
++-----------------------------------------------------------+------------------------------------------------------------------------------------------------+
+| Member                                                    | Behavior                                                                                       |
++===========================================================+================================================================================================+
+| ``public virtual void CancelMotion()``                    | Cancels active movement and releases its operation ownership.                                  |
++-----------------------------------------------------------+------------------------------------------------------------------------------------------------+
+| ``public virtual void CompleteCustomMotion()``            | Completes the shared custom-motion request so contact and completion listeners can advance.    |
++-----------------------------------------------------------+------------------------------------------------------------------------------------------------+
+| ``public virtual void ReportMotionProgress(float value)`` | Lets a custom motion driver publish normalized progress through the shared playback lifecycle. |
++-----------------------------------------------------------+------------------------------------------------------------------------------------------------+
+| ``public virtual void StopMotion()``                      | Stops the current movement operation without reporting successful completion.                  |
++-----------------------------------------------------------+------------------------------------------------------------------------------------------------+
+
 .. _uvs-scripting-interior--yokeanimator:
 
 YokeAnimator
 ~~~~~~~~~~~~
 
--  **YokeAnimator** — ``public override void CalibrateRestPose()`` — Captures the model's current neutral presentation frame for later control animation.
+:ref:`YokeAnimator <uvs-api-interior--yokeanimator>` gives the full declared contract.
 
-.. _uvs-scripting-interior--custom-mirror-rendering-and-resource-ownership:
-
-Custom mirror rendering and resource ownership
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Subclass ``RearMirrors`` and override ``protected virtual bool RenderMirror(RearMirror mirror, RenderTexture target)`` to submit your renderer's camera request. Return true only when rendering was submitted successfully. A false result advances the refresh timer but does not consume the successful-render budget for that frame. The built-in implementation supports the built-in pipeline and supported SRP render requests.
-
-The scheduler restores the camera's previous target, enabled state, field of view, near/far planes and culling mask when releasing a mirror. Empty or null mirror lists release owned resources. If entries share a camera or display surface, the first valid entry owns that binding. Assign separate cameras and surfaces for independently rendered mirrors.
-
-Internally created textures follow changes to requested resolution/aspect and are released by the component. A caller-provided texture remains caller-owned and is never resized or destroyed by the mirror component.
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------------+
+| Member                                                                           | Behavior                                                                               |
++==================================================================================+========================================================================================+
+| ``public override void CalibrateRestPose()``                                     | Captures the model's current neutral presentation frame for later control animation.   |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------------+
+| ``public virtual void GetPitchFrame(out Vector3 origin, out Vector3 direction)`` | Returns the pitch translation frame used to position the yoke and its contact targets. |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------------+

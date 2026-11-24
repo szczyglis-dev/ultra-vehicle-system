@@ -76,7 +76,7 @@ Shared profiles contain asset references and sound behavior, not scene anchors. 
 
 ## 3. Configure independent items
 
-1. Set **ID** at the top of each entry. Use unique, non-empty names such as `Engine`, `Rotor1` or `RearEngine`; these are the IDs used by the API.
+1. Set **ID** for each entry. Use unique, non-empty names such as `Engine`, `Rotor1` or `RearEngine`; these are the IDs used by the API.
 2. **Active** enables only this item. Disabling stops its loop and ignition; other items continue playing.
 3. Assign **Sound Profile**, or assign **Loop Override** alone. Loop Override replaces a profile's recording while retaining its response settings; without a profile it uses this item's loop settings.
 4. Assign **Audio Settings → Audio Anchor** to a `Transform`/empty `GameObject` at the engine or rotor. Unanchored ignition cues inherit the item origin; Start/Stop Audio Settings can select independent emitters. Empty uses the `Audio` core origin. `SetItemAnchor` moves generated sources using the item origin without restarting playback.
@@ -165,7 +165,7 @@ Call `WarmUp()` after changing audio capacity or scripted profile lists. `ClearS
 
 In **Damage Audio > Detachment Sounds**, add an entry with **Part**, **Clips**, **Enabled** and its **Audio Settings**. The channel plays a valid clip at the release position on `DamagePart.Detached`, including parts released with a parent group. Empty lists are silent; master Audio settings still apply.
 
-Bindings survive repair/release cycles. After changing the list or Part references in code, call `RefreshPartSounds()`; applying vehicle configuration also refreshes them. Subscribe to `DetachmentPlayed(part, clip)` for accepted playback.
+Bindings survive repair/release cycles. After changing the list or Part references in code, call `RefreshPartSounds()`; applying vehicle configuration also refreshes them. Subscribe to `onDetachmentPlayed(part, clip)` for accepted playback.
 
 ### Body-part and moving-part cues
 
@@ -174,6 +174,10 @@ Bindings survive repair/release cycles. After changing the list or Part referenc
 ### Held horn
 
 Assign **Clip** for a replacement recording. With **Clip** empty and **Use Default Clip** enabled, the channel uses its serialized default from `Resources/Audio/Interior/Horn.wav`. Disabling that option with no clip leaves it silent. Holding the command starts looping; release fades over **Release Duration** (default 0.05 s). Channel and core Audio Settings control volume, pitch, spatial attenuation and availability; disabling the channel suspends playback.
+
+### Handle audio
+
+Add **Handle Audio** under **Effects > Audio** and assign any **Vehicle Handle**. Cues can play on change start/stop, accumulated value changes or reaching/crossing a target, with direction, clip variants and cooldown. **Cue Timing** selects **Actual Movement** (the default, following the displayed handle value) or **Requested Value** (the control animator’s demand, before hand contact and visual movement). The demo Car handbrake uses **Requested Value**, so its pull recording starts immediately and does not repeat when the hand arrives. Without a control animator, requested mode follows the handle’s normal value. **Movement Loop** always follows actual handle motion. **Axis** selects the observed component; animator-backed handles normally use X. An empty **Listening View** allows every camera; assigning an Interior, Orbit or other camera module restricts playback to that view. Child bindings still appear in **Vehicle Controller > Effects > Audio modules**. The demo Car handbrake includes a CC0 pull recording and plays only through its Interior camera. **Play Automatic Changes** is off by default: the demo marks parking apply/release with `SetAutomaticChange(target)` before changing the input source. Muting ends after the handle reaches that value and stops; use `CancelAutomaticChange()` if your own logic interrupts that movement. See [HandleAudio API](API/Audio.md#handleaudio).
 
 ## Mixer and spatial tuning
 
@@ -215,4 +219,4 @@ Creating a default car assigns these references on the channels. Configuration a
 
 ## Included clip names
 
-Included recordings use PascalCase names arranged by sound family, action and optional variant: `EngineStart`, `EngineStop`, `EngineLoopCar`, `EngineLoopJet`, `TireLoopSqueal`, `TireLoopGravel`, `WaterSplashHull`, `WeaponShotPistol` and `NitroStart` / `NitroLoop` / `NitroStop`. Shared clips are in `Resources/Audio`; demo-specific clips are in `Demo/Audio`. Assign the clip in the relevant audio channel or sound profile. See [Credits](Credits.md) and [Third-party assets](ThirdParty.md) for each recording's attribution.
+Included recordings use PascalCase names arranged by sound family, action and optional variant: `EngineStart`, `EngineStop`, `EngineLoopCar`, `EngineLoopJet`, `TireLoopSqueal`, `TireLoopGravel`, `WaterSplashHull`, `WeaponShotPistol` and `NitroStart` / `NitroLoop` / `NitroStop`. Shared clips are in `Resources/Audio`; demo-specific clips are in `Demo/Audio`. Assign the clip in the relevant audio channel or sound profile. See [Third-party credits](ThirdParty.md) for each recording's attribution.

@@ -14,6 +14,7 @@ Types
 -  :ref:`CustomLightGroup <uvs-api-lights--customlightgroup>`
 -  :ref:`IndicatorState <uvs-api-lights--indicatorstate>`
 -  :ref:`LightChannel <uvs-api-lights--lightchannel>`
+-  :ref:`LightLensBinding <uvs-api-lights--lightlensbinding>`
 -  :ref:`Lights <uvs-api-lights--lights>`
 -  :ref:`VehicleLampGlow <uvs-api-lights--vehiclelampglow>`
 -  :ref:`VehicleLightType <uvs-api-lights--vehiclelighttype>`
@@ -117,13 +118,15 @@ State and configuration
 +-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool enabled``                               | Includes this entry in its owning system's configured behavior. Initial value: ``true``.                                             |
 +-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| ``public VehicleLampGlow[] glows``                    | Saved lens halos following this channel, independently of illumination intensity. Initial value: ``Array.Empty<VehicleLampGlow>()``. |
++-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float intensity``                            | Light intensity applied to the channel light sources when active. Initial value: ``4``.                                              |
 +-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool IsLit { get; protected set; }`` | Current is lit predicate; read it instead of maintaining a second application flag.                                                  |
 +-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Renderer[] lenses``                          | Assign the lenses references used by LightChannel. Entries are processed in list order. Initial value: ``Array.Empty<Renderer>()``.  |
 +-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| ``public VehicleLampGlow[] glows``                    | Saved lens halos following this channel, independently of illumination intensity. Initial value: ``Array.Empty<VehicleLampGlow>()``. |
+| ``public LightLensBinding[] lensMaterials``           | Per-slot bindings to existing lit and unlit material assets.                                                                         |
 +-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Light[] lights``                             | Assign the lights references used by LightChannel. Entries are processed in list order. Initial value: ``Array.Empty<Light>()``.     |
 +-------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
@@ -136,10 +139,53 @@ Methods
 +------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------+
 | Signature                                      | Role and behavior                                                                                                                    | Arguments and result                                                           |
 +================================================+======================================================================================================================================+================================================================================+
-| ``public virtual void RefreshConfiguration()`` | Reapplies appearance/output references with the last requested lit state. No blink reset or unchanged-state event.                   | —                                                                              |
-+------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------+
 | ``public virtual void Apply(bool requested)``  | Applies requested lit state/intensity to configured native lights and emission outputs, publishing ``LitChanged`` on output changes. | ``requested`` — Requested, interpreted by this operation in the declared type. |
 +------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------+
+| ``public virtual void RefreshConfiguration()`` | Reapplies appearance/output references with the last requested lit state. No blink reset or unchanged-state event.                   | —                                                                              |
++------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------+
+| ``public virtual void ReleaseOutputs()``       | Release all tracked lens bindings, including removed entries; normal use is managed by Lights.                                       | —                                                                              |
++------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------+
+
+.. _uvs-api-lights--lightlensbinding:
+
+LightLensBinding
+----------------
+
+**Runtime/Exterior/Lights/LightLensBinding.cs**
+
+One lens material slot switched between existing material assets. No runtime materials are created or modified.
+
+.. _uvs-api-lights--state-and-configuration-2:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++---------------------------------+-----------------------------------------------------------------------------------+
+| Member                          | Meaning                                                                           |
++=================================+===================================================================================+
+| ``public int materialIndex``    | Zero-based lens material slot; other slots stay unchanged.                        |
++---------------------------------+-----------------------------------------------------------------------------------+
+| ``public Material offMaterial`` | User-authored material for the unlit lamp. Empty uses the original slot material. |
++---------------------------------+-----------------------------------------------------------------------------------+
+| ``public Material onMaterial``  | User-authored material for the lit lamp. Empty uses the original slot material.   |
++---------------------------------+-----------------------------------------------------------------------------------+
+| ``public Renderer renderer``    | Renderer containing the visible lens surface.                                     |
++---------------------------------+-----------------------------------------------------------------------------------+
+
+.. _uvs-api-lights--methods-1:
+
+Methods
+~~~~~~~
+
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| Signature                              | Role and behavior                                                                                                                         | Arguments and result |
++========================================+===========================================================================================================================================+======================+
+| ``public void Apply(bool lit)``        | Assign the existing on/off material for this request. Does not clone or edit materials; Edit Mode leaves serialized references unchanged. | —                    |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public void RefreshConfiguration()`` | Rebind changed renderer/slot/material references, retaining the latest request.                                                           | —                    |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public void Release()``              | Release this binding and restore the original slot when its last owner is released.                                                       | —                    |
++----------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
 
 .. _uvs-api-lights--lights:
 
@@ -167,7 +213,7 @@ Events and Inspector callbacks
 | ``public event System.Action<IndicatorState> IndicatorsChanged`` | When requested direction/hazard state changes. Payload: ``IndicatorState``, not blink phase. |
 +------------------------------------------------------------------+----------------------------------------------------------------------------------------------+
 
-.. _uvs-api-lights--state-and-configuration-2:
+.. _uvs-api-lights--state-and-configuration-3:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,7 +274,7 @@ State and configuration
 | ``public virtual bool TailLightsOn { get; }``         | Read-only/resolved tail lights on for Lights.                                                                                                                                                |
 +-------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-lights--methods-1:
+.. _uvs-api-lights--methods-2:
 
 Methods
 ~~~~~~~
@@ -236,8 +282,6 @@ Methods
 +-------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Signature                                                                           | Role and behavior                                                                                                                          | Arguments and result                                                                                                                                                                  |
 +=====================================================================================+============================================================================================================================================+=======================================================================================================================================================================================+
-| ``public virtual void RefreshLightingConfiguration()``                              | Reapplies standard/custom lamp appearance and bindings, preserving requested states and blink timing.                                      | —                                                                                                                                                                                     |
-+-------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override void Configure(VehicleController vehicle)``                       | Resolves missing Engine/Events references without replacing explicit assignments.                                                          | ``vehicle`` — Vehicle context/owner receiving the operation.                                                                                                                          |
 +-------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual LightChannel GetChannel(VehicleLightType type)``                   | Returns the configured lighting channel for the selected light role.                                                                       | ``type`` — Type, interpreted by this operation in the declared type. **Returns:** Returned ``LightChannel``; ownership remains as specified by the creating/lookup operation.         |
@@ -245,6 +289,8 @@ Methods
 | ``public virtual CustomLightGroup GetCustomLight(string id)``                       | Finds a custom group by its exact ID. Returns null for blank, missing or ambiguous duplicate IDs.                                          | —                                                                                                                                                                                     |
 +-------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void RefreshCustomLights()``                                       | Applies custom requests and changed configuration immediately without advancing blink clocks. Removed list entries are extinguished.       | —                                                                                                                                                                                     |
++-------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void RefreshLightingConfiguration()``                              | Reapplies standard/custom lamp appearance and bindings, preserving requested states and blink timing.                                      | —                                                                                                                                                                                     |
 +-------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool RegisterCustomLight(CustomLightGroup group)``                 | Adds a nonnull group with a unique, nonblank ID, then applies its current request. Returns false for invalid or duplicate registrations.   | —                                                                                                                                                                                     |
 +-------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -300,17 +346,27 @@ VehicleLampGlow
 
 A depth-tested lens halo, controlled by a LightChannel and rendered with the bundled Lamp Glow material. Use the Lights component menu's **Add lamp glows** command to create saved sources at assigned lamps.
 
+.. _uvs-api-lights--state-and-configuration-4:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
 +----------------------------------+------------------------------------------------------------------------+
 | Member                           | Meaning                                                                |
 +==================================+========================================================================+
-| ``public Renderer glowRenderer`` | Renderer using the Lamp Glow material, oriented outward along local Z. |
-+----------------------------------+------------------------------------------------------------------------+
-| ``public float radius``          | Halo radius in metres; default 0.12, range 0.005–0.5.                  |
-+----------------------------------+------------------------------------------------------------------------+
 | ``public float brightness``      | Lens brightness independent of road illumination; default 2.           |
 +----------------------------------+------------------------------------------------------------------------+
 | ``public bool directional``      | Fade behind the lens; default true.                                    |
 +----------------------------------+------------------------------------------------------------------------+
+| ``public Renderer glowRenderer`` | Renderer using the Lamp Glow material, oriented outward along local Z. |
++----------------------------------+------------------------------------------------------------------------+
+| ``public float radius``          | Halo radius in metres; default 0.12, range 0.005–0.5.                  |
++----------------------------------+------------------------------------------------------------------------+
+
+.. _uvs-api-lights--methods-3:
+
+Methods
+~~~~~~~
 
 +----------------------------------------------+--------------------------------------------------------------------------------------+----------------------------------------------------------+
 | Signature                                    | Role and behavior                                                                    | Arguments and result                                     |

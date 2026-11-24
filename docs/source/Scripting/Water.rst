@@ -191,17 +191,17 @@ DriveProfile
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | Method                                                                                     | Role                                                                                                              |
 +============================================================================================+===================================================================================================================+
-| ``public virtual Settings CreateSettings()``                                               | Returns a fresh initial shared settings object for explicit creation/profile selection.                           |
+| ``public virtual DriveProfile Clone()``                                                    | Creates an independent serialized profile-configuration copy; configure it on its destination vehicle before use. |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void Configure(VehicleController vehicle)``                               | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings.       |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
-| ``public abstract void Step(VehicleController vehicle, Command command, float deltaTime)`` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
-+--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
-| ``public virtual DriveProfile Clone()``                                                    | Creates an independent serialized profile-configuration copy; configure it on its destination vehicle before use. |
+| ``public virtual Settings CreateSettings()``                                               | Returns a fresh initial shared settings object for explicit creation/profile selection.                           |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public virtual float ResolveDriveDemand(VehicleController vehicle, Command command)``    | Maps the command and strategy state to propulsion demand for surrounding mechanics.                               |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public virtual float ResolveExternalDriveIntent(VehicleController vehicle)``             | Returns signed non-wheel propulsion intent used by shared coasting/contact policy.                                |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public abstract void Step(VehicleController vehicle, Command command, float deltaTime)`` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-water--freeprofile:
@@ -244,11 +244,11 @@ SubmarineProfile
 +============================================================================================+=================================================================================================================+
 | ``public override bool CanUsePropulsionBoost(VehicleController vehicle)``                  | Checks the profile propulsion switch and required water/support context before activation.                      |
 +--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool ContainsWater(Vector3 position)``                                    | Checks whether a position lies inside this profile's fallback water region.                                     |
++--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
 | ``public override float ResolveBoostDemand(VehicleController vehicle, Command command)``   | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. |
 +--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
 | ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Samples valid water, applies immersion-dependent buoyancy/resistance and powered movement/depth-hold response.  |
-+--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
-| ``public virtual bool ContainsWater(Vector3 position)``                                    | Checks whether a position lies inside this profile's fallback water region.                                     |
 +--------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-water--vehiclemodule:
@@ -263,9 +263,9 @@ VehicleModule
 +===========================================================================================+========================================================================================================================================+
 | ``public virtual void Configure(VehicleController vehicle)``                              | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
-+-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetEnabled(bool value)``                                            | Changes module enabled state and publishes an actual requested-flag change.                                                            |
++-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool SupportsProfile(DriveProfile profile)``                             | Checks movement-family compatibility; this is independent of the Unity enabled flag.                                                   |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
@@ -273,9 +273,9 @@ VehicleModule
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | Event / callback                                                          | Role                                                                                                              |
 +===========================================================================+===================================================================================================================+
-| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
-+---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController> Configured``              | After controller-driven module configuration. Payload: the owning ``VehicleController``.                          |
++---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController, Command, float> Stepped`` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds.                 |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
@@ -290,17 +290,17 @@ WaterInteraction
 +--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Method                                                                                                       | Role                                                                                                                                                   |
 +==============================================================================================================+========================================================================================================================================================+
-| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)``                   | Samples the root center of mass and publishes a changed submerged/not-submerged state.                                                                 |
+| ``public static WaterContact Read(VehicleController vehicle, Vector2 fallbackHalfSize)``                     | Builds surface-boat hull contact from the vehicle's water sampling and configured hull dimensions; non-Boat/dry/invalid vehicles return a dry contact. |
 +--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetInteractionEnabled(bool value)``                                                    | Changes the vehicle's water-interaction gate, affecting sampling/physics as well as its contact state.                                                 |
 +--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetWaterProvider(WaterProvider provider)``                                             | Replaces the assigned water adapter and publishes the provider change.                                                                                 |
 +--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)``                   | Samples the root center of mass and publishes a changed submerged/not-submerged state.                                                                 |
++--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool TrySample(Vector3 worldPosition, out WaterSample sample)``                             | Queries valid water at a world position; ``false`` means no sample, not height zero.                                                                   |
 +--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public static bool TrySampleSurface(VehicleController vehicle, Vector3 position, out WaterSample sample)`` | Queries the provider's surface sample through vehicle water policy.                                                                                    |
-+--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public static WaterContact Read(VehicleController vehicle, Vector2 fallbackHalfSize)``                     | Builds surface-boat hull contact from the vehicle's water sampling and configured hull dimensions; non-Boat/dry/invalid vehicles return a dry contact. |
 +--------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 +----------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------+
@@ -326,19 +326,6 @@ WaterProvider
 | ``public abstract bool TrySample(Vector3 worldPosition, out WaterSample sample)`` | Queries valid water at a world position; ``false`` means no sample, not height zero. |
 +-----------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
 
-.. _uvs-scripting-water--watersurfaceprofile:
-
-WaterSurfaceProfile
-~~~~~~~~~~~~~~~~~~~
-
-:ref:`WaterSurfaceProfile <uvs-api-water--watersurfaceprofile>` gives the full declared contract.
-
-+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
-| Method                                                                                            | Role                                                                                                                  |
-+===================================================================================================+=======================================================================================================================+
-| ``public virtual WaterSample Sample(Vector3 position, float time, float baseHeight, bool waves)`` | Evaluates the configured water-wave style at a world position/time using base height and optional wave participation. |
-+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
-
 .. _uvs-scripting-water--watersurface:
 
 WaterSurface
@@ -355,3 +342,16 @@ WaterSurface
 +-----------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
 | ``public virtual bool TrySampleAtTime(Vector3 position, float time, out WaterSample sample)`` | Queries the built-in water model at an explicit time for consistent wave evaluation. |
 +-----------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
+
+.. _uvs-scripting-water--watersurfaceprofile:
+
+WaterSurfaceProfile
+~~~~~~~~~~~~~~~~~~~
+
+:ref:`WaterSurfaceProfile <uvs-api-water--watersurfaceprofile>` gives the full declared contract.
+
++---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+
+| Method                                                                                            | Role                                                                                                                  |
++===================================================================================================+=======================================================================================================================+
+| ``public virtual WaterSample Sample(Vector3 position, float time, float baseHeight, bool waves)`` | Evaluates the configured water-wave style at a world position/time using base height and optional wave participation. |
++---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+

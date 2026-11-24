@@ -18,11 +18,9 @@ The keyboard adapters expose an **Enable controls** checkbox, enabled by default
 3. For `KeyboardDriveInput`, **Gear Keys** and **Alternate Gear Keys** map array index 0 to neutral and subsequent indices to forward gears. Configure reverse gear separately.
 4. Disable **Enable controls** to release this source's continuous controls and queued actions. The optional analog fallback is also blocked. Re-enabling does not replay old button presses; flight input clears its retained airplane throttle.
 
-Drive input includes pedals, steering, clutch, direct gear selection, shifting, transmission mode, lights, ignition/profile switching, optional Nitro/Burnout requests and hover movement. **Nitro Key** defaults to Enter; **Burnout Key** defaults to Left Ctrl. They require the optional [Nitro module](DrivingActions.md#nitro-boost) or enabled [Burnout module](DrivingActions.md#burnout-launch), respectively. ActionInput exposes optional Nitro/Burnout action references, and InputBuffer provides held setters. Flight input includes independent pitch/roll/yaw, steering, lift, hover strafe, airplane throttle increase/decrease and brakes. Boat and submarine inputs expose their supported movement and action keys. Camera/vehicle-selection reservations and profile-specific restrictions still apply.
+Drive input includes pedals, steering, clutch, direct gear selection, shifting, transmission mode, lights, ignition/profile switching, optional Nitro/Burnout requests and hover movement. Flight input includes independent pitch/roll/yaw, steering, lift, hover strafe, airplane throttle increase/decrease and brakes. Boat and submarine inputs expose their supported movement and action keys. Camera/vehicle-selection reservations and profile-specific restrictions still apply.
 
 The Demo controls panel reads these assignments for its keyboard hints. Demo-only actions such as camera movement and vehicle selection are configured by their own demo components.
-
-**Keyboard Spaceship Input** uses Shift/Ctrl to increase/decrease retained forward thrust, arrows for local strafe/lift, S/W for nose-up/down, Q/E for yaw, A/D for roll and Z for reverse thrust. Space clears retained thrust and brakes momentum. Bindings are configurable in the [input settings](InspectorReference/Controller.md#keyboardspaceshipinput); custom sources submit the normal Throttle, Strafe, Lift, Pitch, Yaw and Roll command fields.
 
 ## Input Actions and gamepads
 
@@ -34,16 +32,24 @@ The Demo controls panel reads these assignments for its keyboard hints. Demo-onl
 
 | Action | Built-in gamepad binding |
 | --- | --- |
-| Throttle / brake | Right / left trigger |
-| Steering | Left stick X |
-| Handbrake | West face button |
-| Reverse / forward | North / south face button |
-| Shift up / down | Right / left shoulder |
-| Ignition / profile | Start / Select |
-| Clutch | Left-stick press |
-| Headlights / high beams | D-pad up / down |
-| Indicators | D-pad left / right |
-| Hazards | Right-stick press |
+| `Throttle` / `Brake` | Right / left trigger |
+| `Steering` | Left stick X |
+| `Handbrake` | West face button |
+| `Nitro` | No built-in binding; assign an action |
+| `Burnout` | No built-in binding; assign an action |
+| `WheelLift` | No built-in binding; assign an action |
+| `Pitch` / `Roll` | Right stick Y / X |
+| `AirPitch` / `AirRoll` | Right stick Y / X |
+| `Yaw` | Left stick X |
+| `Lift` / `Strafe` | Right stick Y / X |
+| `ReverseGear` / `ForwardGear` | North / south face button |
+| `ShiftUp` / `ShiftDown` | Right / left shoulder |
+| `Ignition` / `Profile` | Start / Select |
+| `Clutch` | Left-stick press |
+| `Horn` | East face button |
+| `Headlights` / `HighBeams` | D-pad up / down |
+| `LeftIndicator` / `RightIndicator` | D-pad left / right |
+| `Hazards` | Right-stick press |
 
 Use **Refresh action bindings** after changing references during play. Configure action enabling and shared ownership as described in the [input reference](Scripting/Input.md).
 
@@ -111,7 +117,7 @@ namespace VehicleDocumentationExamples
                 HoldReverseRequest = holdReverseUntilStopped && throttle < -.1f,
                 ServiceBrake = keys.leftCtrlKey.isPressed ? 1f : 0f,
                 Clutch = keys.leftShiftKey.isPressed ? 1f : 0f,
-                Horn = keys.cKey.isPressed,
+                Horn = keys.hKey.isPressed,
                 Nitro = keys.enterKey.isPressed,
                 ToggleIgnition = ignitionPending,
                 ToggleTransmission = transmissionPending,
@@ -673,21 +679,23 @@ Use this table when implementing `IVehicleInput.ReadCommand()` or submitting a c
 
 | Field | Type / range | Meaning and mapping |
 | --- | --- | --- |
-| `Throttle` | `float`, -1..1 | Signed drive demand: +1 forward, 0 released, -1 backward. Road direction/brake logic decides braking and reverse; aircraft propulsion normally uses 0..1. Example: W minus S. |
-| `Steering` | `float`, -1..1 | -1 left, 0 centred, +1 right. Wheel/rudder/yaw response depends on the profile. Example: D minus A. |
-| `ServiceBrake` | `float`, 0..1 | Service brake pedal, released to full braking. Separate from negative throttle and handbrake. |
+| `AirPitch` | `float`, -1..1 | Independent airborne rider weight shift: positive nose-down, negative nose-up. |
+| `AirRoll` | `float`, -1..1 | Independent airborne rider weight shift: positive right, negative left. |
+| `Burnout` | `bool` | Held Burnout action request; the optional module/profile determines its effect and eligibility. |
 | `Clutch` | `float`, 0..1 | 0 couples the engine; 1 fully presses/disconnects the clutch. Requires the optional clutch mechanic. |
 | `Handbrake` | `bool` | Hold `true` to apply the handbrake/parking-brake request; return `false` on release. |
 | `HoldReverseRequest` | `bool` | Keep requesting reverse while `Throttle` is negative. Set `true` for brake-then-reverse with one continuous hold; the drivetrain still checks speed and shift safety. Default `false`. |
+| `Horn` | `bool` | Held horn request; requires a configured horn consumer such as Horn Audio. |
+| `Lift` | `float`, -1..1 | -1 requests downward movement, +1 upward movement in supporting helicopter, hover or submarine profiles. Zero follows that profile's neutral/hold policy. |
+| `Nitro` | `bool` | Held boost request; the optional Nitro module validates availability and applies its settings. |
 | `Pitch` | `float`, -1..1 | Forward/backward attitude demand: +1 tilts a helicopter forward; for an airplane +1 lowers the nose, -1 raises it. This is normalized input, not degrees. |
 | `Roll` | `float`, -1..1 | -1 banks/tilts left, +1 right. Example: D minus A in the helicopter script. |
-| `Yaw` | `float`, -1..1 | -1 turns the nose left, +1 right. Example: E minus Q. Some profiles combine this with `Steering`; do not duplicate the same turn demand in both unintentionally. |
-| `Lift` | `float`, -1..1 | -1 requests downward movement, +1 upward movement in supporting helicopter, hover or submarine profiles. Zero follows that profile's neutral/hold policy. |
+| `ServiceBrake` | `float`, 0..1 | Service brake pedal, released to full braking. Separate from negative throttle and handbrake. |
+| `Steering` | `float`, -1..1 | -1 left, 0 centred, +1 right. Wheel/rudder/yaw response depends on the profile. Example: D minus A. |
 | `Strafe` | `float`, -1..1 | -1 requests lateral movement left, +1 right in profiles supporting lateral thrust. |
-| `Horn` | `bool` | Held horn request; requires a configured horn consumer such as Horn Audio. |
-| `Nitro` | `bool` | Held boost request; the optional Nitro module validates availability and applies its settings. |
-| `Burnout` | `bool` | Held Burnout action request; the optional module/profile determines its effect and eligibility. |
+| `Throttle` | `float`, -1..1 | Signed drive demand: +1 forward, 0 released, -1 backward. Road direction/brake logic decides braking and reverse; aircraft propulsion normally uses 0..1. Example: W minus S. |
 | `WheelLift` | `bool` | Held wheel-lift request for a supporting vehicle with the optional Wheel Lift module. |
+| `Yaw` | `float`, -1..1 | -1 turns the nose left, +1 right. Example: E minus Q. Some profiles combine this with `Steering`; do not duplicate the same turn demand in both unintentionally. |
 
 ### One-shot requests
 
@@ -695,17 +703,17 @@ For booleans below, return `true` once per press and then `false`. Return `Shift
 
 | Field | Type / values | Meaning and mapping |
 | --- | --- | --- |
-| `ToggleIgnition` | `bool` | Switch engine ignition once. Example: I pressed this frame, buffered in Update. |
-| `ToggleProfile` | `bool` | Request the next registered drive profile, where profile switching is configured. |
 | `RequestedGear` | `int?` | `null`: no request; -1: reverse; 0: neutral; 1 and above: forward gear. The gearbox validates the requested gear and shift conditions. |
+| `RequestedIndicators` | `IndicatorState?` | `null`: no request; `IndicatorState.Off`, `.Left`, `.Right` or `.Hazard`: select that state directly. Prefer either a direct state or an indicator toggle in the same sample. |
 | `Shift` | `int`, -1 / 0 / +1 | Request one downshift / no shift / one upshift. Example: Q / E presses. |
-| `ToggleTransmission` | `bool` | Switch the configured automatic/manual transmission mode. |
+| `ToggleHazards` | `bool` | Toggle hazard warning lights once. |
 | `ToggleHeadlights` | `bool` | Toggle headlights once through the configured lighting system. |
 | `ToggleHighBeams` | `bool` | Toggle the high-beam request once. |
-| `ToggleHazards` | `bool` | Toggle hazard warning lights once. |
+| `ToggleIgnition` | `bool` | Switch engine ignition once. Example: I pressed this frame, buffered in Update. |
 | `ToggleLeftIndicator` | `bool` | Toggle the left turn indicator once. |
+| `ToggleProfile` | `bool` | Request the next registered drive profile, where profile switching is configured. |
 | `ToggleRightIndicator` | `bool` | Toggle the right turn indicator once. |
-| `RequestedIndicators` | `IndicatorState?` | `null`: no request; `IndicatorState.Off`, `.Left`, `.Right` or `.Hazard`: select that state directly. Prefer either a direct state or an indicator toggle in the same sample. |
+| `ToggleTransmission` | `bool` | Switch the configured automatic/manual transmission mode. |
 
 ### Channel metadata
 
@@ -714,6 +722,6 @@ For booleans below, return `true` once per press and then `false`. Return `Shift
 | `AnalogControls` | `InputChannels` flags | Mark proportional device channels so their values keep analog response. Example: `InputChannels.Throttle` combined with `InputChannels.Steering` and `InputChannels.ServiceBrake` for triggers and a stick. |
 | `DigitalControls` | `InputChannels` flags | Mark button-driven axes so supporting mechanics can use digital response/ramping. Example: throttle, steering, brake and clutch in the WASD script. |
 
-Available flags are `None`, `Throttle`, `Steering`, `ServiceBrake`, `Clutch`, `Flight` and `All`; combine flags with the C# bitwise OR operator. `Flight` groups `Pitch`, `Roll`, `Yaw`, `Lift` and `Strafe`. `All` combines every group. The `InputChannels.ServiceBrake` flag classifies the `ServiceBrake` axis. These masks describe the device response, not which mechanics are enabled. If both masks contain a channel, analog takes precedence. Held booleans such as Handbrake and one-shot requests need no channel flag. With neither flag set, that channel has no explicit analog/digital classification.
+Available flags are `None`, `Throttle`, `Steering`, `ServiceBrake`, `Clutch`, `Flight`, `AirControl` and `All`; combine flags with the C# bitwise OR operator. `Flight` groups `Pitch`, `Roll`, `Yaw`, `Lift` and `Strafe`. `AirControl` groups the independent rider `AirPitch` and `AirRoll` axes. `All` combines every group. The `InputChannels.ServiceBrake` flag classifies the `ServiceBrake` axis. These masks describe the device response, not which mechanics are enabled. If both masks contain a channel, analog takes precedence. Held booleans such as Handbrake and one-shot requests need no channel flag. With neither flag set, that channel has no explicit analog/digital classification.
 
 `new Command(throttle, steering)` takes only the two main axes. Set additional controls in its object initializer: for example, `new Command(throttle, steering) { Handbrake = true, ServiceBrake = 0.5f }`. All other fields initially default to zero, false, null or `InputChannels.None`. `default(Command)` releases every axis/button and sends no one-shot requests. Keep held state in your provider and clear only the one-shot fields after reading, as in the examples above.

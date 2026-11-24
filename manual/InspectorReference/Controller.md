@@ -4,7 +4,7 @@
 
 | Component or data block | Settings declared here |
 | --- | --- |
-| [ActionInput](#actioninput) | 32 |
+| [ActionInput](#actioninput) | 34 |
 | [ControllerModule](#controllermodule) | 0 |
 | [DirectController](#directcontroller) | 3 |
 | [ExternalController](#externalcontroller) | 0 |
@@ -12,13 +12,12 @@
 | [InputGate](#inputgate) | 1 |
 | [InputGate.Route](#inputgateroute) | 3 |
 | [KeyboardBoatInput](#keyboardboatinput) | 9 |
-| [KeyboardDriveInput](#keyboarddriveinput) | 37 |
+| [KeyboardDriveInput](#keyboarddriveinput) | 45 |
 | [KeyboardFlightInput](#keyboardflightinput) | 31 |
 | [KeyboardInput](#keyboardinput) | 2 |
-| [KeyboardSubmarineInput](#keyboardsubmarineinput) | 16 |
-| [TelemetrySettings](#telemetrysettings) | 7 |
-| [VehicleController](#vehiclecontroller) | 9 |
 | [KeyboardSpaceshipInput](#keyboardspaceshipinput) | 20 |
+| [KeyboardSubmarineInput](#keyboardsubmarineinput) | 16 |
+| [VehicleController](#vehiclecontroller) | 9 |
 
 ## ActionInput
 
@@ -30,6 +29,8 @@ Reads configured Unity Input System actions.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `airPitch` | `InputActionReference` | Signed airborne rider pitch action named AirPitch: positive nose-down, negative nose-up. Independent of throttle and aircraft Pitch. | `None / unassigned` |
+| `airRoll` | `InputActionReference` | Signed airborne rider roll action named AirRoll: positive right, negative left. Independent of steering and aircraft Roll. | `None / unassigned` |
 | `brake` | `InputActionReference` | Service-brake strength from 0 released to 1 fully applied. Assign the matching Input System action from your action asset. | `None / unassigned` |
 | `brakeMode` | `InputMode` | Tells the input pipeline whether braking comes from a variable axis or an on/off button. Auto checks the active control. This affects how button smoothing is applied. Options: `Auto`, `Analog`, `Digital`. | `Auto` |
 | `burnout` | `InputActionReference` | Optional Burnout InputAction reference, or a PlayerInput action named Burnout. No default gamepad button is reserved. | `None / unassigned` |
@@ -40,7 +41,7 @@ Reads configured Unity Input System actions.
 | `hazards` | `InputActionReference` | One-shot request to toggle both indicator sides as hazard lights. Assign the matching Input System action from your action asset. | `None / unassigned` |
 | `headlights` | `InputActionReference` | One-shot request to toggle low-beam headlights. Assign the matching Input System action from your action asset. | `None / unassigned` |
 | `highBeams` | `InputActionReference` | One-shot request to toggle high beams. Assign the matching Input System action from your action asset. | `None / unassigned` |
-| `holdReverseUntilStopped` | `bool` | Keep requesting reverse while the reverse control is held; the drivetrain still checks safe standstill. | `false` |
+| `holdReverseUntilStopped` | `bool` | Keep requesting reverse while negative throttle is held; the gearbox or direct-drive controller waits for safe standstill. Disabled by default. | `false` |
 | `horn` | `InputActionReference` | Optional held Horn action; defaults to gamepad B/Circle. | `None / unassigned` |
 | `ignition` | `InputActionReference` | One-shot request to toggle engine running state. Assign the matching Input System action from your action asset. | `None / unassigned` |
 | `leftIndicator` | `InputActionReference` | One-shot request to toggle the left indicators. Assign the matching Input System action from your action asset. | `None / unassigned` |
@@ -60,7 +61,7 @@ Reads configured Unity Input System actions.
 | `throttle` | `InputActionReference` | Continuous drive demand, normally -1 for reverse/backward thrust to +1 for forward thrust. Assign the matching Input System action from your action asset. | `None / unassigned` |
 | `throttleMode` | `InputMode` | Tells the input pipeline whether throttle is a variable axis or an on/off button. Auto checks the action's active control. Digital input can receive button smoothing; Analog keeps the axis value. Options: `Auto`, `Analog`, `Digital`. | `Auto` |
 | `useDefaultGamepadBindings` | `bool` | Adds the built-in gamepad controls when no action asset is supplied. Turn this off if your own input setup should be the only source of commands. | `true` |
-| `wheelLift` | `InputActionReference` | Optional WheelLift action reference, or PlayerInput action WheelLift. | `None / unassigned` |
+| `wheelLift` | `InputActionReference` | Held request for the optional WheelLift module. Releasing the action lowers the lifted wheels. | `None / unassigned` |
 | `yaw` | `InputActionReference` | Signed yaw command for turning the vehicle around its up axis. Assign the matching Input System action from your action asset. | `None / unassigned` |
 
 ## ControllerModule
@@ -97,10 +98,6 @@ Provides the buffered command API for external control.
 
 No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
 
-## Horn input bindings
-
-KeyboardDriveInput adds `hornKey` (default H). ActionInput adds `horn` (InputActionReference), resolving a Horn action from PlayerInput or default gamepad east face button (B/Circle). Both produce held Command.Horn rather than repeated one-shot commands.
-
 ## InputBuffer
 
 Buffers axes and pending one-shot actions for fixed-step consumption.
@@ -111,9 +108,9 @@ Buffers axes and pending one-shot actions for fixed-step consumption.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `analogControls` | `InputChannels` | Mark analog axes to bypass digital shaping. SetAnalogAxes marks all channels for raw controller input. Options: `None`, `Throttle`, `Steering`, `ServiceBrake`, `Clutch`, `Flight`, `All`. | `None` |
-| `digitalControls` | `InputChannels` | Mark button-driven axes here to opt into keyboard assistance such as progressive braking. Options: `None`, `Throttle`, `Steering`, `ServiceBrake`, `Clutch`, `Flight`, `All`. | `None` |
-| `holdReverseUntilStopped` | `bool` | Keep requesting reverse while the reverse control is held; the drivetrain still checks safe standstill. | `false` |
+| `analogControls` | `InputChannels` | Mark analog axes to bypass digital shaping. SetAnalogAxes marks all channels for raw controller input. Options: `None`, `Throttle`, `Steering`, `ServiceBrake`, `Clutch`, `Flight`, `AirControl`, `All`. | `None` |
+| `digitalControls` | `InputChannels` | Mark button-driven axes here to opt into keyboard assistance such as progressive braking. Options: `None`, `Throttle`, `Steering`, `ServiceBrake`, `Clutch`, `Flight`, `AirControl`, `All`. | `None` |
+| `holdReverseUntilStopped` | `bool` | Keep requesting reverse while negative throttle is held; the gearbox or direct-drive controller waits for safe standstill. Disabled by default. | `false` |
 
 ## InputGate
 
@@ -136,8 +133,8 @@ Controller routing configuration and its selection callback.
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `input` | `MonoBehaviour` | Input component to assign when this route's profile is active. It must implement IVehicleInput, such as a flight keyboard adapter or external controller. | `None / unassigned` |
+| `onSelected` | `UnityEvent` | Event invoked after this route replaces the vehicle's input source. Use it to update control hints or other mode-dependent UI. | `No listeners` |
 | `profileId` | `string` | Profile slot ID that activates this route. It must match a profile registered in the vehicle's ProfileSwitcher. | `"Drive"` |
-| `selected` | `UnityEvent` | Event invoked after this route replaces the vehicle's input source. Use it to update control hints or other mode-dependent UI. | `No listeners` |
 
 ## KeyboardBoatInput
 
@@ -149,16 +146,15 @@ Configuration/implementation type for keyboard boat input within input and comma
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `burnoutKey` | `Key` | Hold for Burnout / native propulsion boost; aircraft increase native thrust. | `Key.LeftCtrl` |
+| `analogInput` | `ActionInput` ([fields](Controller.md#actioninput)) | Gamepad/joystick adapter. Created automatically if unassigned; custom Action references remain configurable. | `None / unassigned` |
+| `burnoutKey` | `Key` | Hold to request the optional Burnout boat propulsion boost. | `Key.LeftCtrl` |
 | `forwardKey` | `Key` | Hold to request forward drive/thrust. Choose None to leave it unbound. | `Key.W` |
 | `ignitionKey` | `Key` | Press to start or stop the engine. Choose None to leave it unbound. | `Key.I` |
-| `nitroKey` | `Key` | Hold for charge-controlled Nitro while requesting propulsion. | `Key.Enter` |
+| `nitroKey` | `Key` | Hold to request the optional Nitro propulsion boost. | `Key.Enter` |
 | `profileKey` | `Key` | Press to request a driving-profile change. Choose None to leave it unbound. | `Key.B` |
 | `reverseKey` | `Key` | Hold to request backward drive; a wheeled controller can brake before engaging reverse. Choose None to leave it unbound. | `Key.S` |
 | `steerLeftKey` | `Key` | Hold to steer left. Choose None to leave it unbound. | `Key.A` |
 | `steerRightKey` | `Key` | Hold to steer right. Choose None to leave it unbound. | `Key.D` |
-
-| `analogInput` | `ActionInput` | `None / unassigned` | Gamepad/joystick fallback adapter, created automatically if empty. Custom Input Action references remain configurable. Keyboard activity retains its input arbitration rules. |
 
 ## KeyboardDriveInput
 
@@ -170,22 +166,30 @@ Configuration/implementation type for keyboard drive input within input and comm
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `alternateGearKeys` | `Key[]` | Keys indexed by requested gear: index 0 is neutral; higher indices select forward gears. `Key.None` leaves an index unbound. | `{Key.Numpad0, Key.Numpad1, Key.Numpad2, Key.Numpad3, Key.Numpad4, Key.Numpad5, Key.Numpad6, Key.Numpad7, Key.Numpad8, Key.Numpad9}` |
+| `airPitchBackwardAlternateKey` | `Key` | Alternative airborne nose-up input. | `Key.DownArrow` |
+| `airPitchBackwardKey` | `Key` | Airborne rider nose-up input, independent of braking/reverse. | `Key.S` |
+| `airPitchForwardAlternateKey` | `Key` | Alternative airborne nose-down input. | `Key.UpArrow` |
+| `airPitchForwardKey` | `Key` | Airborne rider nose-down input, independent of throttle. | `Key.W` |
+| `airRollLeftAlternateKey` | `Key` | Alternative airborne left-lean input. | `Key.LeftArrow` |
+| `airRollLeftKey` | `Key` | Airborne rider left lean, independent of steering. | `Key.A` |
+| `airRollRightAlternateKey` | `Key` | Alternative airborne right-lean input. | `Key.RightArrow` |
+| `airRollRightKey` | `Key` | Airborne rider right lean, independent of steering. | `Key.D` |
+| `alternateGearKeys` | `Key[]` | Enable the alternate keyboard bindings for direct gear selection. | `{Key.Numpad0, Key.Numpad1, Key.Numpad2, Key.Numpad3, Key.Numpad4, Key.Numpad5, Key.Numpad6, Key.Numpad7, Key.Numpad8, Key.Numpad9}` |
 | `ascendAlternateKey` | `Key` | Hold to request upward movement/thrust. This is an additional key for the same action. Choose None to leave it unbound. | `Key.RightShift` |
 | `ascendKey` | `Key` | Hold to request upward movement/thrust. Choose None to leave it unbound. | `Key.LeftShift` |
-| `burnoutKey` | `Key` | Held burnout request key. Default LeftCtrl; effective only when Drive burnout is enabled. Suppressed during free-camera navigation and hover mode. | `Key.LeftCtrl` |
+| `burnoutKey` | `Key` | Held burnout request key. Default LeftCtrl; effective only when Engine burnout is enabled. Suppressed during free-camera navigation and hover mode. | `Key.LeftCtrl` |
 | `clutchKey` | `Key` | Hold to press the clutch pedal and disconnect engine drive. Choose None to leave it unbound. | `Key.LeftShift` |
+| `cycleHeadlights` | `bool` | Cycle low beams, high beams and off using the headlights key. The separate high-beam key is ignored in this mode. | `true` |
 | `descendKey` | `Key` | Hold to request downward movement/thrust. Choose None to leave it unbound. | `Key.LeftCtrl` |
 | `forwardAlternateKey` | `Key` | Hold to request forward drive/thrust. This is an additional key for the same action. Choose None to leave it unbound. | `Key.UpArrow` |
 | `forwardKey` | `Key` | Hold to request forward drive/thrust. Choose None to leave it unbound. | `Key.W` |
 | `gearKeys` | `Key[]` | Index is the requested gear; index 0 selects neutral. None leaves a gear unbound. | `{Key.Digit0, Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6, Key.Digit7, Key.Digit8, Key.Digit9}` |
 | `handbrakeKey` | `Key` | Hold to apply the parking/handbrake to wheels configured for it. Choose None to leave it unbound. | `Key.Space` |
 | `hazardsKey` | `Key` | Press to toggle hazard lights. Choose None to leave it unbound. | `Key.V` |
-| `cycleHeadlights` | `bool` | Cycle low beams, high beams and off with the headlights key; ignore the separate high-beam key. Enabled by default. | `true` |
 | `headlightsKey` | `Key` | Press to toggle low-beam headlights. Choose None to leave it unbound. | `Key.L` |
-| `highBeamsKey` | `Key` | Press to toggle high beams when Cycle Headlights is disabled. Choose None to leave it unbound. | `Key.None` |
-| `hornKey` | `Key` | Default H; held audible-warning request. | `Key.H` |
-| `hoverBurnoutKey` | `Key` | Held HoverProfile propulsion boost, separate from Ctrl descent. | `Key.C` |
+| `highBeamsKey` | `Key` | Press to toggle high beams. Choose None to leave it unbound. | `Key.None` |
+| `hornKey` | `Key` | Held horn key; default C. | `Key.H` |
+| `hoverBurnoutKey` | `Key` | Hold to request the optional propulsion boost while using a hover profile. | `Key.C` |
 | `ignitionKey` | `Key` | Press to start or stop the engine. Choose None to leave it unbound. | `Key.I` |
 | `leftIndicatorKey` | `Key` | Press to toggle left indicators. Choose None to leave it unbound. | `Key.J` |
 | `nitroKey` | `Key` | Held nitro request key. Default Enter; suppressed during free-camera navigation and hover mode. | `Key.Enter` |
@@ -206,7 +210,7 @@ Configuration/implementation type for keyboard drive input within input and comm
 | `strafeLeftKey` | `Key` | Hold to request sideways thrust to the left in profiles that support it. Choose None to leave it unbound. | `Key.Q` |
 | `strafeRightKey` | `Key` | Hold to request sideways thrust to the right in profiles that support it. Choose None to leave it unbound. | `Key.E` |
 | `transmissionKey` | `Key` | Press to cycle automatic, manual and direct transmission modes. Choose None to leave it unbound. | `Key.T` |
-| `wheelLiftKey` | `Key` | Held WheelLift request on any supported vehicle with an enabled module. | `Key.Z` |
+| `wheelLiftKey` | `Key` | Hold this key to request the optional WheelLift action on a supported wheeled vehicle. Releasing it requests a controlled lowering of the lifted wheels. | `Key.Z` |
 
 ## KeyboardFlightInput
 
@@ -220,15 +224,15 @@ Configuration/implementation type for keyboard flight input within input and com
 | --- | --- | --- | --- |
 | `airplaneBrakeKey` | `Key` | Hold to apply the airplane wheel/service brake. Choose None to leave it unbound. | `Key.Space` |
 | `airplaneThrottle` | `float` | Initial persistent airplane throttle request, normalized from 0 to 1; throttle-up/down keys adjust it. | `0`; Range: 0 to 1 |
-| `analogInput` | `ActionInput` | `None / unassigned` | Gamepad/joystick fallback adapter, created automatically if empty. Custom Input Action references remain configurable. Keyboard activity retains its input arbitration rules. |
+| `analogInput` | `ActionInput` ([fields](Controller.md#actioninput)) | Hover/airplane gamepad/joystick adapter. Created automatically if unassigned; custom Action references remain configurable. | `None / unassigned` |
 | `ascendAlternateKey` | `Key` | Hold to request upward movement/thrust. This is an additional key for the same action. Choose None to leave it unbound. | `Key.RightShift` |
 | `ascendKey` | `Key` | Hold to request upward movement/thrust. Choose None to leave it unbound. | `Key.LeftShift` |
-| `burnoutKey` | `Key` | Hold for Burnout / native propulsion boost; aircraft increase native thrust. | `Key.C` |
+| `burnoutKey` | `Key` | Hold to request the optional Burnout flight propulsion boost. | `Key.C` |
 | `descendKey` | `Key` | Hold to request downward movement/thrust. Choose None to leave it unbound. | `Key.LeftCtrl` |
 | `forwardKey` | `Key` | Hold to request forward drive/thrust. Choose None to leave it unbound. | `Key.W` |
-| `groundReverseKey` | `Key` | Hold for ground reverse when enabled in the airplane profile; brake and camera reservations take priority. | `Key.Z` |
+| `groundReverseKey` | `Key` | Hold for reverse on supported landing gear when Allow Ground Reverse is enabled. Clears retained forward throttle; brakes and camera reservations take priority. | `Key.Z` |
 | `ignitionKey` | `Key` | Press to start or stop the engine. Choose None to leave it unbound. | `Key.I` |
-| `nitroKey` | `Key` | Hold for charge-controlled Nitro while requesting propulsion. | `Key.RightAlt` |
+| `nitroKey` | `Key` | Hold to request the optional Nitro aircraft propulsion boost. | `Key.RightAlt` |
 | `parkingBrakeKey` | `Key` | Hold to apply the aircraft parking/handbrake request. Choose None to leave it unbound. | `Key.LeftAlt` |
 | `pitchBackwardAlternateKey` | `Key` | Hold to request nose-up pitch. This is an additional key for the same action. Choose None to leave it unbound. | `Key.DownArrow` |
 | `pitchBackwardKey` | `Key` | Hold to request nose-up pitch. Choose None to leave it unbound. | `Key.S` |
@@ -261,37 +265,38 @@ Shared runtime configuration API for the built-in keyboard inputs.
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `enableControls` | `bool` | Enable this input source, including its optional analog fallback. Disabling clears pending actions. | `true` |
-| `holdReverseUntilStopped` | `bool` | Keep requesting reverse while the reverse control is held; the drivetrain still checks safe standstill. | `false` |
+| `holdReverseUntilStopped` | `bool` | Keep requesting reverse while negative throttle is held; the gearbox or direct-drive controller waits for safe standstill. Disabled by default. | `false` |
 
 ## KeyboardSpaceshipInput
 
-**Source:** `Runtime/Controller/Input/Samples/KeyboardSpaceshipInput.cs`. Vehicle component.
+### Methods
 
-Inherited settings are documented with `KeyboardInput`, `IVehicleInput`.
+**Source:** `Runtime/Controller/Input/Samples/KeyboardSpaceshipInput.cs`. Component / asset.
 
-| Setting | Type | Description | Declared default |
+**Inherited settings:** [KeyboardInput](Controller.md#keyboardinput). These settings also appear on this type.
+
+| Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `forwardKey` | `Key` | Increase retained forward thrust, like airplane throttle. | `Key.LeftShift` |
-| `reverseKey` | `Key` | Decrease retained forward thrust to zero. | `Key.LeftCtrl` |
-| `strafeLeftKey` | `Key` | Left translation in the spacecraft frame. | `Key.LeftArrow` |
-| `strafeRightKey` | `Key` | Right translation in the spacecraft frame. | `Key.RightArrow` |
+| `analogInput` | `ActionInput` ([fields](Controller.md#actioninput)) | Optional analog action adapter; unassigned creates one during startup. | `None / unassigned` |
 | `ascendKey` | `Key` | Upward translation in the spacecraft frame. | `Key.UpArrow` |
+| `backwardThrustKey` | `Key` | Hold to apply backward thrust without changing retained forward throttle. | `Key.Z` |
+| `brakeKey` | `Key` | Powered braking against world velocity. | `Key.Space` |
+| `burnoutKey` | `Key` | Optional secondary propulsion boost. | `Key.C` |
 | `descendKey` | `Key` | Downward translation in the spacecraft frame. | `Key.DownArrow` |
-| `pitchUpKey` | `Key` | Pitch the nose up. | `Key.S` |
+| `forwardKey` | `Key` | Increase retained forward thrust, like airplane throttle. | `Key.LeftShift` |
+| `ignitionKey` | `Key` | Toggle ignition. | `Key.I` |
+| `nitroKey` | `Key` | Optional propulsion boost. | `Key.Enter` |
 | `pitchDownKey` | `Key` | Pitch the nose down. | `Key.W` |
-| `yawLeftKey` | `Key` | Yaw left. | `Key.Q` |
-| `yawRightKey` | `Key` | Yaw right. | `Key.E` |
+| `pitchUpKey` | `Key` | Pitch the nose up. | `Key.S` |
+| `reverseKey` | `Key` | Decrease retained forward thrust to zero. | `Key.LeftCtrl` |
 | `rollLeftKey` | `Key` | Roll left. | `Key.A` |
 | `rollRightKey` | `Key` | Roll right. | `Key.D` |
-| `brakeKey` | `Key` | Powered braking against world velocity. | `Key.Space` |
-| `nitroKey` | `Key` | Optional propulsion boost. | `Key.Enter` |
-| `burnoutKey` | `Key` | Optional secondary propulsion boost. | `Key.C` |
-| `ignitionKey` | `Key` | Toggle ignition. | `Key.I` |
-| `analogInput` | `ActionInput` | Optional analog action adapter; unassigned creates one during startup. | `Unassigned` |
-
-| `throttleChangeRate` | `float` | Retained throttle change per second. | `0.5` |
-| `throttle` | `float` | Retained forward thrust; zero preserves momentum. | `0` |
-| `backwardThrustKey` | `Key` | Backward thrust without changing retained throttle. | `Key.Z` |
+| `strafeLeftKey` | `Key` | Left translation in the spacecraft frame. | `Key.LeftArrow` |
+| `strafeRightKey` | `Key` | Right translation in the spacecraft frame. | `Key.RightArrow` |
+| `throttle` | `float` | Retained forward thrust. Zero applies no thrust and preserves momentum in vacuum. | `0`; Range: 0 to 1 |
+| `throttleChangeRate` | `float` | Retained throttle change per second while holding increase/decrease keys. | `.5`; Minimum: 0 |
+| `yawLeftKey` | `Key` | Yaw left. | `Key.Q` |
+| `yawRightKey` | `Key` | Yaw right. | `Key.E` |
 
 ## KeyboardSubmarineInput
 
@@ -303,39 +308,22 @@ Configuration/implementation type for keyboard submarine input within input and 
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `analogInput` | `ActionInput` ([fields](Controller.md#actioninput)) | Gamepad/joystick adapter. Created automatically if unassigned; custom Action references remain configurable. | `None / unassigned` |
 | `ascendAlternateKey` | `Key` | Hold to request upward movement/thrust. This is an additional key for the same action. Choose None to leave it unbound. | `Key.RightShift` |
 | `ascendKey` | `Key` | Hold to request upward movement/thrust. Choose None to leave it unbound. | `Key.LeftShift` |
 | `brakeKey` | `Key` | Hold to request braking. Choose None to leave it unbound. | `Key.Space` |
-| `burnoutKey` | `Key` | Hold for Burnout / native propulsion boost; aircraft increase native thrust. | `Key.C` |
+| `burnoutKey` | `Key` | Hold to request the optional Burnout underwater propulsion boost. | `Key.C` |
 | `descendAlternateKey` | `Key` | Hold to request downward movement/thrust. This is an additional key for the same action. Choose None to leave it unbound. | `Key.RightCtrl` |
 | `descendKey` | `Key` | Hold to request downward movement/thrust. Choose None to leave it unbound. | `Key.LeftCtrl` |
 | `forwardKey` | `Key` | Hold to request forward drive/thrust. Choose None to leave it unbound. | `Key.W` |
 | `ignitionKey` | `Key` | Press to start or stop the engine. Choose None to leave it unbound. | `Key.I` |
-| `nitroKey` | `Key` | Hold for charge-controlled Nitro while requesting propulsion. | `Key.Enter` |
+| `nitroKey` | `Key` | Hold to request the optional Nitro underwater propulsion boost. | `Key.Enter` |
 | `pitchDownKey` | `Key` | Hold to request nose-down submarine pitch. Choose None to leave it unbound. | `Key.Z` |
 | `pitchUpKey` | `Key` | Hold to request nose-up submarine pitch. Choose None to leave it unbound. | `Key.Q` |
 | `profileKey` | `Key` | Press to request a driving-profile change. Choose None to leave it unbound. | `Key.B` |
 | `reverseKey` | `Key` | Hold to request backward drive; a wheeled controller can brake before engaging reverse. Choose None to leave it unbound. | `Key.S` |
 | `steerLeftKey` | `Key` | Hold to steer left. Choose None to leave it unbound. | `Key.A` |
 | `steerRightKey` | `Key` | Hold to steer right. Choose None to leave it unbound. | `Key.D` |
-
-| `analogInput` | `ActionInput` | `None / unassigned` | Gamepad/joystick fallback adapter, created automatically if empty. Custom Input Action references remain configurable. Keyboard activity retains its input arbitration rules. |
-
-## TelemetrySettings
-
-**Runtime/Core/TelemetrySettings.cs**
-
-Vehicle Controller > Setup > Telemetry. Core world pose, velocity, speed, wheel count and timestamps always remain available.
-
-| Field | Type | Usage | Default |
-| --- | --- | --- | --- |
-| `controls` | `bool` | Copy the input command and resolved throttle, brake, steering and handbrake. Input and mechanics continue when disabled. Default true. | `true` |
-| `motion` | `bool` | Calculate local motion, acceleration, attitude, angular velocity, airspeed and G-force readings. Core pose/velocity/timing stay available. Default true. | `true` |
-| `body` | `bool` | Copy chassis mass and world centre of mass. Default true. | `true` |
-| `powertrain` | `bool` | Copy RPM, engine state/torque, gearbox and clutch readings. Drivetrain simulation is independent. Default true. | `true` |
-| `fuel` | `bool` | Look up and copy tank presence, quantity, capacity and consumption. Fuel simulation continues when disabled. Default true. | `true` |
-| `ground` | `bool` | Probe chassis ground clearance and count grounded wheels. Disabling skips this diagnostic ray, not physical wheel support. Default true. | `true` |
-| `wheelDetails` | `bool` | Copy full per-wheel snapshots, including names, poses, contacts, slip and torques. Disabled by default; Wheels is empty when disabled. | `false` |
 
 ## VehicleController
 
@@ -350,10 +338,7 @@ Owns one vehicle: its root body, input sampling, wheel configuration, registry a
 | `driveProfile` | `DriveProfile` ([fields](Drive.md#driveprofile)) | Movement model for this vehicle, such as wheeled, motorcycle, tracked, boat or aircraft. Expand the selected type to tune that mode's forces and handling. | `new WheeledProfile()`; Polymorphic configuration; choose a concrete type |
 | `inputSource` | `MonoBehaviour` | Component supplying vehicle commands through IVehicleInput. Assign a keyboard/action adapter for a player or an external controller for AI. DirectController can instead own world position/rotation while its Direct Control flag is enabled. | `None / unassigned` |
 | `modules` | `VehicleModule[]` ([fields](Common.md#vehiclemodule)) | Mechanics components registered for configuration and simulation by the controller. Discover Modules refreshes this list after components are added or removed. | `Empty list` |
-| `settings` | `Settings` ([fields](Common.md#settings)) | **Vehicle Controller > Setup > Configuration**: shared chassis mass, wheel torque, braking, grip, steering and suspension-travel settings. Apply configuration to copy the relevant values to the native physics components. | `new Settings()` |
+| `settings` | `Settings` ([fields](Common.md#settings)) | Shared chassis mass, wheel torque, braking, grip, steering and suspension-travel settings. Apply configuration to copy the relevant values to the native physics components. | `new Settings()` |
 | `showGizmos` | `bool` | Show this component's scene guides and editing handles. Does not change gameplay or physics. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
+| `telemetry` | `TelemetrySettings` ([fields](Common.md#telemetrysettings)) | Optional diagnostic snapshot sections. Core world pose, velocity, speed and timestamps are always published. | `new TelemetrySettings()` |
 | `wheelSetup` | `WheelSetup[]` ([fields](Physics.md#wheelsetup)) | Main configuration list for wheel colliders, visuals, geometry and roles. Changes are copied to registered Wheel components by Apply Vehicle Configuration; edit owned fields here. | `Empty list` |
-
-| Field | Type | Usage | Default |
-| --- | --- | --- | --- |
-| `telemetry` | `TelemetrySettings` ([fields](Controller.md#telemetrysettings)) | Setup > Telemetry, directly below Configuration. Optional diagnostic capture groups; runtime edits apply at the next physics step. | `new TelemetrySettings()` |

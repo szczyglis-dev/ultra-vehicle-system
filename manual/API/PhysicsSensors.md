@@ -34,9 +34,11 @@ Static measurements shared by the controller, telemetry, passenger overload prot
 | `public static float PitchDegrees(Quaternion rotation, Vector3 gravity)` | Pitch relative to gravity, positive nose-up. | — |
 | `public static float PointInverseMass(Rigidbody body, Vector3 point, Vector3 direction)` | Effective inverse mass along a unit world direction at a world point; zero for missing or kinematic bodies. Includes rotational inertia; assumes unconstrained dynamic bodies. — | — |
 | `public static Vector3 PointVelocity(Rigidbody body, Vector3 worldPoint)` | Native physics velocity at a point specified in the body's displayed world frame; accounts for chassis interpolation. Null body returns zero. | — |
+| `public static Vector3 RelativePointVelocity(Rigidbody body, Collider surface, Vector3 point)` | Returns chassis velocity at the point minus supporting-surface velocity. | — |
 | `public static float RollDegrees(Quaternion rotation, Vector3 gravity)` | Roll relative to gravity, positive right-bank. | — |
 | `public static Vector3 SpecificForce(Vector3 acceleration, Vector3 gravity)` | Acceleration minus gravity in world m/s²; an accelerometer reads one local G at rest and zero in free fall. | — |
 | `public static float StandardGForce(Vector3 specificForce)` | Specific-force magnitude divided by 9.81. Used by passenger activation thresholds independently of world gravity. | — |
+| `public static Vector3 SurfacePointVelocity(Collider surface, Vector3 point)` | Returns the surface rigidbody velocity at the point, including rotation; static or absent surfaces return zero. | — |
 | `public static float TiltDegrees(Quaternion rotation, Vector3 gravity)` | Angle between the rotated up axis and gravity up; yaw alone does not produce tilt. | — |
 | `public static bool TryGroundBelow(Vector3 origin, Vector3 gravity, Rigidbody body, Transform root, RaycastHit[] hits, out RaycastHit nearest, float maximumDistance = 50000, int layerMask = Physics.DefaultRaycastLayers)` | Non-allocating ray query along gravity down. Ignores triggers, the supplied body and colliders below root. Caller owns the reusable buffer. Returns false and a default hit for missing ground or invalid/empty buffer; a full buffer provides only the nearest returned external hit. | — |
 
@@ -101,6 +103,7 @@ For stable retained per-tick data, continue to use immutable `vehicle.Telemetry`
 | `public float AltitudeMetres { get; }` | World Y position, distinct from height above ground. |
 | `public Vector3 AngularVelocity { get; private set; }` | World angular velocity, rad/s. |
 | `public Vector3 BodyContactNormal { get; private set; }` | World normal of the last chassis contact. Zero after reset. |
+| `public Vector3 BodyContactPoint { get; private set; }` | Last native chassis-contact point in world space; validity and freshness follow HasBodyContact and LastBodyContactTime. Does not perform a ground probe. |
 | `public float GForce { get; }` | Magnitude in local gravity units, matching telemetry. |
 | `public Vector3 Gravity { get; private set; }` | Gravity used for this sample, m/s². |
 | `public RaycastHit GroundHit { get; private set; }` | Nearest external hit returned by the reusable 32-hit query. Default if none. |

@@ -32,6 +32,8 @@ Set base grip and [ground Surface multipliers](Surfaces.md). Add traction/stabil
 
 For motorcycles, bicycles and scooters, tune wheel support and steering before adding **Motorcycle Balance**. Its lean, response and recovery settings control chassis assistance; rider pose belongs to [Seats](Seats.md#motorcycle-rider-support). **Disable Balance On Driver Eject** lets an ejected rider’s vehicle tumble without balance assistance; see the [Motorcycle Balance settings](InspectorReference/Drive.md#motorcyclebalance).
 
+Motorcycle bank is measured around the pitched longitudinal axis relative to gravity, so climbing pitch does not consume the side-recovery angle. Obstacle clearance approximates each occupied rider with one torso capsule and sweeps it once to each side. It limits additional bank into a wall while preserving the path back upright; it does not inspect individual bones or search candidate bank angles. Assisted steering tracks heading rotation separately from bank rotation on climbs and single-wheel touchdowns; ground roll damping uses the same gravity-relative bank rate as the balance controller.
+
 ## 5. Validate before adding effects
 
 Check start/stop, reverse, a tight turn, a fast turn, a slope and a landing. Verify passenger load and a reset/re-enable cycle. Save persistent changes outside Play Mode and repeat with a fresh instance.

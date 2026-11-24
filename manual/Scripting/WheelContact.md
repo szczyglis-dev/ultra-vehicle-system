@@ -94,6 +94,14 @@ Tire mass/geometry and response parameters determine supplemental constraints. T
 
 `Wheel.Grounded` includes recent loaded tread contacts; automatic shifts require loaded native road contacts. `WheelDynamics` supplies airborne bearing losses independently of service braking.
 
+## Shared wheel-support queries
+
+Tire Collision can reuse Contact Envelope's actual centre ray from the same fixed step when origin, direction, reach and layer mask match exactly. Raw hit candidates are retained, so Tire Collision still applies its own self/layer/normal filters. Cached older envelope support and certified-plane shortcuts do not count as fresh centre rays. No telemetry chassis-height ray is substituted for a wheel ray.
+
+If a custom module moves or changes physics geometry between Contact Envelope and Tire Collision in one step, call `ContactEnvelope.InvalidateSupportQueries()` after the edit. The tire module then performs its own raycasts. Envelope disable, reset/teleport and the next sampling step also invalidate sharing.
+
+Contact-relative tire motion is available through `Wheel.TryGetContactMotion` or `GetContactMotion` with an existing hit. `WheelContactMotion` exposes signed road/tread speeds and separate braking/drive slip; `PhysicsSensors.SurfacePointVelocity` and `RelativePointVelocity` also support other contact mechanics without duplicating moving-platform calculations.
+
 ## Complete public method and event index
 
 The lists below cover public methods and events for this topic and their package base contracts. Signatures include overloads. See [the detailed wheel definitions and contact API](../API/WheelContact.md) for arguments, return semantics, state and configuration. An override replaces the matching inherited implementation; it is not an additional call to make.
@@ -145,14 +153,14 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
 
 ### Wheel
@@ -161,15 +169,27 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
+| `public virtual void Configure()` | Applies clamped native radius/mass, captures contact radius and configures native substeps when attached to a `Rigidbody`. |
 | `public virtual bool GetGroundHit(out WheelHit hit)` | Contact wrapper for native physics and direct presentation ground queries. |
 | `public virtual void GetWorldPose(out Vector3 position, out Quaternion rotation)` | Hub pose including spin/steering in both modes. |
-| `public virtual void Configure()` | Applies clamped native radius/mass, captures contact radius and configures native substeps when attached to a `Rigidbody`. |
 
 
 | Signature | Role |
 | --- | --- |
 | `public event System.Action<Wheel, bool> AttachmentChanged` | After state and collider/actuator availability update. Payload: this Wheel and new attached flag. |
 | `public virtual void SetAttached(bool attached)` | Sets low-level wheel attachment state, clears actuators/direct/contact/visual history and updates native collider availability. Notifies once per change. Does not physically detach/remount a visual object; use WheelPart for debris lifecycle. |
+
+
+| `public virtual bool TryGetContactMotion(Rigidbody body, out WheelContactMotion motion)` | Samples native wheel support and returns contact-relative motion; returns false for an unsupported or unavailable wheel. |
+| `public virtual WheelContactMotion GetContactMotion(Rigidbody body, WheelHit hit)` | Resolves tire motion from an existing WheelHit, avoiding a repeated native ground query. |
+
+### WheelContactMotion
+
+| Signature | Role and behavior |
+| --- | --- |
+| `public float BrakingSlip(float referenceSpeed = 1)` | Returns signed-motion-normalized braking slip: near zero while rolling and near one when locked. Wheelspin does not count as braking. |
+| `public float DriveSlip(float torqueDirection, float referenceSpeed = 3)` | Returns positive tire overspeed in the requested torque direction, with a low-speed reference and native-slip contribution. |
+| `public float RelativeSlip(float referenceSpeed = 3)` | Returns absolute tread/road speed mismatch normalized by the larger road/reference speed. |
 
 ### WheelDynamics
 
@@ -188,9 +208,3 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public static WheelSetup FromWheel(Wheel wheel)` | Builds an authored wheel definition from an existing wheel adapter. |
-
-## Shared wheel-support queries
-
-Tire Collision can reuse Contact Envelope's actual centre ray from the same fixed step when origin, direction, reach and layer mask match exactly. Raw hit candidates are retained, so Tire Collision still applies its own self/layer/normal filters. Cached older envelope support and certified-plane shortcuts do not count as fresh centre rays. No telemetry chassis-height ray is substituted for a wheel ray.
-
-If a custom module moves or changes physics geometry between Contact Envelope and Tire Collision in one step, call `ContactEnvelope.InvalidateSupportQueries()` after the edit. The tire module then performs its own raycasts. Envelope disable, reset/teleport and the next sampling step also invalidate sharing.

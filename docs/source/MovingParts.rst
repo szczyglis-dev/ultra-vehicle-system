@@ -40,7 +40,7 @@ Use one movement owner per Transform. Do not simultaneously assign the same pivo
 Choose how the part moves
 -------------------------
 
-The motion selector offers **Rotation**, **Translation**, **Animation** and **Custom**. Rotation remains the default. ``MovingPart`` uses **Motion**; ``VehicleBodyPart`` places **Motion** directly below **Part Type**. Control animators expose **Motion > Mode**; aircraft/landing-gear helpers use **Mode**, and steering visuals use **Motion Mode**. Geometry fields are shown for the selected mode.
+The motion selector offers **Rotation**, **Translation**, **Animation** and **Custom**. Rotation remains the default. ``MovingPart`` uses **Motion**; ``VehicleBodyPart`` also uses **Motion**. Control animators expose **Motion > Mode**; aircraft/landing-gear helpers use **Mode**, and steering visuals use **Motion Mode**. Geometry fields are shown for the selected mode.
 
 +-------------+----------------------------------------------------------------------------+---------------------------------------+
 | Mode        | Pose owner                                                                 | Progress                              |
@@ -91,7 +91,7 @@ MovingPart retains ``SetNormalizedPosition`` / ``StartMotion``, ``SetInput`` and
 Lifecycle and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-At the bottom of the Inspector, existing **Motion Events** (where supported) retain opening/closing/audio bindings, followed by **Signals and callbacks**, then **Gizmos**. The latter exposes mode-appropriate guide toggles. Control-specific events share the callback section with the motion lifecycle.
+**Motion Events** (where supported) contains opening/closing/audio bindings. **Signals and callbacks** contains notifications; **Gizmos** exposes mode-appropriate guide toggles. Control-specific events share the callback section with the motion lifecycle.
 
 +---------------------------+----------------------------------------------------------------------------------------+
 | Callback                  | Meaning                                                                                |
@@ -208,13 +208,29 @@ Operate it
 
 Use ``vehicle.parts`` to access the registered ``Body`` module directly, just as ``vehicle.passengers`` resolves the passenger module. The shortcut returns ``null`` if no Body module is registered and does not add one. It also resolves a disabled Body module for configuration/read access; its operation methods still enforce the module's enabled state. Runtime registration/removal takes effect on the next access.
 
+.. raw:: html
+
+   <!-- example: DocumentationMovingParts4Example.cs -->
+
 .. code-block:: csharp
 
-   if (vehicle.parts is Body body)
+   using UnityEngine;
+   using UltraVehicleSystem;
+
+   public sealed class DocumentationMovingParts4Example : MonoBehaviour
    {
-       body.Open("LeftDoor");             // Uses VehicleBodyPart > Part Id.
-       var door = body.GetPart("LeftDoor");
-       var registeredParts = body.parts;   // VehicleBodyPart[] configured on Body > Parts.
+       public VehicleController vehicle;
+
+       public void RunExample()
+       {
+           if (!vehicle) return;
+           if (vehicle.parts is Body body)
+           {
+               body.Open("LeftDoor");             // Uses VehicleBodyPart > Part Id.
+               var door = body.GetPart("LeftDoor");
+               var registeredParts = body.parts;   // VehicleBodyPart[] configured on Body > Parts.
+           }
+       }
    }
 
 The shortcut returns the controller, rather than an array: ``vehicle.parts.Open(...)``, ``Close(...)``, ``Toggle(...)``, ``GetPart(...)``, ``OpenAll()`` and ``CloseAll()`` use the same Body API. ``vehicle.parts.parts`` accesses its configured body-part array; ``vehicle.parts.damageParts`` accesses its damage-boundary array. These registries do not automatically include every MovingPart or suspension helper. Read ``vehicle.parts`` once into a local when making several calls.

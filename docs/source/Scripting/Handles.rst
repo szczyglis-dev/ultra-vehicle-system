@@ -388,6 +388,61 @@ ControlAnimator derives from VehicleHandleAnimator and centralizes Handle, Wait 
 
 Use ``vehicle.handles.Get(id)`` for limb ownership, then use the assigned ControlHandle.animator (or a direct serialized animator reference) to request visual state. Bind lights, wipers, profiles and switch audio to SwitchAnimator. GearShiftAnimator.Animators accepts IGearShiftAnimator implementations, including GearPaddleAnimator. There are no combined motion-and-IK compatibility components.
 
+.. _uvs-scripting-handles--temporary-ik-in-animator-seats:
+
+Temporary IK in Animator seats
+------------------------------
+
+A handle request can borrow IK for one mapped humanoid hand or foot without changing the seat controller or overwriting ``PassengerBodyPartConfig.mode``. This works for standard and custom ``VehicleHandle`` subclasses.
+
+**Example:** ``ForceIKHandleExample.cs``
+
+.. raw:: html
+
+   <!-- example: ForceIKHandleExample.cs -->
+
+.. code-block:: csharp
+
+   using UnityEngine;
+   using UltraVehicleSystem;
+
+   namespace VehicleDocumentationExamples
+   {
+       public sealed class ForceIKHandleExample : MonoBehaviour
+       {
+           public VehicleController vehicle;
+           public PassengerSeat seat;
+           public VehicleHandle target;
+           private HandleUse use;
+
+           public void Acquire()
+           {
+               if (!vehicle || !seat || !target) return;
+               use?.Cancel();
+               use = vehicle.handles.TryAcquire(
+                   seat, PassengerBodyPart.RightHand, target, forceIK: true);
+           }
+
+           public void Release()
+           {
+               use?.Cancel();
+               use = null;
+           }
+
+           private void OnDisable() => Release();
+       }
+   }
+
+For timed travel, use ``TryUse(seat, limb, target, forceIK: true)`` or ``TryReachAndHold(seat, limb, target, forceIK: true)``. A held token can ``Return()`` through its normal return path or ``Cancel()`` immediately. ``TryAcquire`` also accepts the currently assigned home handle when forcing IK, allowing an animated limb to temporarily follow its existing contact.
+
+For normal per-handle ownership, set ``target.ControlMode = HandleControlMode.IK`` or ``HandleControlMode.AnimatorIK``. The seat controller stays unchanged. Switching this mode cancels the handle's existing requests; ``TryAcquireAnimator`` explicitly reserves animation ownership for an interaction. For ``IKThenAnimator``, the IK override yields while full-limb animation plays and resumes for return; a finger-only animation can keep the arm on its IK target.
+
+``config.IsIKForced`` reports a handle-driven or temporary IK override; ``config.EffectiveMode`` includes it. ``use.ForcesIK`` records whether a token borrowed IK. The original bindings, hold setting and authored mode are restored when ownership ends. Priority interruptions retain the original return destination and override; old tokens cannot release a replacement request. A new external binding/mode assignment stops the old override rather than being overwritten by it. Damage releases always take precedence.
+
+In Animator seats, ``HumanoidPassenger.SolveSeatedIK()`` solves only forced limbs. Animator + IK keeps its normal full overlay; physical passengers keep their native body policy. Leave ``automaticSeatedIK`` enabled, or call ``SolveSeatedIK()`` after evaluating your own animation pipeline. Custom and Attach Only seat controllers and unmapped limb chains are not eligible for this automatic overlay.
+
+The demo's ``AimingHandDemo`` uses the same forced request for Y: Right → Left → Off, including the yellow Animator car. It does not switch the seat's controller or implement a separate aiming IK solver.
+
 .. _uvs-scripting-handles--complete-public-method-and-event-index:
 
 Complete public method and event index
@@ -401,6 +456,19 @@ AnchorHandle
 ~~~~~~~~~~~~
 
 -  **AnchorHandle** — ``public override Transform GetAnchor(PassengerBodyPart part)`` — Returns the assigned anchor directly. The seat is responsible for assigning this handle to the intended body part.
+
+.. _uvs-scripting-handles--handleanimationevents:
+
+HandleAnimationEvents
+~~~~~~~~~~~~~~~~~~~~~
+
+:ref:`HandleAnimationEvents <uvs-api-handles--handleanimationevents>` gives the full declared contract.
+
++-----------------------------------------------------+------------------------------------------------------------------------------------------------------+
+| Member                                              | Behavior                                                                                             |
++=====================================================+======================================================================================================+
+| ``public void HandleAnimationEvent(string signal)`` | Animation Events have fixed method names; the string argument supplies the user-defined signal name. |
++-----------------------------------------------------+------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-handles--handleanimatorbinding:
 
@@ -416,38 +484,87 @@ HandleAnimatorBinding
 -  ``public void EndControlChange()`` — Current end control change.
 -  ``public void SetControlValue(float value)`` — Current set control value.
 -  ``public void SetFingerWeight(float value)`` — Current set finger weight.
--  ``public void SetIKWeight(float value)`` — // Animation Events use one simple argument and can live on the animated character.
+-  ``public void SetIKWeight(float value)`` — Animation Events use one simple argument and can live on the animated character.
+
+.. _uvs-scripting-handles--handleanimatorcontroller:
+
+HandleAnimatorController
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+:ref:`HandleAnimatorController <uvs-api-handles--handleanimatorcontroller>` gives the full declared contract.
+
++-----------------------------------+----------------------------------------------------+
+| Member                            | Behavior                                           |
++===================================+====================================================+
+| ``public event Action Cancelled`` | After interruption or cancellation.                |
++-----------------------------------+----------------------------------------------------+
+| ``public event Action Completed`` | After successful gesture completion.               |
++-----------------------------------+----------------------------------------------------+
+| ``public event Action InMove``    | When the gesture reports movement.                 |
++-----------------------------------+----------------------------------------------------+
+| ``public event Action Reached``   | When the action commits, at most once per gesture. |
++-----------------------------------+----------------------------------------------------+
+| ``public event Action Started``   | After the gesture is accepted.                     |
++-----------------------------------+----------------------------------------------------+
+| ``public UnityEvent onCancelled`` | After interruption or cancellation.                |
++-----------------------------------+----------------------------------------------------+
+| ``public UnityEvent onCompleted`` | After successful gesture completion.               |
++-----------------------------------+----------------------------------------------------+
+| ``public UnityEvent onInMove``    | When the gesture reports movement.                 |
++-----------------------------------+----------------------------------------------------+
+| ``public UnityEvent onReached``   | When the action commits, at most once per gesture. |
++-----------------------------------+----------------------------------------------------+
+| ``public UnityEvent onStarted``   | After the gesture is accepted.                     |
++-----------------------------------+----------------------------------------------------+
 
 .. _uvs-scripting-handles--handlecontroller:
 
 HandleController
 ~~~~~~~~~~~~~~~~
 
--  **HandleController** — ``public event Action<HandleUse> Finished`` — After completion or cancellation has released ownership and restored any owned binding. Payload is the ended token.
--  **HandleController** — ``public event Action<HandleUse> Started`` — After a token owns its limb. Payload is the new token.
--  **HandleController** — ``public void CancelAll()`` — Immediately cancel every active token, blocking reentrant acquisition from cancellation callbacks.
--  **HandleController** — ``public void CancelSeat(PassengerSeat seat)`` — Immediately cancel tokens for one seat. Blocks reentrant acquisition during cleanup.
--  **HandleController** — ``public VehicleHandle Current(PassengerSeat seat, PassengerBodyPart limb)`` — Returns the requested destination while a token owns the limb; otherwise its configured handle. May be null for direct anchors.
--  **HandleController** — ``public VehicleHandle Get(string id)`` — Exact ID lookup; null for missing or duplicate IDs. Disabled registered handles remain discoverable.
--  **HandleController** — ``public HandleUse GetUse(PassengerSeat seat, PassengerBodyPart limb)`` — Returns the active ownership token for this seat and limb, otherwise null.
--  **HandleController** — ``public void Refresh()`` — Cancel active work and rebuild handle discovery, IDs, subscriptions and priority order. Call after adding/removing handles or editing IDs/priorities.
--  **HandleController** — ``public HandleUse TryAcquire(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)`` — Admit persistent application-driven target ownership; returns null on refusal. Cancel the returned token to restore the home binding.
--  **HandleController** — ``public HandleUse TryAcquireAnimator(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)`` — Admit persistent ownership with Animator mode. Cancel restores mode only if it is still Animator.
--  **HandleController** — ``public bool TryGet(string id, out VehicleHandle handle)`` — Exact case-sensitive ID lookup. Returns false for missing, blank/unregistered or duplicate IDs.
--  **HandleController** — ``public HandleUse TryReachAndHold(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)`` — Reach using outbound timing, then retain ownership until Return or Cancel. Returns null if unavailable.
--  **HandleController** — ``public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, string id, Action onArrival = null)`` — Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival.
--  **HandleController** — ``public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, Action onArrival = null)`` — Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival.
--  **HandleController** — ``public HandleUse TryUse(PassengerSeat seat, VehicleHandle target, Action onArrival = null)`` — Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival.
+:ref:`HandleController <uvs-api-handles--handlecontroller>` gives the full declared contract.
 
-+--------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
-| Method / event / callback                                                                                                            | Role                                                                                                      |
-+======================================================================================================================================+===========================================================================================================+
-| ``public HandleUse TryAcquire(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK)``                      | See :ref:`HandleController <uvs-api-handles--handlecontroller>` for the declared lifecycle and arguments. |
-+--------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
-| ``public HandleUse TryReachAndHold(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK)``                 | See :ref:`HandleController <uvs-api-handles--handlecontroller>` for the declared lifecycle and arguments. |
-+--------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
-| ``public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK, Action onArrival = null)`` | See :ref:`HandleController <uvs-api-handles--handlecontroller>` for the declared lifecycle and arguments. |
-+--------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                                                                                               | Behavior                                                                                                                                                                         |
++======================================================================================================================================+==================================================================================================================================================================================+
+| ``public void CancelAll()``                                                                                                          | Immediately cancel every active token, blocking reentrant acquisition from cancellation callbacks.                                                                               |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void CancelHandle(VehicleHandle handle)``                                                                                   | Cancel active uses targeting or returning to the specified handle.                                                                                                               |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void CancelSeat(PassengerSeat seat)``                                                                                       | Immediately cancel tokens for one seat. Blocks reentrant acquisition during cleanup.                                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public VehicleHandle Current(PassengerSeat seat, PassengerBodyPart limb)``                                                         | Returns the requested destination while a token owns the limb; otherwise its configured handle. May be null for direct anchors.                                                  |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleUse> Finished``                                                                                          | After completion or cancellation has released ownership and restored any owned binding. Payload is the ended token.                                                              |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public VehicleHandle Get(string id)``                                                                                              | Exact ID lookup; null for missing or duplicate IDs. Disabled registered handles remain discoverable.                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse GetUse(PassengerSeat seat, PassengerBodyPart limb)``                                                              | Returns the active ownership token for this seat and limb, otherwise null.                                                                                                       |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void Refresh()``                                                                                                            | Cancel active work and rebuild handle discovery, IDs, subscriptions and priority order. Call after adding/removing handles or editing IDs/priorities.                            |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleUse> Started``                                                                                           | After a token owns its limb. Payload is the new token.                                                                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryAcquire(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)``                                    | Admit persistent application-driven target ownership; returns null on refusal. Cancel the returned token to restore the home binding.                                            |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryAcquire(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK)``                      | Persistent ownership with an optional temporary IK override. Can force IK on the existing home handle.                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryAcquireAnimator(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)``                            | Admit persistent ownership with Animator mode. Cancel restores mode only if it is still Animator.                                                                                |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool TryGet(string id, out VehicleHandle handle)``                                                                          | Exact case-sensitive ID lookup. Returns false for missing, blank/unregistered or duplicate IDs.                                                                                  |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryReachAndHold(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)``                               | Reach using outbound timing, then retain ownership until Return or Cancel. Returns null if unavailable.                                                                          |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryReachAndHold(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK)``                 | Timed reach and hold with an optional temporary IK override.                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, string id, Action onArrival = null)``                          | Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival. |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, Action onArrival = null)``               | Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival. |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK, Action onArrival = null)`` | Out-and-back reach with an optional temporary IK override.                                                                                                                       |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleUse TryUse(PassengerSeat seat, VehicleHandle target, Action onArrival = null)``                                       | Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival. |
++--------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-handles--handlefingerposition:
 
@@ -560,6 +677,7 @@ SteeringWheelHandle
 -  **SteeringWheelHandle** — ``public virtual void SetHandPinch(bool left, bool value)`` — Enables/disables the selected hand's pinch gesture.
 -  **SteeringWheelHandle** — ``public virtual void SetHandPinch(bool left, float amount)`` — Sets a clamped 0–1 Pinch-to-Wrapped blend. Zero uses normal grip/pressure selection; one uses the saved Pinch pose.
 -  **SteeringWheelHandle** — ``public virtual void SetPalmPressure(bool left, float value)`` — Sets the blend towards the authored pressure hand position; the calibrated palm contact stays unchanged.
+-  **SteeringWheelHandle** — ``public virtual void SetRegripMode(SteeringRegripMode mode)`` — Changes the automatic hand policy at runtime without resetting hand ownership; invalid enum values throw.
 -  **SteeringWheelHandle** — ``public virtual float SignedDistance(Vector3 worldPoint)`` — Returns signed world-space distance to the steering tube surface; positive means outside.
 -  **SteeringWheelHandle** — ``public virtual float SignedDistanceLocal(Vector3 point)`` — Evaluates a wheel-local point against the steering tube and returns scaled surface distance.
 -  **SteeringWheelHandle** — ``public override bool Supports(PassengerBodyPart part)`` — Whether Allowed limbs and any specialized geometry policy permit this limb.
@@ -570,159 +688,124 @@ SteeringWheelHandle
 VehicleHandle
 ~~~~~~~~~~~~~
 
--  **VehicleHandle** — ``public virtual void SetInput(Command command, float deltaTime)`` — Updates custom IK contact targets; it never owns instrument geometry.
-
--  **VehicleHandle** — ``public event Action<HandleContactContext> ContactEnded`` — Once when contact is lost or released (including exit/disable/rebinding). Payload retains the original occupant identity.
-
--  **VehicleHandle** — ``public event Action<HandleContactContext> ContactStarted`` — Once on a not-touching to touching transition; C# event runs before the matching UnityEvent.
-
--  **VehicleHandle** — ``public event Action<HandleContactContext> ContactUpdated`` — Once per contact sample while touching, including its start sample. Payload identifies handle, seat, occupant, part and target.
-
--  **VehicleHandle** — ``public UnityEvent<HandleContactContext> onContactEnded`` — Inspector-configurable counterpart of ContactEnded. Runs after the C# event for the same phase.
-
--  **VehicleHandle** — ``public UnityEvent<HandleContactContext> onContactStarted`` — Inspector-configurable counterpart of ContactStarted. Runs after the C# event for the same phase.
-
--  **VehicleHandle** — ``public UnityEvent<HandleContactContext> onContactUpdated`` — Inspector-configurable counterpart of ContactUpdated. Runs after the C# event for the same phase.
-
--  **VehicleHandle** — ``public UnityEvent<HandleValueContext> onValueChangeStarted`` — Inspector-configurable counterpart of ValueChangeStarted. Runs after the C# event for the same phase.
-
--  **VehicleHandle** — ``public UnityEvent<HandleValueContext> onValueChangeStopped`` — Inspector-configurable counterpart of ValueChangeStopped. Runs after the C# event for the same phase.
-
--  **VehicleHandle** — ``public UnityEvent<HandleValueContext> onValueChanging`` — Inspector-configurable counterpart of ValueChanging. Runs after the C# event for the same phase.
-
--  **VehicleHandle** — ``public event Action<HandleValueContext> ValueChangeStarted`` — Once when a significant value change or explicit BeginValueChange starts activity.
-
--  **VehicleHandle** — ``public event Action<HandleValueContext> ValueChangeStopped`` — Once when the value settles for valueStopDelay, explicit EndValueChange runs or the handle is disabled/destroyed.
-
--  **VehicleHandle** — ``public event Action<HandleValueContext> ValueChanging`` — Each active changed/manual sample; does not imply contact or commit a gameplay action.
-
--  **VehicleHandle** — ``public void BeginValueChange()`` — Starts explicit value activity, emitting Started only when idle. Constant-value samples still emit progress until EndValueChange.
-
--  **VehicleHandle** — ``public virtual void BindBodyPart(PassengerBodyPart part, HumanoidIK ik, Animator animator)`` — Prepares the selected limb for this handle, including supported adaptive finger binding and palm frames.
-
--  **VehicleHandle** — ``public void ClearHandPositionOverride(HandleHandSide side)`` — Restores normal selection and wheel pressure/pinch blending for that hand.
-
--  **VehicleHandle** — ``public void EndValueChange()`` — Ends manual/automatic activity and emits Stopped once if active. Safe when idle.
-
--  **VehicleHandle** — ``public void EnsureHandPositions()`` — Initializes missing configurations with the defaults for the handle type; existing local or shared poses remain unchanged.
-
--  **VehicleHandle** — ``public abstract Transform GetAnchor(PassengerBodyPart part)`` — Returns the stable contact transform for a supported body part, or ``null`` when unavailable/unsupported.
-
--  **VehicleHandle** — ``public HandleFingerPosition GetFingerPosition(int positionIndex, HandleHandSide side, HandleFinger finger)`` — Typed access to one finger of one configured hand.
-
--  **VehicleHandle** — ``public virtual Transform GetHandAnchor(PassengerBodyPart part)`` — Returns the configured palm target with pose offsets. Feet keep the raw anchor; source geometry remains on GetAnchor.
-
--  **VehicleHandle** — ``public HandleHandPose GetHandPose(int positionIndex, HandleHandSide side)`` — Resolved local/shared hand data; edits to shared data affect all handles linked to that asset.
-
--  **VehicleHandle** — ``public HandleHandPosition GetHandPosition(int index)`` — Strict indexed lookup; invalid indices throw ArgumentOutOfRangeException. HandPosition(int) remains the clamped lookup.
-
--  **VehicleHandle** — ``public HandleHandPosition GetHandPosition(string name)`` — Named lookup; a missing name throws KeyNotFoundException.
-
--  **VehicleHandle** — ``public int GetHandPositionOverride(HandleHandSide side)`` — Returns the explicit position index, or -1 for automatic selection.
-
--  **VehicleHandle** — ``public HandlePoseSettings GetPoseSettings(PassengerBodyPart part)`` — Returns the live settings for this body part; lazily restores a null settings object. Invalid enum throws ArgumentOutOfRangeException.
-
--  **VehicleHandle** — ``public virtual float HandContact(bool left)`` — Returns contact participation for the selected hand; guidance can remain enabled while surface contact is released.
-
--  **VehicleHandle** — ``public virtual bool HandDriven(bool left)`` — Reports whether the selected hand should receive physical target guidance.
-
--  **VehicleHandle** — ``public HandleHandPosition HandPosition(int index)`` — Returns a position, clamping the index to the available list.
-
--  **VehicleHandle** — ``public virtual bool HandSteering(bool left)`` — Reports whether the selected hand participates in steering support.
-
--  **VehicleHandle** — ``public HandleHandPosition MakeHandPositionLocal(int index)`` — Replaces the entry with a deep local copy of its resolved values, detaching any shared asset.
-
--  **VehicleHandle** — ``public virtual void Prepare()`` — Initializes the contact or synchronizes its initial state without requesting a limb.
-
--  **VehicleHandle** — ``public void ReleaseContact(PassengerSeat seat, PassengerBodyPart part)`` — Releases one tracked pair and emits Ended once if touching. Safe when untracked.
-
--  **VehicleHandle** — ``public bool ReportContact(PassengerSeat seat, PassengerBodyPart part, bool touching)`` — Records touching/not-touching for the current occupant. Select Manual contactSource to use the report; events are emitted when SampleContact runs. No geometric contact required in Manual mode.
-
--  **VehicleHandle** — ``public virtual void ResetHandle()`` — Resets local handle state through the common extensible handle contract.
-
--  **VehicleHandle** — ``public virtual void ResolveHandPositions(bool left, out HandleHandPose primary, out HandleHandPose secondary, out float blend)`` — Resolves local or shared left/right configurations and their blend. Base handles use their normal grip; wheels select pinch or blend pressure.
-
--  **VehicleHandle** — ``public void ResolveHandPositions(HandleHandSide side, out HandleHandPose primary, out HandleHandPose secondary, out float blend)`` — Typed access to the current configuration sources and blend; dispatches to the handle-specific resolver.
-
--  **VehicleHandle** — ``public void SampleContact(PassengerSeat seat, PassengerBodyPart part)`` — Samples one tracked seat/part and emits contact transitions plus progress while touching. Seats call this after ordinary posing and rigid supports; custom pipelines can call it explicitly.
-
--  **VehicleHandle** — ``public void SampleInteraction(float deltaTime)`` — Samples the current source and advances generic activity using finite nonnegative seconds. The first sample establishes a silent baseline. Built-in handles call it in LateUpdate.
-
--  **VehicleHandle** — ``public void SetAnimationValue(float value)`` — Selects the explicit animation signal and stores a finite scalar X/vector. Invalid values are ignored. Sampling emits events; no mechanical action is performed.
-
--  **VehicleHandle** — ``public void SetAnimationValue(Vector3 value)`` — Selects the explicit animation signal and stores a finite scalar X/vector. Invalid values are ignored. Sampling emits events; no mechanical action is performed.
-
--  **VehicleHandle** — ``public void SetDefaultHandPosition(int index)`` — Sets the normal grip index with strict index validation.
-
--  **VehicleHandle** — ``public void SetFingerPosition(int positionIndex, HandleHandSide side, HandleFinger finger, HandleFingerPosition position)`` — Replaces one finger in the resolved hand; rejects null.
-
--  **VehicleHandle** — ``public void SetHandPose(int positionIndex, HandleHandSide side, HandleHandPose pose)`` — Replaces resolved hand data, including the shared asset when linked; rejects null.
-
--  **VehicleHandle** — ``public void SetHandPositionOverride(HandleHandSide side, int index)`` — Temporarily forces that hand to use one configured pose with no automatic gesture blend. Does not replace contact geometry, steering ownership or physics. Not serialized.
-
--  **VehicleHandle** — ``public void SetPoseTarget(PassengerBodyPart part, Transform target)`` — Sets a final world-space target override for this part. Null returns to the handle contact target.
-
--  **VehicleHandle** — ``public void SetPoseWeights(PassengerBodyPart part, float position, float rotation, float fingers)`` — Sets position, rotation and finger weights independently. Values clamp to 0–1; non-finite values become zero. No re-entry/rebind required.
-
--  **VehicleHandle** — ``public virtual bool Supports(PassengerBodyPart part)`` — Whether Allowed limbs and any specialized geometry policy permit this limb.
-
--  **VehicleHandle** — ``public bool TrackContact(PassengerSeat seat, PassengerBodyPart part, Transform contact)`` — Registers a contact transform for the current occupant and limb. Returns false for inactive/transitioning/empty seats or a limb bound to another handle. Built-in humanoids register their mapped bones/palm contacts automatically.
-
--  **VehicleHandle** — ``public bool TryGetContactState(PassengerSeat seat, PassengerBodyPart part, out HandleContactContext state)`` — Returns the last sampled snapshot for the current occupant, or false/default when unavailable; false-contact snapshots remain valid while tracked.
-
--  **VehicleHandle** — ``public bool TryGetHandPosition(string name, out HandleHandPosition position)`` — Finds the first exact, case-sensitive position name. Returns false and null for missing/empty names.
-
-.. _uvs-scripting-handles--temporary-ik-in-animator-seats:
-
-Temporary IK in Animator seats
-------------------------------
-
-A handle request can borrow IK for one mapped humanoid hand or foot without changing the seat controller or overwriting ``PassengerBodyPartConfig.mode``. This works for standard and custom ``VehicleHandle`` subclasses.
-
-**Example:** ``ForceIKHandleExample.cs``
-
-.. raw:: html
-
-   <!-- example: ForceIKHandleExample.cs -->
-
-.. code-block:: csharp
-
-   using UnityEngine;
-   using UltraVehicleSystem;
-
-   namespace VehicleDocumentationExamples
-   {
-       public sealed class ForceIKHandleExample : MonoBehaviour
-       {
-           public VehicleController vehicle;
-           public PassengerSeat seat;
-           public VehicleHandle target;
-           private HandleUse use;
-
-           public void Acquire()
-           {
-               if (!vehicle || !seat || !target) return;
-               use?.Cancel();
-               use = vehicle.handles.TryAcquire(
-                   seat, PassengerBodyPart.RightHand, target, forceIK: true);
-           }
-
-           public void Release()
-           {
-               use?.Cancel();
-               use = null;
-           }
-
-           private void OnDisable() => Release();
-       }
-   }
-
-For timed travel, use ``TryUse(seat, limb, target, forceIK: true)`` or ``TryReachAndHold(seat, limb, target, forceIK: true)``. A held token can ``Return()`` through its normal return path or ``Cancel()`` immediately. ``TryAcquire`` also accepts the currently assigned home handle when forcing IK, allowing an animated limb to temporarily follow its existing contact.
-
-For normal per-handle ownership, set ``target.ControlMode = HandleControlMode.IK`` or ``HandleControlMode.AnimatorIK``. The seat controller stays unchanged. Switching this mode cancels the handle's existing requests; ``TryAcquireAnimator`` explicitly reserves animation ownership for an interaction. For ``IKThenAnimator``, the IK override yields while full-limb animation plays and resumes for return; a finger-only animation can keep the arm on its IK target.
-
-``config.IsIKForced`` reports a handle-driven or temporary IK override; ``config.EffectiveMode`` includes it. ``use.ForcesIK`` records whether a token borrowed IK. The original bindings, hold setting and authored mode are restored when ownership ends. Priority interruptions retain the original return destination and override; old tokens cannot release a replacement request. A new external binding/mode assignment stops the old override rather than being overwritten by it. Damage releases always take precedence.
-
-In Animator seats, ``HumanoidPassenger.SolveSeatedIK()`` solves only forced limbs. Animator + IK keeps its normal full overlay; physical passengers keep their native body policy. Leave ``automaticSeatedIK`` enabled, or call ``SolveSeatedIK()`` after evaluating your own animation pipeline. Custom and Attach Only seat controllers and unmapped limb chains are not eligible for this automatic overlay.
-
-The demo's ``AimingHandDemo`` uses the same forced request for Y: Right → Left → Off, including the yellow Animator car. It does not switch the seat's controller or implement a separate aiming IK solver.
+:ref:`VehicleHandle <uvs-api-handles--vehiclehandle>` gives the full declared contract.
+
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                                                                                               | Behavior                                                                                                                                                                                                                             |
++======================================================================================================================================+======================================================================================================================================================================================================================================+
+| ``public void ApplyAnimatorController()``                                                                                            | Apply live mode/Animator settings; normally called by the handle's Update.                                                                                                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void BeginInteraction()``                                                                                                   | UnityEvent-compatible entry point for the configured gesture; use TryBeginInteraction to check admission.                                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void BeginValueChange()``                                                                                                   | Starts explicit value activity, emitting Started only when idle. Constant-value samples still emit progress until EndValueChange.                                                                                                    |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void BindBodyPart(PassengerBodyPart part, HumanoidIK ik, Animator animator)``                                       | Prepares the selected limb for this handle, including supported adaptive finger binding and palm frames.                                                                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void CancelInteraction()``                                                                                                  | Cancel the handle-owned gesture.                                                                                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void ClearHandPositionOverride(HandleHandSide side)``                                                                       | Restores normal selection and wheel pressure/pinch blending for that hand.                                                                                                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleContactContext> ContactEnded``                                                                           | Once when contact is lost or released (including exit/disable/rebinding). Payload retains the original occupant identity.                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleContactContext> ContactStarted``                                                                         | Once on a not-touching to touching transition; C# event runs before the matching UnityEvent.                                                                                                                                         |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleContactContext> ContactUpdated``                                                                         | Once per contact sample while touching, including its start sample. Payload identifies handle, seat, occupant, part and target.                                                                                                      |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleControlMode> ControlModeChanged``                                                                        | Notification after the handle mode changes.                                                                                                                                                                                          |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void EndValueChange()``                                                                                                     | Ends manual/automatic activity and emits Stopped once if active. Safe when idle.                                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void EnsureHandPositions()``                                                                                                | Initializes missing configurations with the defaults for the handle type; existing local or shared poses remain unchanged.                                                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public abstract Transform GetAnchor(PassengerBodyPart part)``                                                                      | Returns the stable contact transform for a supported body part, or ``null`` when unavailable/unsupported.                                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleFingerPosition GetFingerPosition(int positionIndex, HandleHandSide side, HandleFinger finger)``                       | Typed access to one finger of one configured hand.                                                                                                                                                                                   |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual Transform GetHandAnchor(PassengerBodyPart part)``                                                                   | Returns the configured palm target with pose offsets. Feet keep the raw anchor; source geometry remains on GetAnchor.                                                                                                                |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleHandPose GetHandPose(int positionIndex, HandleHandSide side)``                                                        | Resolved local/shared hand data; edits to shared data affect all handles linked to that asset.                                                                                                                                       |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleHandPosition GetHandPosition(int index)``                                                                             | Strict indexed lookup; invalid indices throw ArgumentOutOfRangeException. HandPosition(int) remains the clamped lookup.                                                                                                              |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleHandPosition GetHandPosition(string name)``                                                                           | Named lookup; a missing name throws KeyNotFoundException.                                                                                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public int GetHandPositionOverride(HandleHandSide side)``                                                                          | Returns the explicit position index, or -1 for automatic selection.                                                                                                                                                                  |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandlePoseSettings GetPoseSettings(PassengerBodyPart part)``                                                                | Returns the live settings for this body part; lazily restores a null settings object. Invalid enum throws ArgumentOutOfRangeException.                                                                                               |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float HandContact(bool left)``                                                                                      | Returns contact participation for the selected hand; guidance can remain enabled while surface contact is released.                                                                                                                  |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool HandDriven(bool left)``                                                                                        | Reports whether the selected hand should receive physical target guidance.                                                                                                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleHandPosition HandPosition(int index)``                                                                                | Returns a position, clamping the index to the available list.                                                                                                                                                                        |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool HandSteering(bool left)``                                                                                      | Reports whether the selected hand participates in steering support.                                                                                                                                                                  |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public HandleHandPosition MakeHandPositionLocal(int index)``                                                                       | Replaces the entry with a deep local copy of its resolved values, detaching any shared asset.                                                                                                                                        |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Prepare()``                                                                                                    | Initializes the contact or synchronizes its initial state without requesting a limb.                                                                                                                                                 |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void ReceiveAnimationEvent(string signal)``                                                                                 | Direct named-signal entry point, also called by the relay.                                                                                                                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void ReleaseContact(PassengerSeat seat, PassengerBodyPart part)``                                                           | Releases one tracked pair and emits Ended once if touching. Safe when untracked.                                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool ReportContact(PassengerSeat seat, PassengerBodyPart part, bool touching)``                                             | Records touching/not-touching for the current occupant. Select Manual contactSource to use the report; events are emitted when SampleContact runs. No geometric contact required in Manual mode.                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void ResetHandle()``                                                                                                | Resets local handle state through the common extensible handle contract.                                                                                                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void ResolveHandPositions(bool left, out HandleHandPose primary, out HandleHandPose secondary, out float blend)``   | Resolves local or shared left/right configurations and their blend. Base handles use their normal grip; wheels select pinch or blend pressure.                                                                                       |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void ResolveHandPositions(HandleHandSide side, out HandleHandPose primary, out HandleHandPose secondary, out float blend)`` | Typed access to the current configuration sources and blend; dispatches to the handle-specific resolver.                                                                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SampleContact(PassengerSeat seat, PassengerBodyPart part)``                                                            | Samples one tracked seat/part and emits contact transitions plus progress while touching. Seats call this after ordinary posing and rigid supports; custom pipelines can call it explicitly.                                         |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SampleInteraction(float deltaTime)``                                                                                   | Samples the current source and advances generic activity using finite nonnegative seconds. The first sample establishes a silent baseline. Built-in handles call it in LateUpdate.                                                   |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetAnimationValue(float value)``                                                                                       | Selects the explicit animation signal and stores a finite scalar X/vector. Invalid values are ignored. Sampling emits events; no mechanical action is performed.                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetAnimationValue(Vector3 value)``                                                                                     | Selects the explicit animation signal and stores a finite scalar X/vector. Invalid values are ignored. Sampling emits events; no mechanical action is performed.                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetControlMode(HandleControlMode mode)``                                                                               | Validates the control policy and cancels incompatible runtime interaction ownership.                                                                                                                                                 |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetDefaultHandPosition(int index)``                                                                                    | Sets the normal grip index with strict index validation.                                                                                                                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetFingerPosition(int positionIndex, HandleHandSide side, HandleFinger finger, HandleFingerPosition position)``        | Replaces one finger in the resolved hand; rejects null.                                                                                                                                                                              |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetHandPose(int positionIndex, HandleHandSide side, HandleHandPose pose)``                                             | Replaces resolved hand data, including the shared asset when linked; rejects null.                                                                                                                                                   |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetHandPositionOverride(HandleHandSide side, int index)``                                                              | Temporarily forces that hand to use one configured pose with no automatic gesture blend. Does not replace contact geometry, steering ownership or physics. Not serialized.                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SetInput(Command command, float deltaTime)``                                                                   | IK-only input hook for application-owned contact targets, such as an aiming hand. Instrument motion belongs to a separate animator.                                                                                                  |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetPoseTarget(PassengerBodyPart part, Transform target)``                                                              | Sets a final world-space target override for this part. Null returns to the handle contact target.                                                                                                                                   |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public void SetPoseWeights(PassengerBodyPart part, float position, float rotation, float fingers)``                                | Sets position, rotation and finger weights independently. Values clamp to 0–1; non-finite values become zero. No re-entry/rebind required.                                                                                           |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool Supports(PassengerBodyPart part)``                                                                             | Whether Allowed limbs and any specialized geometry policy permit this limb.                                                                                                                                                          |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool TrackContact(PassengerSeat seat, PassengerBodyPart part, Transform contact)``                                          | Registers a contact transform for the current occupant and limb. Returns false for inactive/transitioning/empty seats or a limb bound to another handle. Built-in humanoids register their mapped bones/palm contacts automatically. |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool TryBeginInteraction()``                                                                                                | Starts the configured handle gesture and reports whether it was accepted.                                                                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool TryGetContactState(PassengerSeat seat, PassengerBodyPart part, out HandleContactContext state)``                       | Returns the last sampled snapshot for the current occupant, or false/default when unavailable; false-contact snapshots remain valid while tracked.                                                                                   |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool TryGetHandPosition(string name, out HandleHandPosition position)``                                                     | Finds the first exact, case-sensitive position name. Returns false and null for missing/empty names.                                                                                                                                 |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleValueContext> ValueChangeStarted``                                                                       | Once when a significant value change or explicit BeginValueChange starts activity.                                                                                                                                                   |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleValueContext> ValueChangeStopped``                                                                       | Once when the value settles for valueStopDelay, explicit EndValueChange runs or the handle is disabled/destroyed.                                                                                                                    |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public event Action<HandleValueContext> ValueChanging``                                                                            | Each active changed/manual sample; does not imply contact or commit a gameplay action.                                                                                                                                               |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public UnityEvent<HandleContactContext> onContactEnded``                                                                           | Inspector-configurable counterpart of ContactEnded. Runs after the C# event for the same phase.                                                                                                                                      |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public UnityEvent<HandleContactContext> onContactStarted``                                                                         | Inspector-configurable counterpart of ContactStarted. Runs after the C# event for the same phase.                                                                                                                                    |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public UnityEvent<HandleContactContext> onContactUpdated``                                                                         | Inspector-configurable counterpart of ContactUpdated. Runs after the C# event for the same phase.                                                                                                                                    |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public UnityEvent<HandleValueContext> onValueChangeStarted``                                                                       | Inspector-configurable counterpart of ValueChangeStarted. Runs after the C# event for the same phase.                                                                                                                                |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public UnityEvent<HandleValueContext> onValueChangeStopped``                                                                       | Inspector-configurable counterpart of ValueChangeStopped. Runs after the C# event for the same phase.                                                                                                                                |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public UnityEvent<HandleValueContext> onValueChanging``                                                                            | Inspector-configurable counterpart of ValueChanging. Runs after the C# event for the same phase.                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+

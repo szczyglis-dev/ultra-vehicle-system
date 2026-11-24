@@ -8,12 +8,12 @@
 | [Clutch](#clutch) | 7 |
 | [Differential](#differential) | 7 |
 | [Differential.Axle](#differentialaxle) | 4 |
-| [Engine](#engine) | 22 |
+| [Engine](#engine) | 23 |
 | [EngineModule](#enginemodule) | 0 |
 | [FuelTank](#fueltank) | 6 |
 | [Gearbox](#gearbox) | 9 |
 | [ManualGearbox](#manualgearbox) | 0 |
-| [Nitro](#nitro) | 25 |
+| [Nitro](#nitro) | 31 |
 | [TractionControl](#tractioncontrol) | 8 |
 | [Transmission](#transmission) | 4 |
 
@@ -93,6 +93,7 @@ Resolves running state, RPM and propulsion torque/power.
 | --- | --- | --- | --- |
 | `airborneTorqueWeight` | `float` | Relative torque weight of airborne wheels when other driven wheels have contact. One disables contact-based redistribution. | `.1`; Range: 0 to 1 |
 | `clutch` | `Clutch` ([fields](Engine.md#clutch)) | Clutch controlling how engine torque reaches the gearbox. Setup finds the vehicle's Clutch module when empty. Without an active clutch, the engine uses its simpler torque-transfer path. | `None / unassigned` |
+| `compensateDriveResistance` | `bool` | Let available engine torque overcome opposing gravity and measured drivetrain resistance without consuming the acceleration budget. Does not create extra torque, bypass tire grip or move the obstacle directly. Disable for a strict propulsion-force cap. | `true` |
 | `directSpeedLimiterRangeKph` | `float` | Speed band below the direct-drive limit over which propulsion fades out. A larger band softens the approach to top speed but starts reducing torque earlier. | `15`; Speed field; stored in km/h, displayed in the selected speed unit |
 | `engineRunning` | `bool` | Start with the engine running. Can also be changed during Play Mode. | `true` |
 | `gearbox` | `Gearbox` ([fields](Engine.md#gearbox)) | Gearbox converting engine RPM and torque into wheel speed and torque. If missing or disabled, propulsion uses the simpler direct-drive path without selectable gear ratios. | `None / unassigned` |
@@ -101,8 +102,7 @@ Resolves running state, RPM and propulsion torque/power.
 | `invertDriveDirection` | `bool` | Reverse longitudinal wheel torque and propulsion without changing throttle input, gears or ignition. | `false` |
 | `launchBlendSpeed` | `float` | Forward speed in m/s by which assisted launch-RPM support has fully faded. Increase to keep launch rev support through a longer pull-away. | `8`; Speed field; stored in m/s, displayed in the selected speed unit |
 | `launchRpm` | `float` | Assisted engine RPM target when pulling away. Higher values let the engine rev more during launch before coupling to road speed. | `3200`; Minimum: 0 |
-| `maximumDriveAcceleration` | `float` | Propulsion acceleration budget in m/s²; zero disables the limit. Compensate Drive Resistance additionally admits opposing load within available torque/power. | `11`; Minimum: 0 |
-| `compensateDriveResistance` | `bool` | Include opposing gravity and measured native drivetrain resistance in the acceleration-limit budget, without exceeding engine torque or power. | `true` |
+| `maximumDriveAcceleration` | `float` | Maximum propulsion acceleration in m/s²; zero disables this torque limit. With Compensate Drive Resistance, opposing gravity and chassis contact load are allowed in addition to this acceleration budget, within engine torque and power limits. | `11`; Minimum: 0 |
 | `maximumPowerKw` | `float` | Maximum output power in kW; zero disables the power cap. | `350`; Minimum: 0 |
 | `maxRpm` | `float` | Upper engine RPM used to limit revs and evaluate the torque curve. Gear shifting and clutch calculations use this limit too; increasing it lets the engine rev higher. | `8000`; Minimum: 1000 |
 | `peakTorque` | `float` | Peak engine torque in N·m before gearbox and final-drive multiplication. Raise for a stronger geared engine; power and acceleration caps can still limit what reaches the wheels. | `500`; Minimum: 0 |
@@ -158,7 +158,7 @@ Shared validated selection, ratios and shift state.
 | `finalDrive` | `float` | Reduction multiplying every forward and reverse gear ratio. A larger value gives more wheel torque and higher engine RPM at the same road speed, reducing speed per engine revolution. | `3.4`; Minimum: 0.1f |
 | `forwardRatios` | `float[]` | Forward gear ratios, first gear at index 0. Used directly with no custom speed ranges. | `{4.7949967, 2.833407, 2.010805, 1.5203648, 1.222254, 1.0054024}` |
 | `gearSpeedLimitsKph` | `float[]` | Optional road speed at engine redline per forward gear, in km/h. Empty uses the authored Forward Ratios directly. Non-empty values derive ratios from wheel radius and engine RPM. | `Empty list`; Speed field; stored in km/h, displayed in the selected speed unit |
-| `reverseRatio` | `float` | Positive reverse gear reduction before final drive. | `8.904994`; Minimum: 0.1f |
+| `reverseRatio` | `float` | Magnitude of the reverse gear ratio; reverse direction is handled by the transmission. | `8.904994`; Minimum: 0.1f |
 | `reverseSpeedLimitKph` | `float` | Optional reverse road speed at redline; zero preserves the authored Reverse Ratio. | `0`; Speed field; stored in km/h, displayed in the selected speed unit |
 | `shiftDuration` | `float` | Seconds spent changing gears, during which drive transfer is interrupted/blended. Increase for a slower shift with a more noticeable power gap. | `.14`; Minimum: 0 |
 
@@ -174,43 +174,45 @@ No additional Inspector settings are declared on this type. Use the inherited se
 
 ## Nitro
 
-**Source:** `Runtime/Engine/Boost/Nitro.cs`. Optional component; excluded from Full setup.
+### State and configuration
 
-**Inherited settings:** [EngineModule](Engine.md#enginemodule).
+**Source:** `Runtime/Engine/Boost/Nitro.cs`. Component / asset.
+
+**Inherited settings:** [EngineModule](Engine.md#enginemodule). These settings also appear on this type.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `suspensionKick` | `BoostSuspensionSettings` | Supported spring kick; see [configuration](../DrivingActions.md#suspension-kick-and-departure-wheelspin). | Enabled; front 0.035 m, rear 0.02 m; rise 0.15 s, return 0.3 s; maximum tilt 20 degrees |
-| `launchWheelspin` | `bool` | Extra driven-tire grip pulse on departure. | `true` |
-| `launchSpeed` | `float` | Departure trigger speed in m/s. | `1`, minimum 0 |
-| `launchGripDuration` | `float` | Smooth launch grip recovery in seconds. | `.65f`, minimum .01 |
-| `launchForwardGrip` | `float` | Longitudinal launch grip fraction. | `.35f`, range .05–1 |
-| `launchSidewaysGrip` | `float` | Lateral launch grip fraction. | `.65f`, range .05–1 |
-| `accelerationMultiplier` | `float` | Multiplier for the finite wheel-drive acceleration cap. Default 3. | `3f` |
-| `additionalAcceleration` | `float` | Additional grounded chassis acceleration in m/s², independent of tire torque limits. Default 10; zero uses engine torque only. Stops immediately on release, braking or loss of eligibility; fades near boosted top speed. | `10` |
-| `additionalMaxRpmPercent` | `float` | Extra engine redline as a percentage during boost. Default 25 raises 8000 RPM to 10000; zero preserves the normal limit. Scales with final partial boost strength and stays available through an internal shift. | `25`, minimum 0 |
-| `additionalPowerKw` | `float` | Extra engine power allowance in kW. Default 350; an uncapped engine remains uncapped. | `350` |
-| `allowPitchAboveMaxRpm` | `bool` | Default true. Controls RPM-driven Engine Audio pitch above its ordinary maximum when actual RPM exceeds this engine base redline. Applies per Nitro component to sounds following its engine; constant/motion/fixed-pitch sounds remain unchanged. Unity pitch ceiling remains 3. | true |
-| `allowReverse` | `bool` | Permit boost in reverse. Default true. | `true` |
-| `forceForwardDirection` | `bool` | Request forward drive during boost; disable to retain the selected direction. | `true` |
-| `amount` | `float` | Starting/current charge, clamped to capacity. Use SetAmount/AddNitro/Refill at runtime. | `100` |
+| `accelerationMultiplier` | `float` | Multiplier for the finite wheel-drive acceleration cap. Default 3. | `3`; Minimum: 1 |
+| `additionalAcceleration` | `float` | Additional grounded chassis acceleration in m/s², independent of tire torque limits. Default 10; zero uses engine torque only. Stops immediately on release, braking or loss of eligibility; fades near boosted top speed. | `10`; Minimum: 0 |
+| `additionalMaxRpmPercent` | `float` | Extra engine redline as a percentage during boost. Default 25 raises 8000 RPM to 10000; zero preserves the normal limit. Scales with final partial boost strength and stays available through an internal shift. | `25`; Minimum: 0 |
+| `additionalPowerKw` | `float` | Extra engine power allowance in kW. Default 350; an uncapped engine remains uncapped. | `350`; Minimum: 0 |
+| `allowPitchAboveMaxRpm` | `bool` | Default true. Controls RPM-driven Engine Audio pitch above its ordinary maximum when actual RPM exceeds this engine base redline. Applies per Nitro component to sounds following its engine; constant/motion/fixed-pitch sounds remain unchanged. Unity pitch ceiling remains 3. | `true` |
+| `allowReverse` | `bool` | Permit boost in reverse. Default false. | `true` |
+| `amount` | `float` | Starting/current charge in Capacity units. Default 100. Use SetAmount/AddNitro/Refill at runtime to receive charge events. | `100`; Minimum: 0 |
 | `automaticRefill` | `bool` | Refill automatically after release and refillDelay. Default false; demo Car enables it. | `false` |
-| `buildUpTime` | `float` | Seconds for boost power to build from zero to full. Default 0.2; zero gives immediate full power. Release/braking removes assistance immediately. Consumption follows the resolved power fraction. Internal shifts preserve the existing build-up level. | `.2f`, minimum 0 |
-| `capacity` | `float` | Maximum charge in arbitrary consistent units. Default 100; minimum 0.01. | `100` |
+| `buildUpTime` | `float` | Seconds for boost power to build from zero to full. Default 0.2; zero gives immediate full power. Release/braking removes assistance immediately. Consumption follows the resolved power fraction. Internal shifts preserve the existing build-up level. | `.2`; Minimum: 0 |
+| `capacity` | `float` | Maximum charge in arbitrary consistent units. Default 100; minimum 0.01. | `100`; Minimum: .01f |
 | `consumesNitro` | `bool` | Consume supply while boosting. Default true; false permits unlimited boost even with zero charge. | `true` |
-| `cooldown` | `float` | Seconds before a new activation after boost stops. Default 0.25. | `.25f` |
-| `engine` | `Engine` | Registered engine receiving the boost; leave unassigned to resolve it from the owning vehicle. | `None / unassigned` |
-| `fullTankDuration` | `float` | Seconds of full boost supplied by a full tank. Default 15; consumption is capacity / duration per second. | `15` |
-| `lockAutomaticGearChanges` | `bool` | Default true. Suppresses automatic gear selection while boost is actually active, including an internal shift interruption. Explicit manual gear requests still use normal safety guards. Disabling this restores the usual automatic shift behavior. | true |
-| `minimumActivationAmount` | `float` | Minimum charge needed to begin a new activation. Default 1; an active use may consume its remaining partial charge. | `1` |
-| `minimumThrottle` | `float` | Minimum requested throttle magnitude required for boost. Default 0.1; nonzero propulsion demand is always required. | `.1f` |
-| `refillDelay` | `float` | Seconds since last boost before automatic refill; a held request also blocks refill. Default 1. | `1` |
-| `refillPerSecond` | `float` | Automatic refill rate in charge units per second. Default 25. | `25` |
-| `requested` | `bool` | Explicit held API/Inspector request combined with Command.Nitro. | `false` |
+| `cooldown` | `float` | Seconds before a new activation after boost stops. Default 0.25. | `.25`; Minimum: 0 |
+| `engine` | `Engine` ([fields](Engine.md#engine)) | Registered engine receiving the boost; leave unassigned to resolve it from the owning vehicle. | `None / unassigned` |
+| `forceForwardDirection` | `bool` | Request forward acceleration while boosting, even when reversing. Applies forward wheel torque immediately while the body may still be moving backwards. | `true` |
+| `fullTankDuration` | `float` | Seconds of full boost supplied by a full tank. Default 15; consumption is capacity / duration per second. | `15`; Minimum: .01f |
+| `launchForwardGrip` | `float` | Fraction of normal longitudinal grip retained at the start of departure. Combines with burnout by choosing the lower grip, never multiplying reductions. | `.35`; Range: .05f to 1 |
+| `launchGripDuration` | `float` | Seconds for launch grip to recover smoothly. | `.65`; Minimum: .01f |
+| `launchSidewaysGrip` | `float` | Fraction of normal lateral grip retained at departure. | `.65`; Range: .05f to 1 |
+| `launchSpeed` | `float` | Road speed in m/s at which departure triggers the extra wheelspin, once per nitro activation. | `1`; Minimum: 0 |
+| `launchWheelspin` | `bool` | Brief additional driven-wheel grip reduction on departure, independent of sustained burnout grip. | `true` |
+| `lockAutomaticGearChanges` | `bool` | Default true. Suppresses automatic gear selection while boost is actually active, including an internal shift interruption. Explicit manual gear requests still use normal safety guards. Disabling this restores the usual automatic shift behavior. | `true` |
+| `minimumActivationAmount` | `float` | Minimum charge needed to begin a new activation. Default 1; an active use may consume its remaining partial charge. | `1`; Minimum: 0 |
+| `minimumThrottle` | `float` | Minimum requested throttle magnitude required for boost. Default 0.1; nonzero propulsion demand is always required. | `.1`; Range: 0 to 1 |
+| `refillDelay` | `float` | Seconds since last boost before automatic refill; a held request also blocks refill. Default 1. | `1`; Minimum: 0 |
+| `refillPerSecond` | `float` | Automatic refill rate in charge units per second. Default 25. | `25`; Minimum: 0 |
+| `requested` | `bool` | Explicit held API/Inspector request, combined with Command.Nitro. Default false. | `false` |
 | `requireGroundContact` | `bool` | Require at least one supported driven tire. Default false. | `false` |
-| `shiftSpeedMultiplier` | `float` | Gear-change and automatic gear dwell speed multiplier during boost. Default 4; preserves authored gearbox settings. | `4` |
-| `topSpeedMultiplier` | `float` | Multiplier for the engine road-speed envelope. Default 1.35. | `1.35f` |
-| `torqueMultiplier` | `float` | Engine combustion/direct-drive torque multiplier. Default 3. | `3f` |
+| `shiftSpeedMultiplier` | `float` | Gear-change and automatic gear dwell speed multiplier during boost. Default 4; preserves authored gearbox settings. | `4`; Minimum: 1 |
+| `suspensionKick` | `BoostSuspensionSettings` ([fields](Drive.md#boostsuspensionsettings)) | Physical front extension and rear compression on supported boost onset. Held throughout active boost acceleration, with a smooth return when boost ends. | `new BoostSuspensionSettings()` |
+| `topSpeedMultiplier` | `float` | Multiplier for the engine road-speed envelope. Default 1.35. | `1.35`; Minimum: 1 |
+| `torqueMultiplier` | `float` | Engine combustion/direct-drive torque multiplier. Default 3. | `3`; Minimum: 1 |
 
 ## TractionControl
 
@@ -224,12 +226,12 @@ Limits propulsion according to contact capacity and slip.
 | --- | --- | --- | --- |
 | `corneringFreedom` | `float` | Allow power-dependent wheelspin during tight powered turns, while retaining straight-line launch control. | `.65`; Range: 0 to 1 |
 | `launchReferenceSpeed` | `float` | Low-speed reference in m/s used to stabilize slip/traction calculations during launch. | `3`; Speed field; stored in m/s, displayed in the selected speed unit |
-| `minimumTorqueScale` | `float` | Lowest fraction of requested propulsion that traction control can leave during wheelspin. Lower values allow a deeper torque cut; higher values keep more drive even while slipping. | `.08`; Range: 0 to 1 |
-| `recoveryRate` | `float` | Rate at which allowed drive torque recovers after excess slip subsides. | `1.8`; Minimum: 0 |
-| `reductionRate` | `float` | Rate at which allowed drive torque decreases when wheel slip exceeds the target. | `12`; Minimum: 0 |
+| `minimumTorqueScale` | `float` | Lowest fraction of requested propulsion that traction control can leave during wheelspin. Lower values allow a deeper torque cut; higher values keep more drive even while slipping. | `.2`; Range: 0 to 1 |
+| `recoveryRate` | `float` | Rate at which allowed drive torque recovers after excess slip subsides. | `4`; Minimum: 0 |
+| `reductionRate` | `float` | Rate at which allowed drive torque decreases when wheel slip exceeds the target. | `8`; Minimum: 0 |
 | `reserveGripForCornering` | `bool` | Reduces propulsion when the tires need grip for turning. This helps avoid sliding wide under power, at the cost of acceleration through a corner. | `false` |
-| `targetSlip` | `float` | Desired longitudinal slip magnitude while applying propulsion torque. | `.22`; Minimum: .01f |
-| `tractionReserve` | `float` | Fraction of estimated traction kept available when limiting drive torque. | `.9`; Range: .1f to 1 |
+| `targetSlip` | `float` | Desired longitudinal slip magnitude while applying propulsion torque. | `.24`; Minimum: .01f |
+| `tractionReserve` | `float` | Fraction of estimated traction kept available when limiting drive torque. | `.98`; Range: .1f to 1 |
 
 ## Transmission
 

@@ -131,10 +131,21 @@ The lists below cover public methods and events for this topic and their package
 | --- | --- |
 | `public virtual void Apply(bool requested)` | Applies requested lit state/intensity to configured native lights and emission outputs, publishing `LitChanged` on output changes. |
 | `public virtual void RefreshConfiguration()` | Reapplies this channel's configured appearance and outputs while retaining its last request. |
+| `public virtual void ReleaseOutputs()` | Restore tracked lens materials and property blocks; Lights manages this on disable. |
 
 | Event / callback | Role |
 | --- | --- |
 | `public event Action<bool> LitChanged` | When a `LightChannel`'s actual lit output changes. Payload: bool. |
+
+### LightLensBinding
+
+[LightLensBinding](../API/Lights.md#lightlensbinding) gives the full declared contract.
+
+| Method | Role |
+| --- | --- |
+| `public void Apply(bool lit)` | Assign the existing on/off material for this request. Does not clone or edit materials; Edit Mode leaves serialized references unchanged. |
+| `public void RefreshConfiguration()` | Rebind changed renderer/slot/material references, retaining the latest request. |
+| `public void Release()` | Release this binding and restore the original slot when its last owner is released. |
 
 ### Lights
 
@@ -143,40 +154,46 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public override void Configure(VehicleController vehicle)` | Resolves missing Engine/Events references without replacing explicit assignments. |
-| `public override void Step(VehicleController vehicle, Command command, float dt)` | Consumes light/indicator commands, advances the shared blink clock and applies resolved lamp/emission output. |
 | `public virtual LightChannel GetChannel(VehicleLightType type)` | Returns the configured lighting channel for the selected light role. |
 | `public virtual void RestoreAutomaticLights()` | Clears forced lighting overrides so automatic mechanic-following resumes. |
 | `public virtual void SetBeamMode(BeamMode mode)` | Requests Off, Low or High beam policy through the lighting state machine. |
-| `public virtual void SetLowBeams(bool on)` | Requests low-beam availability/state through normal beam policy. |
-| `public virtual void SetTailLights(bool on)` | Changes the tail-light request/availability policy. |
-| `public virtual void SetTailOverride(bool? on)` | Forces tail output on/off; `null` resumes normal beam-following. |
+| `public virtual void SetBrakeOverride(bool? on)` | Forces brake output on/off; `null` restores mechanic-following. |
+| `public virtual void SetChannelEnabled(VehicleLightType type, bool available)` | Changes availability of a selected lighting channel independently of its requested state. |
 | `public virtual void SetHazards(bool on)` | Requests synchronized left/right hazard indicators. |
-| `public virtual void SetLeftIndicator(bool on)` | Requests or clears the left turn-indicator state. |
-| `public virtual void SetRightIndicator(bool on)` | Requests or clears the right turn-indicator state. |
 | `public virtual void SetHeadlights(bool on)` | Requests the headlight on/off policy through the lighting state machine. |
 | `public virtual void SetHighBeams(bool on)` | Requests or releases high beams using the component's low-beam return policy. |
 | `public virtual void SetIndicators(IndicatorState value)` | Requests the selected direction/hazard indicator state. |
-| `public virtual void SetBrakeOverride(bool? on)` | Forces brake output on/off; `null` restores mechanic-following. |
+| `public virtual void SetLeftIndicator(bool on)` | Requests or clears the left turn-indicator state. |
+| `public virtual void SetLowBeams(bool on)` | Requests low-beam availability/state through normal beam policy. |
 | `public virtual void SetReverseOverride(bool? on)` | Forces reverse lamp output on/off; `null` resumes mechanic-following. |
-| `public virtual void SetChannelEnabled(VehicleLightType type, bool available)` | Changes availability of a selected lighting channel independently of its requested state. |
+| `public virtual void SetRightIndicator(bool on)` | Requests or clears the right turn-indicator state. |
+| `public virtual void SetTailLights(bool on)` | Changes the tail-light request/availability policy. |
+| `public virtual void SetTailOverride(bool? on)` | Forces tail output on/off; `null` resumes normal beam-following. |
+| `public override void Step(VehicleController vehicle, Command command, float dt)` | Consumes light/indicator commands, advances the shared blink clock and applies resolved lamp/emission output. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> IndicatorPhaseChanged` | When the shared flashing output phase changes. Payload: lit bool; hazards share one phase. |
 | `public event System.Action<BeamMode> BeamModeChanged` | When requested beam mode changes. Payload: `BeamMode`. |
+| `public event System.Action<bool> IndicatorPhaseChanged` | When the shared flashing output phase changes. Payload: lit bool; hazards share one phase. |
 | `public event System.Action<IndicatorState> IndicatorsChanged` | When requested direction/hazard state changes. Payload: `IndicatorState`, not blink phase. |
 
 | Declaration | Behavior |
 | --- | --- |
 | `public virtual CustomLightGroup GetCustomLight(string id)` | Finds a custom group by its exact ID. Returns null for blank, missing or ambiguous duplicate IDs. |
-| `public virtual bool RegisterCustomLight(CustomLightGroup group)` | Adds a nonnull group with a unique, nonblank ID, then applies its current request. Returns false for invalid or duplicate registrations. |
-| `public virtual bool UnregisterCustomLight(string id)` | Turns the identified group off and removes it. Returns false for an unresolved ID. |
-| `public virtual bool SetCustomLight(string id, bool on)` | Sets the identified group's on request and refreshes outputs. Returns false for an unresolved ID. A disabled module or group remains dark. |
-| `public virtual bool ToggleCustomLight(string id)` | Toggles the identified group's requested on state; returns false for an unresolved ID. |
-| `public virtual bool SetCustomLightEnabled(string id, bool available)` | Changes group availability while retaining its on request. Returns false for an unresolved ID. |
-| `public virtual void SetAllCustomLights(bool on)` | Sets the requested on state of every custom group without changing built-in lighting channels. |
 | `public virtual void RefreshCustomLights()` | Applies custom requests and changed configuration immediately without advancing blink clocks. Removed list entries are extinguished. |
 | `public virtual void RefreshLightingConfiguration()` | Reapplies standard/custom lamp appearance and bindings while preserving requested states and blink clocks. |
+| `public virtual bool RegisterCustomLight(CustomLightGroup group)` | Adds a nonnull group with a unique, nonblank ID, then applies its current request. Returns false for invalid or duplicate registrations. |
+| `public virtual void SetAllCustomLights(bool on)` | Sets the requested on state of every custom group without changing built-in lighting channels. |
+| `public virtual bool SetCustomLight(string id, bool on)` | Sets the identified group's on request and refreshes outputs. Returns false for an unresolved ID. A disabled module or group remains dark. |
+| `public virtual bool SetCustomLightEnabled(string id, bool available)` | Changes group availability while retaining its on request. Returns false for an unresolved ID. |
+| `public virtual bool ToggleCustomLight(string id)` | Toggles the identified group's requested on state; returns false for an unresolved ID. |
+| `public virtual bool UnregisterCustomLight(string id)` | Turns the identified group off and removes it. Returns false for an unresolved ID. |
+
+### VehicleLampGlow
+
+| Signature | Role |
+| --- | --- |
+| `public void Apply(bool lit, Color color)` | Set a lens halo directly when implementing a custom lighting backend; LightChannel normally calls it. |
 
 ### VehicleModule
 
@@ -185,18 +202,12 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
-
-### VehicleLampGlow
-
-| Signature | Role |
-| --- | --- |
-| `public void Apply(bool lit, Color color)` | Set a lens halo directly when implementing a custom lighting backend; LightChannel normally calls it. |

@@ -57,11 +57,11 @@ This completes the initial setup procedure. The following tools are for managing
 
 ## Manage joints
 
-At the bottom of the **Humanoid Passenger** Inspector, **Ragdoll Joint Settings** provides optional Edit Mode tools for joint IDs, copying, resetting and removal. Choose the operation you need; do not run all of them in sequence.
+**Humanoid Passenger > Ragdoll Joint Settings** provides optional Edit Mode tools for joint IDs, copying, resetting and removal. Choose the operation you need; do not run all of them in sequence.
 
 ### Identify and access joints by ID
 
-Each **Anatomical Joints** entry has an editable **Joint ID** immediately after **Joint**. Keep IDs unique within one Humanoid Passenger. Matching is case-sensitive and uses the complete string; empty, missing and duplicate IDs do not resolve.
+Each **Anatomical Joints** entry has an editable **Joint ID**. Keep IDs unique within one Humanoid Passenger. Matching is case-sensitive and uses the complete string; empty, missing and duplicate IDs do not resolve.
 
 **Configure anatomical joints** automatically names new entries from the connected parent bone to the joint's own bone, for example `LeftForearmToLeftHand`. It prefers Humanoid Avatar roles, then manually assigned IK roles, then sanitized bone names. Generated collisions receive `_2`, `_3` and so on. Reconfiguring preserves existing nonempty IDs for the same physical bone, including custom names. For an already tuned rig, **Assign missing joint IDs** fills empty IDs without rebuilding joints or changing their tuning. Demo mannequin prefabs already contain IDs.
 

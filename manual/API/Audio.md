@@ -23,6 +23,12 @@ Read [the system explanation](../Scripting/Audio.md) for composition, setup and 
 - [EnginePitchMode](Audio.md#enginepitchmode)
 - [EngineSoundProfile](Audio.md#enginesoundprofile)
 - [EventAudio](Audio.md#eventaudio)
+- [HandleAudio](Audio.md#handleaudio)
+- [HandleAudioAxis](Audio.md#handleaudioaxis)
+- [HandleAudioCue](Audio.md#handleaudiocue)
+- [HandleAudioDirection](Audio.md#handleaudiodirection)
+- [HandleAudioTiming](Audio.md#handleaudiotiming)
+- [HandleAudioTrigger](Audio.md#handleaudiotrigger)
 - [HornAudio](Audio.md#hornaudio)
 - [IAudioModule](Audio.md#iaudiomodule)
 - [IndicatorAudio](Audio.md#indicatoraudio)
@@ -48,17 +54,17 @@ Owns channel discovery, common audio settings and render-frame dispatch.
 
 | Member | Meaning |
 | --- | --- |
-| `public virtual AudioModule[] AudioModules { get; }` | Audio channels owned by this core, including child parts and excluding nested vehicles or nested audio cores. |
-| `public AudioContextSettings context` | Central [camera, area and medium configuration](../Audio.md#camera-area-and-medium-profiles). |
-| `public Camera ListeningCamera { get; }` | Resolved active listening camera, or null. |
-| `public CameraModule ListeningView { get; }` | Resolved vehicle view module, or null for external views. |
 | `public string AudioMedium { get; }` | Resolved listener medium: air, water or an explicit custom ID. |
+| `public virtual AudioModule[] AudioModules { get; }` | Audio channels owned by this core, including child parts and excluding nested vehicles or nested audio cores. |
 | `public VehicleAudioSettings audioSettings` | Reusable [VehicleAudioSettings](Audio.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
+| `public AudioContextSettings context` | Central [camera, area and medium configuration](../Audio.md#camera-area-and-medium-profiles). |
 | `public virtual float CornerSquealWait { get; }` | Remaining wait before a sustained corner becomes audible, in seconds. |
 | `public virtual bool EngineLoopPlaying { get; }` | Read-only/resolved engine loop playing for Audio. |
 | `public virtual float EngineLoopVolume { get; }` | Read-only/resolved engine loop volume for Audio. |
 | `public virtual float EnginePitch { get; }` | Read-only/resolved engine pitch for Audio. |
 | `public virtual float EngineToneCutoff { get; }` | Current engine low-pass filter cutoff, in Hz. |
+| `public Camera ListeningCamera { get; }` | Resolved active listening camera, or null. |
+| `public CameraModule ListeningView { get; }` | Resolved vehicle view module, or null for external views. |
 | `public virtual int PlayedEventCount { get; }` | Read-only/resolved played event count for Audio. |
 | `public VehicleController vehicle` | Assign the vehicle VehicleController component/asset used by Audio. |
 
@@ -67,76 +73,26 @@ Owns channel discovery, common audio settings and render-frame dispatch.
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public void RefreshPlaybackConfiguration()` | Rebuilds audio profile definitions and invalidates registered sources' static spatial/routing settings; source settings reapply at their next use. | — |
+| `public void ApplyAudioContext(AudioModule channel, AudioSource source)` | Applies matched gain, pitch, filtering and routing. | Use ordinary settings first; repeated context application does not compound gain. |
 | `public override void Configure(VehicleController owner)` | Stores the owner, ensures standard channels, refreshes channel order and resolves missing channel references. | `owner` — Unity/application owner whose identity controls this relationship or resource. |
 | `public virtual AudioSource CreateSource(string name, bool loop)` | Resolves a source using the core Audio Settings and initializes its gain to zero. For explicit ownership reporting, use VehicleAudioSettings.ResolveSource. | `name` — Generated source label. `loop` — Looping playback. Returns the resolved AudioSource. |
 | `public virtual void EnsureModules(System.Func<System.Type, AudioModule> addChannel = null)` | Ensures the audio core has its required standard channel components. | `addChannel` — Optional audio-channel creation callback. Default: `null`. |
 | `public virtual float FilterCornerSqueal(float skid, bool corner, float deltaTime)` | Filters or evaluates corner squeal using the tire-audio policy without changing tire physics. | `skid` — Resolved skid activity. `corner` — Corner, interpreted by this operation in the declared type. `deltaTime` — Elapsed time in seconds supplied by the owning loop. **Returns:** Computed float in the operation's documented unit/domain. |
-| `public virtual void PlayEvent(EffectEvent effect)` | Plays the configured presentation sound for a vehicle effect event. | `effect` — Resolved vehicle `EffectEvent` to present. |
-| `public virtual void RefreshAudioModules()` | Rebuilds the audio core's channel snapshot in effective execution order. | No arguments; no returned value. |
-| `public virtual void UpdateLoop(AudioSource source, AudioClip clip, float volume, float pitch, float blend, VehicleAudioSettings settings = null)` | Smooths loop gain and pitch, updates the recording, and starts/stops playback at the audible threshold. Optional settings select per-sound routing; null uses the core settings. Core Volume, Pitch and Enabled control the channel mix. | — |
-| `public void SetListeningCamera(Camera camera, CameraModule module = null)` | Uses externally supplied listening context. | Optional module identifies a vehicle view. |
-| `public void UseAutomaticListeningCamera()` | Restores active vehicle-view / Camera.main detection. | No arguments. |
-| `public void SetAudioMedium(string medium)` | Overrides automatic medium detection. | Case-sensitive ID; null/empty restores automatic detection. |
-| `public void RefreshAudioContext()` | Refreshes matching camera, area and medium conditions against prepared profile definitions. | Called automatically by rendering/playback. |
-| `public void RefreshAudioProfiles()` | Rebuilds profile definitions and replacement-clip lists after code edits, additions or replacements. | Existing profile `enabled` switches need no rebuild. |
-| `public void RegisterAudioSource(AudioModule channel, AudioSource source)` | Associates a source with this context and channel scope. | Does not transfer source ownership. |
-| `public void UnregisterAudioChannel(AudioModule channel)` | Restores and releases context state for a channel. | Called by the AudioModule lifecycle. |
 | `public AudioClip GetOriginalLoopClip(AudioSource source)` | Reads the logical recording before context replacement. | Returns the original clip or current source clip. |
-| `public AudioClip ResolveLoopClip(AudioModule channel, AudioSource source, AudioClip original)` | Selects a stable loop replacement from matching rules. | Returns null for an enabled empty replacement list. |
-| `public void ApplyAudioContext(AudioModule channel, AudioSource source)` | Applies matched gain, pitch, filtering and routing. | Use ordinary settings first; repeated context application does not compound gain. |
-| `public AudioClip PlayOneShot(AudioModule channel, AudioSource source, AudioClip original, float volume = 1)` | Plays a context-selected one-shot using configured source settings. | Returns the selected clip or null when unavailable/silenced. |
 | `public AudioClip PlayClip(AudioModule channel, AudioSource source, AudioClip original)` | Plays a context-selected recording through source.clip. | Returns the selected clip or null when unavailable/silenced. |
-
-## AudioContextSettings
-
-**Runtime/Effects/Audio/Context/AudioContextProfile.cs**
-
-Serialized context configuration on Audio. `enabled` gates the layer; `cameras` and `listenerCamera` override automatic view lookup; `waterProvider` supplies surface samples; `underwaterDepth` sets the Water threshold; `transitionSeconds` blends gain/pitch/filtering; `profiles` contains ordered AudioContextProfile entries.
-
-
-### State and configuration
-
-| Member | Meaning |
-| --- | --- |
-| `public bool enabled` | Enables this entry/layer. |
-| `public Cameras cameras` | Optional vehicle camera core. Empty uses Cameras on this vehicle. |
-| `public Camera listenerCamera` | Optional external listening camera. Empty follows this vehicle's active view, then Camera.main. Code may also call SetListeningCamera. |
-| `public WaterProvider waterProvider` | Water sampled at the listener/vehicle point, including waves. Empty uses this vehicle's Water Interaction/profile when available. |
-| `public float underwaterDepth` | Depth below the sampled surface required to select Water. |
-| `public float transitionSeconds` | Seconds to blend volume, pitch and filtering after a context change. Clip changes retain normalized loop position. |
-| `public AudioContextProfile[] profiles` | Matching profiles combine in list order: gain/pitch multiply, lowest filter cutoff wins, last mixer/spatial/clip override wins. Disabled entries have no effect. |
-
-## AudioContextProfile
-
-**Runtime/Effects/Audio/Context/AudioContextProfile.cs**
-
-An enabled entry combines optional `channel`, `view`, `camera`, `cameraModule`, `area` and `medium` conditions. `samplePoint` selects listener or vehicle position; `customMedium` supplies the ID for Custom. `name` labels the entry. Playback modifiers are `mute`, `volumeMultiplier`, `pitchMultiplier`, `lowPass`/`lowPassCutoff`, `output` and `overrideSpatialBlend`/`spatialBlend`. `clipReplacements` contains original-to-variant mappings. Matching entries stack as described in [profile authoring](../Audio.md#camera-area-and-medium-profiles).
-
-
-### State and configuration
-
-| Member | Meaning |
-| --- | --- |
-| `public string name` | Inspector label. |
-| `public bool enabled` | Enables this entry/layer. |
-| `public AudioModule channel` | Optional channel to affect, such as Engine Audio. Empty affects every audio channel of this vehicle. |
-| `public AudioContextView view` | Required view, or Any. |
-| `public Camera camera` | Optional actual rendering camera. Supports external camera systems too. |
-| `public CameraModule cameraModule` | Optional exact vehicle camera module, including custom views. |
-| `public AudioContextPoint samplePoint` | Position tested against Area and Medium. Listener follows the selected camera; Vehicle follows this vehicle. |
-| `public Collider area` | Optional volume containing the sample point. Use a Box, Sphere, Capsule or convex Mesh collider; it may be a trigger. |
-| `public AudioContextMedium medium` | Required medium, or Any. |
-| `public string customMedium` | Case-sensitive medium ID supplied through Audio.SetAudioMedium. Used with Medium = Custom. |
-| `public bool mute` | Silences matching audio. |
-| `public float volumeMultiplier` | Multiplies ordinary gain. |
-| `public float pitchMultiplier` | Multiplies ordinary pitch. |
-| `public bool lowPass` | Enables the context low-pass ceiling. |
-| `public float lowPassCutoff` | Low-pass ceiling in Hz. |
-| `public AudioMixerGroup output` | Optional mixer route for reverb, EQ, distortion or other effects. Last matching nonempty route wins; shared mixer assets are never modified. |
-| `public bool overrideSpatialBlend` | Overrides ordinary source spatial blend. |
-| `public float spatialBlend` | Override from 0 (2D) to 1 (3D). |
-| `public AudioClipReplacement[] clipReplacements` | Serialized context setting. |
+| `public virtual void PlayEvent(EffectEvent effect)` | Plays the configured presentation sound for a vehicle effect event. | `effect` — Resolved vehicle `EffectEvent` to present. |
+| `public AudioClip PlayOneShot(AudioModule channel, AudioSource source, AudioClip original, float volume = 1)` | Plays a context-selected one-shot using configured source settings. | Returns the selected clip or null when unavailable/silenced. |
+| `public void RefreshAudioContext()` | Refreshes matching camera, area and medium conditions against prepared profile definitions. | Called automatically by rendering/playback. |
+| `public virtual void RefreshAudioModules()` | Rebuilds the audio core's channel snapshot in effective execution order. | No arguments; no returned value. |
+| `public void RefreshAudioProfiles()` | Rebuilds profile definitions and replacement-clip lists after code edits, additions or replacements. | Existing profile `enabled` switches need no rebuild. |
+| `public void RefreshPlaybackConfiguration()` | Rebuilds audio profile definitions and invalidates registered sources' static spatial/routing settings; source settings reapply at their next use. | — |
+| `public void RegisterAudioSource(AudioModule channel, AudioSource source)` | Associates a source with this context and channel scope. | Does not transfer source ownership. |
+| `public AudioClip ResolveLoopClip(AudioModule channel, AudioSource source, AudioClip original)` | Selects a stable loop replacement from matching rules. | Returns null for an enabled empty replacement list. |
+| `public void SetAudioMedium(string medium)` | Overrides automatic medium detection. | Case-sensitive ID; null/empty restores automatic detection. |
+| `public void SetListeningCamera(Camera camera, CameraModule module = null)` | Uses externally supplied listening context. | Optional module identifies a vehicle view. |
+| `public void UnregisterAudioChannel(AudioModule channel)` | Restores and releases context state for a channel. | Called by the AudioModule lifecycle. |
+| `public virtual void UpdateLoop(AudioSource source, AudioClip clip, float volume, float pitch, float blend, VehicleAudioSettings settings = null)` | Smooths loop gain and pitch, updates the recording, and starts/stops playback at the audible threshold. Optional settings select per-sound routing; null uses the core settings. Core Volume, Pitch and Enabled control the channel mix. | — |
+| `public void UseAutomaticListeningCamera()` | Restores active vehicle-view / Camera.main detection. | No arguments. |
 
 ## AudioClipReplacement
 
@@ -144,20 +100,13 @@ An enabled entry combines optional `channel`, `view`, `camera`, `cameraModule`, 
 
 `enabled` gates the mapping; `original` identifies a recording; `clips` supplies random variants. An enabled empty/null list is silent. Null slots are skipped, and continuous loops retain their selected variant until the rule or available variants change.
 
-
 ### State and configuration
 
 | Member | Meaning |
 | --- | --- |
+| `public AudioClip[] clips` | Random replacements for the original recording. An empty list deliberately silences it. Loops keep one variant until the matching rule changes. |
 | `public bool enabled` | Enables this entry/layer. |
 | `public AudioClip original` | Original recording matched by this replacement. |
-| `public AudioClip[] clips` | Random replacements for the original recording. An empty list deliberately silences it. Loops keep one variant until the matching rule changes. |
-
-## AudioContextView
-
-**Runtime/Effects/Audio/Context/AudioContextProfile.cs**
-
-Values: `Any`, `Orbit`, `Interior`, `Custom`, `External`. External means a listening camera without a vehicle CameraModule.
 
 ## AudioContextMedium
 
@@ -170,6 +119,60 @@ Values: `Any`, `Air`, `Water`, `Custom`. Custom uses AudioContextProfile.customM
 **Runtime/Effects/Audio/Context/AudioContextProfile.cs**
 
 Values: `Listener`, `Vehicle`. Selects the world position tested for area containment and automatic medium detection.
+
+## AudioContextProfile
+
+**Runtime/Effects/Audio/Context/AudioContextProfile.cs**
+
+An enabled entry combines optional `channel`, `view`, `camera`, `cameraModule`, `area` and `medium` conditions. `samplePoint` selects listener or vehicle position; `customMedium` supplies the ID for Custom. `name` labels the entry. Playback modifiers are `mute`, `volumeMultiplier`, `pitchMultiplier`, `lowPass`/`lowPassCutoff`, `output` and `overrideSpatialBlend`/`spatialBlend`. `clipReplacements` contains original-to-variant mappings. Matching entries stack as described in [profile authoring](../Audio.md#camera-area-and-medium-profiles).
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public Collider area` | Optional volume containing the sample point. Use a Box, Sphere, Capsule or convex Mesh collider; it may be a trigger. |
+| `public Camera camera` | Optional actual rendering camera. Supports external camera systems too. |
+| `public CameraModule cameraModule` | Optional exact vehicle camera module, including custom views. |
+| `public AudioModule channel` | Optional channel to affect, such as Engine Audio. Empty affects every audio channel of this vehicle. |
+| `public AudioClipReplacement[] clipReplacements` | Serialized context setting. |
+| `public string customMedium` | Case-sensitive medium ID supplied through Audio.SetAudioMedium. Used with Medium = Custom. |
+| `public bool enabled` | Enables this entry/layer. |
+| `public bool lowPass` | Enables the context low-pass ceiling. |
+| `public float lowPassCutoff` | Low-pass ceiling in Hz. |
+| `public AudioContextMedium medium` | Required medium, or Any. |
+| `public bool mute` | Silences matching audio. |
+| `public string name` | Inspector label. |
+| `public AudioMixerGroup output` | Optional mixer route for reverb, EQ, distortion or other effects. Last matching nonempty route wins; shared mixer assets are never modified. |
+| `public bool overrideSpatialBlend` | Overrides ordinary source spatial blend. |
+| `public float pitchMultiplier` | Multiplies ordinary pitch. |
+| `public AudioContextPoint samplePoint` | Position tested against Area and Medium. Listener follows the selected camera; Vehicle follows this vehicle. |
+| `public float spatialBlend` | Override from 0 (2D) to 1 (3D). |
+| `public AudioContextView view` | Required view, or Any. |
+| `public float volumeMultiplier` | Multiplies ordinary gain. |
+
+## AudioContextSettings
+
+**Runtime/Effects/Audio/Context/AudioContextProfile.cs**
+
+Serialized context configuration on Audio. `enabled` gates the layer; `cameras` and `listenerCamera` override automatic view lookup; `waterProvider` supplies surface samples; `underwaterDepth` sets the Water threshold; `transitionSeconds` blends gain/pitch/filtering; `profiles` contains ordered AudioContextProfile entries.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public Cameras cameras` | Optional vehicle camera core. Empty uses Cameras on this vehicle. |
+| `public bool enabled` | Enables this entry/layer. |
+| `public Camera listenerCamera` | Optional external listening camera. Empty follows this vehicle's active view, then Camera.main. Code may also call SetListeningCamera. |
+| `public AudioContextProfile[] profiles` | Matching profiles combine in list order: gain/pitch multiply, lowest filter cutoff wins, last mixer/spatial/clip override wins. Disabled entries have no effect. |
+| `public float transitionSeconds` | Seconds to blend volume, pitch and filtering after a context change. Clip changes retain normalized loop position. |
+| `public float underwaterDepth` | Depth below the sampled surface required to select Water. |
+| `public WaterProvider waterProvider` | Water sampled at the listener/vehicle point, including waves. Empty uses this vehicle's Water Interaction/profile when available. |
+
+## AudioContextView
+
+**Runtime/Effects/Audio/Context/AudioContextProfile.cs**
+
+Values: `Any`, `Orbit`, `Interior`, `Custom`, `External`. External means a listening camera without a vehicle CameraModule.
 
 ## AudioEvent
 
@@ -268,19 +271,16 @@ Configuration/implementation type for brake audio within audio cores and channel
 | `public VehicleAudioSettings audioSettings` | Reusable [VehicleAudioSettings](Audio.md#vehicleaudiosettings) for this sound or mix stage; expand the group in the Inspector to configure playback and emitter routing. |
 | `public Vector2 brakeSpeedRangeKph` | Speed range in km/h from silent to full brake-loop volume. |
 | `public AudioClip brakingLoop` | Default brake recording. A grounded wheel uses its surface brakingLoop when supplied; the surface empty-clip checkbox selects this recording or silence otherwise. |
+| `public TireFeedback tireFeedback` | Channel-owned source. Explicit assignment wins; empty resolves from the vehicle. Engine item overrides take priority over the channel engine. |
 
 
 ### Methods
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
+| `public override void Configure(VehicleController owner)` | Resolves a missing source from the configured vehicle without replacing an explicit assignment. | — |
 | `public override void RenderAudio(Audio core, float deltaTime)` | Advances one channel's audio presentation for elapsed render time; the Audio core normally calls it. | `core` — Owning audio or passenger core supplying shared context. `deltaTime` — Elapsed time in seconds supplied by the owning loop. |
 
-
-| Declaration | Usage |
-| --- | --- |
-| `public TireFeedback tireFeedback` | Channel-owned source. Explicit assignment wins; empty resolves from the vehicle. Engine item overrides take priority over the channel engine. |
-| `public override void Configure(VehicleController owner)` | Resolves a missing source from the configured vehicle without replacing an explicit assignment. |
 ## CommercialAudio
 
 **Runtime/Effects/Audio/Modules/CommercialAudio.cs**
@@ -340,6 +340,7 @@ Owns and renders independent engine/rotor sound items. Each item has its own sou
 
 | Member | Meaning |
 | --- | --- |
+| `public Engine engine` | Channel-owned source. Explicit assignment wins; empty resolves from the vehicle. Engine item overrides take priority over the channel engine. |
 | `public virtual float EngineLoopDelayRemaining { get; }` | Largest remaining ordinary start delay among prepared items, in seconds. |
 | `public virtual bool EngineLoopPlaying { get; }` | True if any item loop is playing. |
 | `public virtual float EngineLoopVolume { get; }` | Sum of current loop-source volumes across items. Spatial attenuation and mixer output are applied separately. |
@@ -358,6 +359,7 @@ Owns and renders independent engine/rotor sound items. Each item has its own sou
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
 | `public virtual bool AddItem(EngineAudioItem item)` | Adds a non-null item with a unique non-empty ID and prepares its engine subscription. Returns false for invalid or duplicate IDs/references. | — |
+| `public override void Configure(VehicleController owner)` | Resolves a missing source from the configured vehicle without replacing an explicit assignment. | — |
 | `public virtual AudioSource GetIgnitionSource(string id)` | Returns the generated start/stop source for the unique ID, or null before the first audible ignition transition. | — |
 | `public virtual EngineAudioItem GetItem(string id)` | Returns the unique item matching ID, or null for a missing or ambiguous ID. Edits take effect on the next audio render. | — |
 | `public virtual AudioSource GetLoopSource(string id)` | Returns the generated loop source for the unique ID, or null if unresolved/not created. Playback settings are reapplied by the audio renderer. | — |
@@ -372,11 +374,6 @@ Owns and renders independent engine/rotor sound items. Each item has its own sou
 | `public virtual bool TryGetItem(string id, out EngineAudioItem item)` | Returns true and the unique matching mutable item. Empty, missing or duplicate IDs return false with a null item. | — |
 | `public virtual bool TryGetState(string id, out EngineAudioItemState state)` | Returns a snapshot of playing state, volume, pitch, selected loop, delay and ignition history for the ID. False means unresolved or not prepared. | — |
 
-
-| Declaration | Usage |
-| --- | --- |
-| `public Engine engine` | Channel-owned source. Explicit assignment wins; empty resolves from the vehicle. Engine item overrides take priority over the channel engine. |
-| `public override void Configure(VehicleController owner)` | Resolves a missing source from the configured vehicle without replacing an explicit assignment. |
 ## EngineAudioItem
 
 **Runtime/Effects/Audio/EngineAudioItem.cs**
@@ -511,6 +508,102 @@ Configuration/implementation type for event audio within audio cores and channel
 | `public override void RenderAudio(Audio owner, float deltaTime)` | Advances one channel's audio presentation for elapsed render time; the Audio core normally calls it. | `owner` — Unity/application owner whose identity controls this relationship or resource. `deltaTime` — Elapsed time in seconds supplied by the owning loop. |
 | `public override void SuspendAudio()` | Suspends the channel's playback and active subscriptions/resources as implemented by that channel. | No arguments; no returned value. |
 
+## HandleAudio
+
+**Runtime/Effects/Audio/Modules/HandleAudio.cs**
+
+Optional audio channel driven by the public VehicleHandle value-change events. Works with any handle and its authored value source; placement under a vehicle Audio core controls ownership.
+
+**Inherits / implements:** [AudioModule](Audio.md#audiomodule).
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public VehicleAudioSettings audioSettings` | One-shot gain, pitch, routing and emitter. Empty anchor emits at the bound handle. |
+| `public HandleAudioAxis axis` | Component of Interaction Value used for cue thresholds and direction. Animator-backed handles normally use X. |
+| `public HandleAudioCue[] cues` | Independent one-shot rules for movement, target values and start/stop transitions. |
+| `public HandleAudioTiming cueTiming` | Selects ActualMovement (default) or RequestedValue for one-shots. RequestedValue samples ControlAnimator.RequestedInteractionValue before hand contact; actual movement never repeats that cue. Without an animator it follows normal handle values. Movement loops always follow actual motion. |
+| `public VehicleHandle handle` | Any vehicle handle exposing value-change events. Put the audio channel on the handle or elsewhere under the vehicle Audio core. |
+| `public bool IsMovementPlaying { get; }` | True while the movement-loop source is actually playing. |
+| `public CameraModule listeningView` | Optional listening camera module, such as Interior or Orbit. Empty allows every camera. |
+| `public AudioClip movementLoop` | Optional continuous recording while the handle reports a changing value. |
+| `public VehicleAudioSettings movementSettings` | Independent loop source and mix. Avoid assigning the same external source as the one-shots. |
+| `public bool playAutomaticChanges` | Allows audio for explicitly marked automatic movements. Default false. |
+| `public int PlayedCount { get; private set; }` | Number of accepted one-shots since this component was created. Movement-loop frames are excluded. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public virtual void CancelAutomaticChange()` | Resumes manual audio if custom logic interrupts an automatic movement. | No arguments; no returned value. |
+| `public override void Configure(VehicleController owner)` | Refreshes the binding during vehicle configuration. | `owner` — Vehicle being configured; the parent Audio core owns playback. |
+| `public virtual bool PlayCue(int index)` | Requests one configured cue through the camera/master gates and its cooldown. Does not require a matching automatic trigger. | `index` — Zero-based cue index. Returns true only when a valid recording was accepted. |
+| `public virtual void RefreshBinding()` | Reconnects the assigned handle and primes cue thresholds silently. Call after a same-frame runtime binding change; ordinary field changes are also detected by the next audio render. | No arguments; no returned value. |
+| `public override void RenderAudio(Audio core, float deltaTime)` | Detects source changes, applies the listening-view gate and renders the movement loop. | `core` — Owning Audio core. `deltaTime` — Render interval in seconds; no physics is integrated. |
+| `public virtual void SetAutomaticChange(Vector3 target)` | Marks an automatic movement before changing its input; cues and loop are muted unless playAutomaticChanges is enabled, until the target is reached and motion stops. | `target` — Expected InteractionValue. |
+| `public virtual void StopSounds()` | Stops the cue and movement-loop voices, including supplied sources used by this binding. Does not reset cue cooldowns or PlayedCount. | No arguments; no returned value. |
+| `public override void SuspendAudio()` | Stops playback when the owning Audio core or channel is suspended. | No arguments; no returned value. |
+
+## HandleAudioAxis
+
+**Runtime/Effects/Audio/Handles/HandleAudioCue.cs**
+
+Selects X, Y, Z or vector magnitude from VehicleHandle.InteractionValue.
+
+- `X` — X component; ordinary control animators expose their scalar value here.
+- `Y` — Y component.
+- `Z` — Z component.
+- `Magnitude` — Vector length; direction describes changes in magnitude.
+
+## HandleAudioCue
+
+**Runtime/Effects/Audio/Handles/HandleAudioCue.cs**
+
+One automatic one-shot rule. Thresholds are expressed in the selected HandleAudio axis units, not degrees unless the source itself supplies degrees.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public AudioClip[] clips` | Randomly selected recordings. Empty entries are ignored. |
+| `public float cooldown` | Minimum seconds between accepted repetitions of this cue. |
+| `public HandleAudioDirection direction` | Optional direction restriction on the selected value axis. |
+| `public float minimumChange` | Required accumulated value change between Value Changed cues, in handle value units. |
+| `public float targetValue` | Target in handle value units for a Value Reached cue. |
+| `public float tolerance` | Target acceptance band. Leave the band before the same target can fire again. |
+| `public HandleAudioTrigger trigger` | When this cue may play. Value Changed accumulates Minimum Change; Value Reached also detects crossing the target between samples. |
+| `public float volume` | Additional gain for this cue, multiplied by channel and master volume. |
+
+## HandleAudioDirection
+
+**Runtime/Effects/Audio/Handles/HandleAudioCue.cs**
+
+Restricts a cue to increasing values, decreasing values or both directions.
+
+- `Both` — Accept either direction, including explicit transitions without a numeric delta.
+- `Increasing` — Accept positive selected-axis changes. Stop cues retain the last movement direction.
+- `Decreasing` — Accept negative selected-axis changes. Stop cues retain the last movement direction.
+
+## HandleAudioTiming
+
+**Runtime/Effects/Audio/Modules/HandleAudio.cs**
+
+- `ActualMovement` — One-shots follow the handle’s value-change events; default behavior.
+- `RequestedValue` — One-shots follow the associated control animator’s demand before it waits for the hand. Thresholds, direction, camera filtering and automatic-change muting still apply. Without an animator, samples the handle’s normal value. The movement loop remains tied to actual motion in both modes.
+
+## HandleAudioTrigger
+
+**Runtime/Effects/Audio/Handles/HandleAudioCue.cs**
+
+Selects the handle transition that may play a one-shot cue.
+
+- `ChangeStarted` — First value change after an idle period, or an explicit BeginValueChange request.
+- `ValueChanged` — Accumulated selected-axis change reaches minimumChange.
+- `ValueReached` — The selected value enters the target tolerance band or crosses targetValue between samples; leaving the band rearms it.
+- `ChangeStopped` — The handle settles for its valueStopDelay or explicitly ends its value-change interval.
+
 ## HornAudio
 
 **Runtime/Effects/Audio/Modules/HornAudio.cs**
@@ -539,7 +632,7 @@ Held audible warning using a replaceable clip or packaged default. Inherits [Aud
 
 ## IAudioModule
 
-**Runtime/Effects/Audio/Core/AudioModule.cs**
+**Runtime/Contracts/Audio/IAudioModule.cs**
 
 Configuration/implementation type for iaudio module within audio cores and channels.
 
@@ -720,6 +813,7 @@ Consumes per-wheel contact/effect-surface state.
 | `public virtual float CornerSquealWait { get; protected set; }` | Remaining wait before a sustained corner becomes audible, in seconds. |
 | `public float cornerSteeringThreshold` | Threshold/tolerance for corner steering threshold. The corresponding action or transition is admitted only when its comparison condition is satisfied. Initial value: `.75f`. |
 | `public bool delayCornerSqueal` | Delay squeal during sustained high-speed corners. Disable for immediate slip feedback. |
+| `public TireFeedback tireFeedback` | Channel-owned source. Explicit assignment wins; empty resolves from the vehicle. Engine item overrides take priority over the channel engine. |
 | `public AudioClip tireSquealLoop` | Audio recording for tire squeal loop. No assigned clip means this recording is unavailable. |
 
 
@@ -727,15 +821,11 @@ Consumes per-wheel contact/effect-surface state.
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
+| `public override void Configure(VehicleController owner)` | Resolves a missing source from the configured vehicle without replacing an explicit assignment. | — |
 | `public virtual float FilterCornerSqueal(float skid, bool highSpeedCorner, float deltaTime)` | Filters or evaluates corner squeal using the tire-audio policy without changing tire physics. | `skid` — Resolved skid activity. `highSpeedCorner` — Corner-squeal input used by tire-audio filtering. `deltaTime` — Elapsed time in seconds supplied by the owning loop. **Returns:** Computed float in the operation's documented unit/domain. |
 | `public override void RenderAudio(Audio core, float deltaTime)` | Advances one channel's audio presentation for elapsed render time; the Audio core normally calls it. | `core` — Owning audio or passenger core supplying shared context. `deltaTime` — Elapsed time in seconds supplied by the owning loop. |
 | `public override void SuspendAudio()` | Suspends the channel's playback and active subscriptions/resources as implemented by that channel. | No arguments; no returned value. |
 
-
-| Declaration | Usage |
-| --- | --- |
-| `public TireFeedback tireFeedback` | Channel-owned source. Explicit assignment wins; empty resolves from the vehicle. Engine item overrides take priority over the channel engine. |
-| `public override void Configure(VehicleController owner)` | Resolves a missing source from the configured vehicle without replacing an explicit assignment. |
 ## VehicleAudioSettings
 
 **Runtime/Effects/Audio/VehicleAudioSettings.cs**
@@ -770,10 +860,10 @@ Universal serialized playback, source/anchor and spatial configuration. Clips an
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public void RefreshConfiguration()` | Invalidates this settings block so registered sources reapply static spatial/routing edits at their next use. | — |
 | `public void ApplyTo(AudioSource target)` | Applies mixer/spatial configuration once per registered source until refreshed; unregistered sources apply on each call. Does not start playback or replace dynamic gain/pitch. | — |
 | `public float PitchAt(float activity)` | Maps normalized activity through Pitch Range and clamps to the supported pitch domain. | — |
 | `public float RandomPitch()` | Returns a clamped random pitch using Pitch and Pitch Range. | — |
+| `public void RefreshConfiguration()` | Invalidates this settings block so registered sources reapply static spatial/routing edits at their next use. | — |
 | `public AudioSource ResolveSource(Transform defaultParent, string name, bool loop, out bool created)` | Returns an assigned source, a source on Audio Anchor, or a generated child source. The created result identifies ownership: destroy only generated sources. | — |
 
 ## WiperAudioEntry

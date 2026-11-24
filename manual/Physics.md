@@ -54,14 +54,14 @@ Set up and tune these helpers after the native wheel geometry works on flat grou
 | Field | What to tune |
 | --- | --- |
 | `settings.suspensionTravel` | Available suspension stroke in metres. Leave room for compression and extension at the intended load. |
-| `Suspension.spring` | Spring stiffness in N/m. Increase it when the intended load compresses the suspension too far. |
-| `Suspension.damper` | Damping in N·s/m. Increase gradually to reduce repeated oscillation after the springs support the load. |
-| `Suspension.targetPosition` | Normalized native spring target, from 0 to 1. Tune together with travel and loaded ride height. |
-| `Suspension.automaticForceApplication` | Enables placement of wheel-force application points relative to the center of mass. |
-| `Suspension.forceOffsetBelowCenterOfMass` | Offset used by automatic force application, in metres. |
-| `Suspension.degressiveDamping` | Limits the growth of damping force at high suspension stroke speeds. |
-| `Suspension.damperBlowoffSpeed` | Stroke-speed threshold for degressive damping, in m/s. |
 | `Suspension.arcadeBumpDamping` | Optional assistance that damps excessive upward body motion while the wheels remain sufficiently supported. |
+| `Suspension.automaticForceApplication` | Enables placement of wheel-force application points relative to the center of mass. |
+| `Suspension.damper` | Damping in N·s/m. Increase gradually to reduce repeated oscillation after the springs support the load. |
+| `Suspension.damperBlowoffSpeed` | Stroke-speed threshold for degressive damping, in m/s. |
+| `Suspension.degressiveDamping` | Limits the growth of damping force at high suspension stroke speeds. |
+| `Suspension.forceOffsetBelowCenterOfMass` | Offset used by automatic force application, in metres. |
+| `Suspension.spring` | Spring stiffness in N/m. Increase it when the intended load compresses the suspension too far. |
+| `Suspension.targetPosition` | Normalized native spring target, from 0 to 1. Tune together with travel and loaded ride height. |
 
 First check the resting vehicle on level ground, then braking, cornering and a small bump. Add `AntiRoll` after basic suspension support works. A visual `ShockAbsorber` or linkage does not provide physical support unless its corresponding physics override is configured. Use only one shock physics override per wheel.
 
@@ -83,7 +83,7 @@ Tune the visible steering-wheel travel separately from road-wheel angles. See [V
 
 ## Driving assists and other vehicle types
 
-`TractionControl` and `DrivingAssists` provide configurable slip and stability assistance. Establish suitable geometry, grip and suspension before increasing assistance. `MotorcycleBalance` provides assisted balance and lean for motorcycles.
+`TractionControl` and `DrivingAssists` provide configurable slip and stability assistance. Establish suitable geometry, grip and suspension before increasing assistance. `MotorcycleBalance` provides assisted balance and lean for motorcycles. Its **Obstacle clearance** settings limit assisted banking before the occupied passenger shapes enter nearby solid geometry, including rear passengers. The check uses the rider's box, capsule, sphere or convex mesh colliders. Tune the obstacle layer mask and clearance for your environment; triggers, the vehicle itself and ordinary ground support do not block banking. Steering and native collision response remain active. This limits requested bank; it does not replace physical collisions for a vehicle driven directly into a wall.
 
 The active `DriveProfile` determines the vehicle's movement model. Hover, aircraft and water profiles apply their own support and propulsion behavior; changing only a wheeled vehicle's torque settings does not turn it into a flying or floating vehicle. See [Drive profiles](DriveProfiles.md), [Aircraft](Aircraft.md), [Water](Water.md) and [Tracked vehicles](Tracked.md) for the corresponding setup.
 

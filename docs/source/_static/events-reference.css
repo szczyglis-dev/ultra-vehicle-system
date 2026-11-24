@@ -13,3 +13,12 @@
     white-space: normal;
     overflow-wrap: anywhere;
 }
+
+/* Event identifiers stay intact; descriptions and argument lists may wrap. */
+#events-reference td:first-child,
+#events-reference td:first-child code,
+#events-reference td:first-child .pre {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+}

@@ -6,35 +6,37 @@
 | --- | --- |
 | [AimingHandDemo](#aiminghanddemo) | 17 |
 | [AircraftSystemsDemo](#aircraftsystemsdemo) | 7 |
-| [AnimatorCarDemo](#animatorcardemo) | 13 |
-| [CameraRigDemo](#camerarigdemo) | 2 |
+| [AnimatorCarDemo](#animatorcardemo) | 14 |
+| [CameraRigDemo](#camerarigdemo) | 7 |
 | [CinematicCameraDemo](#cinematiccamerademo) | 11 |
-| [ControlsHudDemo](#controlshuddemo) | 0 |
+| [ControlsHudDemo](#controlshuddemo) | 1 |
 | [DamageControlsDemo](#damagecontrolsdemo) | 1 |
 | [DayNightDemo](#daynightdemo) | 3 |
 | [DirectWaypointAIDemo](#directwaypointaidemo) | 8 |
 | [DownforceModuleDemo](#downforcemoduledemo) | 1 |
 | [EngineAudioModeDemo](#engineaudiomodedemo) | 0 |
-| [ExternalControlDemo](#externalcontroldemo) | 3 |
+| [ExternalControlDemo](#externalcontroldemo) | 6 |
 | [ExternalControlDemo.GizmoSettings](#externalcontroldemogizmosettings) | 5 |
 | [FreeCameraDemo](#freecamerademo) | 0 |
 | [FreeCameraMotionDemo](#freecameramotiondemo) | 3 |
 | [FreeParentCameraDemo](#freeparentcamerademo) | 0 |
-| [HudDemo](#huddemo) | 4 |
+| [HudDemo](#huddemo) | 5 |
+| [LandingGearSwitchDemo](#landinggearswitchdemo) | 4 |
+| [MotorcycleRidersDemo](#motorcycleridersdemo) | 3 |
 | [PassengerAccessDemo](#passengeraccessdemo) | 3 |
 | [PowerWindowsDemo](#powerwindowsdemo) | 6 |
+| [ProjectileDemo](#projectiledemo) | 1 |
+| [SelectedVehicleMirrorsDemo](#selectedvehiclemirrorsdemo) | 0 |
 | [TowingControlsDemo](#towingcontrolsdemo) | 1 |
-| [UnderwaterDemo](#underwaterdemo) | 8 |
-| [VehicleSelectorDemo](#vehicleselectordemo) | 6 |
+| [UnderwaterDemo](#underwaterdemo) | 9 |
+| [VehicleSelectorDemo](#vehicleselectordemo) | 7 |
 | [VehicleWeaponDemo](#vehicleweapondemo) | 8 |
 | [WaterEntryAudioDemo](#waterentryaudiodemo) | 15 |
 | [WaypointAIDemo](#waypointaidemo) | 10 |
-| [LandingGearSwitchDemo](#landinggearswitchdemo) | 4 |
-| [ProjectileDemo](#projectiledemo) | 1 |
 
 ## AimingHandDemo
 
-Tutorial: acquire a seated hand through `vehicle.handles.TryAcquire`, move a stable palm target, then cancel the token after the visible return. The controller owns admission and restores the home binding. Place the custom handle under the vehicle; call `vehicle.handles.Refresh()` when adding it at runtime. The optional weapon and cursor handling belong to the application. Vehicle Handles supplies SetInput before passenger work.
+Tutorial: temporarily replace one seated passenger's hand handle with your own.  SETUP 1. Add this component to a vehicle that has a Passengers module. 2. Assign its occupied PassengerSeat. IK can be borrowed even when the passenger uses Animator. 3. Assign a camera, or let the example use Camera.main. 4. Optionally assign a pistol prefab with a child named "Muzzle", plus shot audio.  THE ESSENTIAL VEHICLE API Acquire a token with vehicle.handles.TryAcquire(seat, limb, this, forceIK: true), move GetAnchor(), then cancel the token to restore its home. Both hands use the same ownership API. Vehicle Handles discovers this component and supplies SetInput before passenger work. If you add the component at runtime, call vehicle.handles.Refresh() afterwards.  READING ORDER Settings -> input -> attach hand -> move target -> restore hand. Pistol and thumb pose are optional application features; CameraRigDemo owns cursor capture. This integration coordinates those actions through the passenger hand-ownership API. HumanoidPassenger poses fingers at order 100. Only our visual thumb override needs to run afterwards; physical hand movement is still scheduled by Passengers.Step.
 
 **Source:** `Demo/Scripts/Controls/AimingHandDemo.cs`. Component / asset.
 
@@ -43,6 +45,7 @@ Tutorial: acquire a seated hand through `vehicle.handles.TryAcquire`, move a sta
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `aimDistance` | `float` | Distance along the camera ray used as the aiming point, in metres. This does not change arm length. | `50`; Minimum: 1 |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Pistol-shot playback gain, emitter range and mixer output for this example. | `new VehicleAudioSettings{volume = .5, minDistance = 1, maxDistance = 60}` |
 | `impactImpulse` | `float` | Additional impulse applied by the demo ProjectileDemo when it hits a dynamic object. | `12`; Minimum: 0 |
 | `muzzleSpeed` | `float` | ProjectileDemo speed relative to the vehicle, in metres per second. | `90`; Minimum: 1 |
 | `pistolPrefab` | `GameObject` | Optional visual prefab. Its +Z axis points along the barrel; a child named Muzzle marks the bullet origin. | `None / unassigned` |
@@ -59,14 +62,9 @@ Tutorial: acquire a seated hand through `vehicle.handles.TryAcquire`, move a sta
 | `transitionDuration` | `float` | Seconds to raise the hand or return it to the original handle. | `.3`; Minimum: .05f |
 | `viewCamera` | `Camera` | Camera used to turn a screen position into a world-space aiming ray. Falls back to Camera.main. | `None / unassigned` |
 
-
-### Audio Settings
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Shared playback, pitch, emitter and spatial settings. See [Audio Settings](Effects.md#vehicleaudiosettings). |
-
 ## AircraftSystemsDemo
+
+Aircraft input adapter: place beside VehicleController and assign optional LandingGear, RocketLauncher and ObjectDropper references plus the payload list. Update translates demo key presses into public APIs; replace ReadControls to use UI or your own input.
 
 **Source:** `Demo/Scripts/Vehicles/AircraftSystemsDemo.cs`. Component / asset.
 
@@ -82,44 +80,46 @@ Tutorial: acquire a seated hand through `vehicle.handles.TryAcquire`, move a sta
 
 ## AnimatorCarDemo
 
-Select the F11 Car example and use its left-side panel in Play Mode to compare animated, IK and physical passenger ownership. Configure the driver seat with Parent attachment; wire the dedicated controller, wheel visual and three interactions below.
+Seated animation example. Steering clips and arm gestures use the standard passenger APIs.
 
-**Source:** `Demo/Scripts/Vehicles/AnimatorCarDemo.cs`. Demo component.
+**Source:** `Demo/Scripts/Vehicles/AnimatorCarDemo.cs`. Component / asset.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `controller` | `RuntimeAnimatorController` | Humanoid graph with steering poses and masked gesture layers. | `None / unassigned` |
-| `leftLever` | `SwitchAnimator` | Left switch mechanism toggled once on commit. | `None / unassigned` |
-| `leftSwitch` | `ControlInteraction` | Left-hand press, committed at its animation marker. | `None / unassigned` |
-| `rightLever` | `SwitchAnimator` | Right switch mechanism toggled once on commit. | `None / unassigned` |
-| `rightSwitch` | `ControlInteraction` | Right-hand press, committed at its animation marker. | `None / unassigned` |
-| `seat` | `PassengerSeat` | Driver seat whose controller is changed from the example panel. Parent attachment keeps the animated driver aligned during driving. | `None / unassigned` |
-| `steering` | `SteeringWheelAnimator` | Visible steering angle used by the baked steering blend tree. | `None / unassigned` |
-| `vehicle` | `VehicleController` | Example car selected through the shared F11 fleet shortcut. | `None / unassigned` |
-| `wave` | `ControlInteraction` | Left-hand wave and its masked animation layer. | `None / unassigned` |
-
-| Additional setting | Meaning | Inspector path |
-| --- | --- | --- |
-| `handles` | Explicit handles switched independently of the passenger controller. | Animator Car Demo > Handles |
-| `waveHandle` | Handle owning the authored wave gesture in built-in modes. | Animator Car Demo > Wave Handle |
-| `selectedSeatMode` | Initial passenger strategy; Animator by default. | Animator Car Demo > Selected Seat Mode |
-| `selectedHandleMode` | Initial IK, Animator + IK, Animator or Custom handle selection; Animator by default. | Animator Car Demo > Selected Handle Mode |
-
+| `controller` | `RuntimeAnimatorController` | Humanoid controller containing the seated steering blend tree and masked left/right hand gestures. | `None / unassigned` |
+| `handles` | `VehicleHandle[]` ([fields](World.md#vehiclehandle)) | Handles switched independently of the seat. References are authored on the example prefab. | `Empty list` |
+| `leftLever` | `SwitchAnimator` ([fields](Interior.md#switchanimator)) | Left switch mechanism toggled once at the gesture commit point. | `None / unassigned` |
+| `leftSwitch` | `ControlInteraction` ([fields](Interior.md#controlinteraction)) | Left-hand switch interaction, committed by its gesture clip. | `None / unassigned` |
+| `rightLever` | `SwitchAnimator` ([fields](Interior.md#switchanimator)) | Right switch mechanism toggled once at the gesture commit point. | `None / unassigned` |
+| `rightSwitch` | `ControlInteraction` ([fields](Interior.md#controlinteraction)) | Right-hand switch interaction, committed by its gesture clip. | `None / unassigned` |
+| `seat` | `PassengerSeat` ([fields](World.md#passengerseat)) | Driver seat with independent Animator, Animator + IK or Ragdoll selection. Animated modes use Parent attachment to follow acceleration; Ragdoll uses Spring for physical support. | `None / unassigned` |
+| `selectedHandleMode` | `HandleControlMode` | Initial handle control mode shown by the demo GUI; switching it changes how the occupant interacts with assigned controls. Options: `IK`, `AnimatorIK`, `Animator`, `Custom`. | `HandleControlMode.Animator` |
+| `selectedSeatMode` | `PassengerControllerType` | Initial seated passenger controller shown by the demo GUI; switching it selects Animator, Animator with IK or ragdoll seat control. Options: `RagdollPhysics`, `Animator`, `AnimatorIK`, `AttachOnly`, `Custom`. | `PassengerControllerType.Animator` |
+| `steering` | `SteeringWheelAnimator` ([fields](Interior.md#steeringwheelanimator)) | Visible steering wheel supplying the angle for the baked steering animation blend tree. | `None / unassigned` |
+| `variants` | `PassengerVariants` ([fields](World.md#passengervariants)) | Optional presentation helper used by the manual SWAP buttons; all swaps use its public API. | `None / unassigned` |
+| `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Example vehicle selected through the common Demo vehicle list (F11). Vehicle steering physics remain independent of passenger animation. | `None / unassigned` |
+| `wave` | `ControlInteraction` ([fields](Interior.md#controlinteraction)) | Left-hand wave interaction using its own masked animation layer. | `None / unassigned` |
+| `waveHandle` | `VehicleHandle` ([fields](World.md#vehiclehandle)) | Optional contact/animation handle used by the demo left-hand wave action. | `None / unassigned` |
 
 ## CameraRigDemo
 
-Demo view routing and cursor capture. All camera placement is handled by Cameras submodules.
+Demo view routing, selection transitions and cursor capture.
 
 **Source:** `Demo/Scripts/Cameras/CameraRigDemo.cs`. Component / asset.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `maximumSwitchDuration` | `float` | Longest vehicle-switch transition in seconds, even for distant vehicles. | `.7`; Minimum: .01f |
+| `minimumSwitchDuration` | `float` | Shortest vehicle-switch transition in seconds, including rotation when vehicles are close together. | `.2`; Minimum: .01f |
 | `mode` | `ViewMode` | Selects orbit, cockpit, cinematic, world free-look or vehicle-relative free-camera view. The matching camera module on Target controls the view's behaviour. Options: `Orbit`, `Interior`, `Cinematic`, `FreeLook`, `FreeParent`. | `ViewMode.Orbit` |
+| `smoothVehicleSwitch` | `bool` | Smooth camera travel when switching demo vehicles. The first selection remains immediate. | `true` |
 | `target` | `Transform` | Vehicle/root transform currently followed by the demo camera. The rig reads camera modules on this target when changing view modes. | `None / unassigned` |
+| `vehicleSwitchSpeed` | `float` | Nominal camera travel speed between vehicles in metres per second, before the end-of-travel slowdown. | `100`; Minimum: .1f |
+| `viewCamera` | `Camera` | Camera positioned by the selected vehicle camera module. | `None / unassigned` |
 
 ## CinematicCameraDemo
 
-A custom camera can also ignore mouse look and follow the vehicle's heading instead.
+A custom camera can also ignore mouse look and follow the vehicle's heading instead. Camera extension walkthrough: add beside Cameras, assign an anchor, then select this module through Cameras.SetModule and activate the camera core. RenderCamera receives the view to position; the camera core owns scheduling and input delivery.
 
 **Source:** `Demo/Scripts/Cameras/CinematicCameraDemo.cs`. Component / asset.
 
@@ -129,11 +129,11 @@ A custom camera can also ignore mouse look and follow the vehicle's heading inst
 | --- | --- | --- | --- |
 | `distance` | `float` | Requested exterior cinematic camera radius in metres. | `7`; Minimum: .1f |
 | `focusOffset` | `Vector3` | Point the cinematic camera looks toward, relative to its anchor in metres. Move it upward to frame the cabin or rider rather than the vehicle origin. | `Zero-initialized Vector3` |
-| `followVehicleRotation` | `bool` | Follow complete vehicle attitude for unrestricted flight, avoiding horizon-heading flips. Enabled for the demo spaceship, whose follow response is 8. | `false` |
-| `ignorePassengers` | `bool` | Exclude passenger bodies from view obstruction. | `true` |
-| `ignoreDynamicObstacles` | `bool` | Exclude marked dynamic obstacles from view obstruction. | `true` |
 | `followResponse` | `float` | How quickly the cinematic camera catches up with its desired pose. Higher values follow more tightly; lower values give a slower, floating camera move. | `4`; Minimum: .01f |
+| `followVehicleRotation` | `bool` | Follow the complete vehicle attitude rather than horizon heading. Suitable for unrestricted spacecraft pitch, roll and inverted flight. | `false` |
 | `height` | `float` | Vertical offset in metres used by the cinematic camera framing. Increase to view the target from higher above. | `2.2` |
+| `ignoreDynamicObstacles` | `bool` | Ignore props marked with Dynamic Obstacle. Walls and other scenery still obstruct the view. | `true` |
+| `ignorePassengers` | `bool` | Ignore passenger bodies and ragdolls when shortening camera distance. | `true` |
 | `maximumDistance` | `float` | Farthest zoom distance in metres allowed by this cinematic camera. Increase to allow wider views of the surrounding scene. | `65`; Minimum: .1f |
 | `minimumDistance` | `float` | Closest zoom distance in metres allowed by this cinematic camera. Increase to prevent the camera from zooming too close to the model. | `1.5`; Minimum: .1f |
 | `obstructionMask` | `LayerMask` | Scene layers that can block the cinematic camera. Exclude decorative/nonblocking layers if they should not pull the camera closer. | `~0` |
@@ -143,7 +143,9 @@ A custom camera can also ignore mouse look and follow the vehicle's heading inst
 
 **Source:** `Demo/Scripts/UI/ControlsHudDemo.cs`. Component / asset.
 
-No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `displayVersion` | `bool` | Show the Ultra Vehicle System demo name and package version in the screen corner. | `true` |
 
 ## DamageControlsDemo
 
@@ -167,7 +169,7 @@ Sample lighting switch. It changes the environment without modifying a vehicle's
 
 ## DirectWaypointAIDemo
 
-Pose-driven companion to WaypointAIDemo. No wheel forces or Rigidbody pose writes.
+Pose-driven companion to WaypointAIDemo. No wheel forces or Rigidbody pose writes. Direct AI walkthrough: assign vehicle, a dedicated DirectController and the same ordered route used by physical AI. Call Begin, then select that controller as Input Source. FixedUpdate computes an authoritative pose; DirectController animates wheels from that motion. This simple route follower has no obstacle avoidance or terrain planner.
 
 **Source:** `Demo/Scripts/Vehicles/DirectWaypointAIDemo.cs`. Component / asset.
 
@@ -184,7 +186,7 @@ Pose-driven companion to WaypointAIDemo. No wheel forces or Rigidbody pose write
 
 ## DownforceModuleDemo
 
-Optional extension example: add this module through the controller dashboard to apply speed-based downforce.
+Optional extension example: add this module through the controller dashboard to apply speed-based downforce. Extension walkthrough: add this PhysicsModule to the vehicle module list. The controller calls Step during its ordered physics pipeline; do not add a second FixedUpdate that applies the same force. Tune forcePerSpeedSquared for your vehicle.
 
 **Source:** `Demo/Scripts/Vehicles/DownforceModuleDemo.cs`. Component / asset.
 
@@ -204,15 +206,18 @@ No additional Inspector settings are declared on this type. Use the inherited se
 
 ## ExternalControlDemo
 
-Demo ownership policy; the runtime controller itself has no concept of a player or AI.
+Demo ownership policy; the runtime controller itself has no concept of a player or AI. Input ownership walkthrough: VehicleSelectorDemo calls Initialize with its vehicle list. We create one physical AI adapter and one direct adapter per vehicle, sharing the route. P selects a mode for the active vehicle; RefreshInputRouting performs the handover. Use SetControlMode from UI or game logic instead of assigning competing input sources.
 
 **Source:** `Demo/Scripts/Controls/ExternalControlDemo.cs`. Component / asset.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `checkpoints` | `Transform[]` | Ordered points forming the demo AI driving loop. If empty, the example creates a loop automatically; these are passed to WaypointAIDemo. | `None / unassigned` |
+| `directWaypointDrivers` | `DirectWaypointAIDemo[]` ([fields](Demo.md#directwaypointaidemo)) | Direct AI demo adapters hosted by their vehicles, each with its own vehicle reference. | `Empty list` |
 | `entryCheckpoints` | `Transform[]` | Optional approach points followed before joining the main driving loop. Use them to guide the vehicle out of its starting position first. | `None / unassigned` |
 | `gizmos` | `GizmoSettings` ([fields](Demo.md#externalcontroldemogizmosettings)) | Scene-only route visibility; does not change AI driving. | `new GizmoSettings()` |
+| `selector` | `VehicleSelectorDemo` ([fields](Demo.md#vehicleselectordemo)) | Demo fleet selector providing input ownership and selection. | `None / unassigned` |
+| `waypointDrivers` | `WaypointAIDemo[]` ([fields](Demo.md#waypointaidemo)) | Physical AI demo adapters hosted by their vehicles, each with its own vehicle reference. | `Empty list` |
 
 ## ExternalControlDemo.GizmoSettings
 
@@ -228,6 +233,8 @@ Demo ownership policy; the runtime controller itself has no concept of a player 
 
 ## FreeCameraDemo
 
+World-space variant: all navigation lives in FreeCameraMotionDemo. Keeping the default ParentRelative=false lets the vehicle move independently of this camera. Add beside Cameras and select this module through the core, as with the other camera examples.
+
 **Source:** `Demo/Scripts/Cameras/FreeCameraDemo.cs`. Component / asset.
 
 **Inherited settings:** [FreeCameraMotionDemo](Demo.md#freecameramotiondemo). These settings also appear on this type.
@@ -236,7 +243,7 @@ No additional Inspector settings are declared on this type. Use the inherited se
 
 ## FreeCameraMotionDemo
 
-Custom camera example: add beside Cameras, assign it with SetModule/Attach, then SetActive(true). This component belongs to the optional Demo, not the runtime package.
+Custom camera example: add beside Cameras, assign it with SetModule/Attach, then SetActive(true). This component belongs to the optional Demo, not the runtime package. Shared free-camera implementation: derive a concrete CameraModule and choose whether poses are stored in world space or anchor space. RenderCamera adapts demo keyboard input; Move exposes the same movement to UI, replay or another input system.
 
 **Source:** `Demo/Scripts/Cameras/FreeCameraMotionDemo.cs`. Abstract base; settings are inherited by derived components.
 
@@ -250,7 +257,7 @@ Custom camera example: add beside Cameras, assign it with SetModule/Attach, then
 
 ## FreeParentCameraDemo
 
-A second custom view reuses navigation but keeps its pose in the vehicle anchor's frame. Each vehicle owns its own module and therefore remembers its own local camera pose.
+A second custom view reuses navigation but keeps its pose in the vehicle anchor's frame. Each vehicle owns its own module and therefore remembers its own local camera pose. Anchor-space variant: only this policy differs from FreeCameraDemo. The base class stores a local pose and transforms it through Anchor every render, making the view follow a moving vehicle while preserving the user’s chosen local camera position.
 
 **Source:** `Demo/Scripts/Cameras/FreeParentCameraDemo.cs`. Component / asset.
 
@@ -266,10 +273,34 @@ Example HUD consuming the public immutable telemetry API, with no dependency on 
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `displayDamageAudioClipName` | `bool` | Show the latest crash recording for the selected vehicle, including an additional layer from the same contact. | `false` |
+| `readoutRefreshRate` | `float` | Numeric telemetry refreshes per second. The RPM needle and attitude indicator still animate every frame. | `10`; Range: 1 to 60 |
 | `showFlightAttitude` | `bool` | Shows the extra attitude readout for vehicles using an air movement profile. Turning it off hides those flight instruments while retaining the normal telemetry. | `true` |
 | `speedUnit` | `SpeedUnit` | Unit used for the demo's speed readout. Changing km/h, mph or m/s only changes the display, not vehicle speed or physics. Options: `Kph`, `Mph`, `MetresPerSecond`. | `SpeedUnit.Kph` |
 | `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle whose telemetry is displayed and whose reset position the demo tracks. VehicleSelectorDemo changes this reference when another vehicle is selected. | `None / unassigned` |
-| `wipersKey` | `Key` | Press to toggle the selected vehicle's wipers. Choose None to leave this demo shortcut unbound. | `Key.X` |
+
+## LandingGearSwitchDemo
+
+**Source:** `Demo/Scripts/Controls/LandingGearSwitchDemo.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `landingGear` | `LandingGear` ([fields](Exterior.md#landinggear)) | Landing gear connected to this cockpit switch. Requests are checked by the gear system, so a ground interlock can reject retraction and restore the switch state. | `None / unassigned` |
+| `onMeansDeployed` | `bool` | Interpret the on switch position as gear deployed. Disable to invert the mapping. | `true` |
+| `seat` | `PassengerSeat` ([fields](World.md#passengerseat)) | Occupied seat whose left hand operates the gear switch through vehicle.handles. | `None / unassigned` |
+| `switchAnimator` | `SwitchAnimator` ([fields](Interior.md#switchanimator)) | Switch animator whose settled/requested state controls deployment. | `None / unassigned` |
+
+## MotorcycleRidersDemo
+
+Optional demo controls; the runtime profile and seat behaviors have no GUI or player-selection dependency.
+
+**Source:** `Demo/Scripts/Vehicles/MotorcycleRidersDemo.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `driver` | `PassengerSeat` ([fields](World.md#passengerseat)) | Driver seat controlled by the rider-mode buttons. | `None / unassigned` |
+| `passenger` | `PassengerSeat` ([fields](World.md#passengerseat)) | Optional rear seat. The demo button uses the normal seat spawn/exit API. | `None / unassigned` |
+| `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle whose rider options are displayed, including motorcycles, quads and scooters. | `None / unassigned` |
 
 ## PassengerAccessDemo
 
@@ -298,6 +329,24 @@ Example consumer: all mechanics live in MovingPart; this script only supplies he
 | `rightUp` | `Key` | Hold to raise the assigned right window. Release to stop movement at its current position. | `Key.Quote` |
 | `rightWindow` | `MovingPart` ([fields](Exterior.md#movingpart)) | MovingPart that slides the right window. It has independent up/down keys so either window can be moved without the other. | `None / unassigned` |
 
+## ProjectileDemo
+
+ProjectileDemo integration: assign a Rigidbody prefab carrying this script to WeaponBarrel. The barrel calls IWeaponProjectile.Initialize with owner, launch velocity and lifetime. Collision handling reports a copied impact and applies an optional game impulse; subclass HandleImpact for your own damage rules rather than changing the launcher.
+
+**Source:** `Demo/Scripts/Vehicles/ProjectileDemo.cs`. Component / asset.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `transferImpulseToVehicleRoot` | `bool` | Transfer the game impulse to the vehicle hull when a door or other attached Rigidbody is hit. Native part collisions still occur. | `true` |
+
+## SelectedVehicleMirrorsDemo
+
+Demo policy only: the package itself does not assume a single controlled vehicle.
+
+**Source:** `Demo/Scripts/Cameras/SelectedVehicleMirrorsDemo.cs`. Component / asset.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
 ## TowingControlsDemo
 
 Player key binding stays in the sample; gameplay and AI call Coupler directly.
@@ -323,30 +372,28 @@ Camera-local underwater atmosphere. Restore the current day/night settings after
 | `fadeDuration` | `float` | Time scale in seconds for fading the ambience volume toward its wet/dry target. Zero changes volume immediately; larger values soften the transition. | `.7`; Minimum: 0 |
 | `submersionDepth` | `float` | Depth in metres below the sampled surface that the camera must reach before underwater effects turn on. Increase to avoid switching effects during small surface crossings. | `.15`; Minimum: 0 |
 | `surfaceHysteresis` | `float` | Depth margin in metres between entering and leaving underwater state; prevents rapid toggling near the surface. | `.05`; Minimum: 0 |
+| `view` | `Camera` | Camera receiving the underwater atmosphere and ambience. | `None / unassigned` |
 | `water` | `WaterProvider` ([fields](World.md#waterprovider)) | Water provider sampled at the camera position to decide whether the view is submerged. Its height controls the underwater visual/audio transition. | `None / unassigned` |
 
 ## VehicleSelectorDemo
 
-Demo-only player selection. Inactive demo cars receive parking input; the runtime package makes no player-count assumptions.
+Demo-only player selection. Inactive demo cars receive configurable parking input; the runtime package makes no player-count assumptions.
 
 **Source:** `Demo/Scripts/Vehicles/VehicleSelectorDemo.cs`. Component / asset.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `activeIndex` | `int` | Initially selected index in the demo vehicle list. | `0` |
-| `hud` | `HudDemo` ([fields](Demo.md#huddemo)) | Telemetry display rebound to the selected vehicle. Leave empty if this demo should switch vehicles without a shared HUD. | `None / unassigned` |
-| `orbitCamera` | `CameraRigDemo` ([fields](Demo.md#camerarigdemo)) | Demo camera rig retargeted when the selected vehicle changes. Its free-camera state reserves numeric keypad navigation for the camera; vehicle driving controls remain active. | `None / unassigned` |
-| `vehicles` | `VehicleController[]` ([fields](Controller.md#vehiclecontroller)) | Vehicles available through the demo selection keys and previous/next controls, in display order. Selection transfers player input, camera target and HUD to that entry. | `None / unassigned` |
-
-
-
-| Setting | Type | Description | Declared default |
-| --- | --- | --- | --- |
 | `automaticParkingHandbrake` | `bool` | Apply the handbrake to inactive or unoccupied demo vehicles. Does not change player or AI handbrake input. | `true` |
+| `hud` | `HudDemo` ([fields](Demo.md#huddemo)) | Telemetry display rebound to the selected vehicle. Leave empty if this demo should switch vehicles without a shared HUD. | `None / unassigned` |
+| `orbitCamera` | `CameraRigDemo` ([fields](Demo.md#camerarigdemo)) | Demo camera rig retargeted when the selected vehicle changes. Its free-camera state also determines whether some navigation keys control the camera or the vehicle. | `None / unassigned` |
+| `selectionKeys` | `Key[]` | Optional selection shortcut for each Vehicles entry. None or a missing entry keeps the default shortcut. | `Empty list` |
+| `vehicles` | `VehicleController[]` ([fields](Controller.md#vehiclecontroller)) | Vehicles available through the demo selection keys and previous/next controls, in display order. Selection transfers player input, camera target and HUD to that entry. | `None / unassigned` |
+| `waterBasin` | `Transform` | Demo water basin, independent of the controller hierarchy. | `None / unassigned` |
 
 ## VehicleWeaponDemo
 
-Example of adding vehicle-specific controls/HUD without extending Command or the controller.
+Example of adding vehicle-specific controls/HUD without extending Command or the controller. Weapon input adapter: attach to the vehicle root, assign a WeaponBarrel and optionally a MovingPart turret. This script converts keyboard input into reusable module APIs and contributes HUD hints; projectile spawning and reload timing belong to WeaponBarrel.
 
 **Source:** `Demo/Scripts/Vehicles/VehicleWeaponDemo.cs`. Component / asset.
 
@@ -369,6 +416,7 @@ Demo-only water entry/exit for any vehicle, independently of its drive profile.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
+| `audioSettings` | `VehicleAudioSettings` ([fields](Effects.md#vehicleaudiosettings)) | Gain, pitch variation, emitter and attenuation settings for entry/exit splashes. | `new VehicleAudioSettings{volume = 1.12, cooldown = .8, spatialBlend = .65, minDistance = 8, maxDistance = 160, dopplerLevel = 1, rolloffMode = AudioRolloffMode.Linear}` |
 | `exitSplashes` | `bool` | Enables splash sound/particles when a tracked vehicle leaves the water. | `true` |
 | `foamMaterial` | `Material` | Material used by the generated foam patch at the water-entry point. Leave empty to omit the default foam layer. | `None / unassigned` |
 | `fullEntrySpeed` | `float` | Water-entry speed in m/s mapped to full splash intensity. | `8`; Minimum: .1f |
@@ -384,16 +432,9 @@ Demo-only water entry/exit for any vehicle, independently of its drive profile.
 | `sprayMaterial` | `Material` | Material used by the automatically generated airborne entry spray when no Splash Prefab is assigned. | `None / unassigned` |
 | `water` | `WaterProvider` ([fields](World.md#waterprovider)) | Water provider sampled to detect vehicles crossing the surface. The effect works independently of whether the vehicle uses a boat driving profile. | `None / unassigned` |
 
-
-### Audio Settings
-
-| Field | Type | Behavior |
-| --- | --- | --- |
-| `audioSettings` | `VehicleAudioSettings` | Shared playback, pitch, emitter and spatial settings. See [Audio Settings](Effects.md#vehicleaudiosettings). |
-
 ## WaypointAIDemo
 
-Small public-API example: steering and speed control only; no navigation or obstacle avoidance.
+Small public-API example: steering and speed control only; no navigation or obstacle avoidance. Physical AI walkthrough: assign vehicle, a dedicated ExternalController and an ordered checkpoint loop; optional entry points lead into it once. Call Begin and select that controller as Input Source (ExternalControlDemo handles this in the demo). FixedUpdate only submits commands: Steering, Engine and the wheel modules perform the actual physics.
 
 **Source:** `Demo/Scripts/Vehicles/WaypointAIDemo.cs`. Component / asset.
 
@@ -409,24 +450,3 @@ Small public-API example: steering and speed control only; no navigation or obst
 | `steeringChangePerSecond` | `float` | Maximum change of normalized steering input per second. | `1.5`; Minimum: .1f |
 | `steeringSmoothTime` | `float` | Approximate seconds over which the AI smooths toward a new steering command. Increase for gentler steering; decrease to react sooner to a sharp bend. | `.25`; Minimum: .02f |
 | `vehicle` | `VehicleController` ([fields](Controller.md#vehiclecontroller)) | Vehicle driven around the waypoint route. The example supports wheeled, motorcycle and tracked profiles rather than aircraft or boats. | `None / unassigned` |
-
-## LandingGearSwitchDemo
-
-Application binding example: connect SwitchAnimator to LandingGear. Assign the gear, animator and seat. The binding samples deployment requests in LateUpdate; SwitchAnimator owns switch motion and its SwitchHandle owns the left-hand contact. Actual limb arrival gates switch motion through ControlAnimator.
-
-**Source:** `Demo/Scripts/Controls/LandingGearSwitchDemo.cs`. Component / asset.
-
-| Setting | Type | Description | Declared default and constraints |
-| --- | --- | --- | --- |
-| `landingGear` | `LandingGear` ([fields](Exterior.md#landinggear)) | Landing gear connected to this cockpit switch. Requests are checked by the gear system, so a ground interlock can reject retraction and restore the switch state. | `None / unassigned` |
-| `onMeansDeployed` | `bool` | Maps the switch's on endpoint to extended gear rather than retracted gear. | `true` |
-| `seat` | `PassengerSeat` ([fields](World.md#passengerseat)) | Occupied seat whose left hand operates the gear switch through vehicle.handles. | `None / unassigned` |
-| `switchAnimator` | `SwitchAnimator` | Binary gear switch animator. Its paired handle supplies the left-hand contact; On Means Deployed selects the gear-down endpoint. | `None / unassigned` |
-
-## ProjectileDemo
-
-**Source:** `Demo/Scripts/Vehicles/ProjectileDemo.cs`. Component / asset.
-
-| Setting | Type | Description | Declared default and constraints |
-| --- | --- | --- | --- |
-| `transferImpulseToVehicleRoot` | `bool` | Transfer the game impulse to the vehicle hull when a door or other attached Rigidbody is hit. Native part collisions still occur. | `true` |

@@ -12,23 +12,29 @@ These layers solve different problems. The skeleton provides anatomy; the harnes
 Implementation map
 ------------------
 
-+----------------------------------+------------------------------------------------------------------------+
-| Class                            | Responsibility                                                         |
-+==================================+========================================================================+
-| ``PassengerPhysics``             | Coordinates physical passenger pose/support behavior.                  |
-+----------------------------------+------------------------------------------------------------------------+
-| ``PassengerRestraints``          | Stores harness, release, damping and ejection configuration.           |
-+----------------------------------+------------------------------------------------------------------------+
-| ``PassengerSeatConstraints``     | Builds and updates vehicle-relative support constraints.               |
-+----------------------------------+------------------------------------------------------------------------+
-| ``PassengerCollisionExclusions`` | Tracks the passenger collision-exclusion policy.                       |
-+----------------------------------+------------------------------------------------------------------------+
-| ``PassengerFreeRagdoll``         | Handles released-body physics and restoration boundaries.              |
-+----------------------------------+------------------------------------------------------------------------+
-| ``PassengerBodyPartConfig``      | Describes each limb's mode, target and support choices.                |
-+----------------------------------+------------------------------------------------------------------------+
-| ``HumanoidPassenger``            | Connects the authored character bodies and runtime passenger behavior. |
-+----------------------------------+------------------------------------------------------------------------+
++----------------------------------+----------------------------------------------------------------------------------------------+
+| Class                            | Responsibility                                                                               |
++==================================+==============================================================================================+
+| ``PassengerPhysics``             | Coordinates physical passenger pose/support behavior.                                        |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerSeatEjection``        | Owns automatic collision/tilt ejection, pre-impact motion and reset ownership.               |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerSeatDamage``          | Evaluates individual limb collision and tilt release.                                        |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerCollisionEjection``   | Configurable whole-occupant collision policy, with virtual evaluation for application rules. |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerRestraints``          | Stores harness, release, damping and ejection configuration.                                 |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerSeatConstraints``     | Builds and updates vehicle-relative support constraints.                                     |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerCollisionExclusions`` | Tracks the passenger collision-exclusion policy.                                             |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerFreeRagdoll``         | Handles released-body physics and restoration boundaries.                                    |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``PassengerBodyPartConfig``      | Describes each limb's mode, target and support choices.                                      |
++----------------------------------+----------------------------------------------------------------------------------------------+
+| ``HumanoidPassenger``            | Connects the authored character bodies and runtime passenger behavior.                       |
++----------------------------------+----------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-passengerphysics--initialization-and-update-order:
 
@@ -185,21 +191,21 @@ HumanoidIK
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
 | Method                                                                                                                        | Role                                                                                                       |
 +===============================================================================================================================+============================================================================================================+
-| ``public virtual void Solve(PassengerSeat seat)``                                                                             | Solves the mapped humanoid pose for the supplied limb targets/configuration.                               |
-+-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
-| ``public virtual void Solve(PassengerSeat seat, bool initializeFreeArms)``                                                    | Solves the mapped humanoid pose for the supplied limb targets/configuration.                               |
-+-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SolveHands(PassengerSeat seat)``                                                                        | Solves the selected hand targets using the character's mapped arm/palm frames.                             |
-+-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SolveHands(PassengerSeat seat, bool initializeFreeArms)``                                               | Solves the selected hand targets using the character's mapped arm/palm frames.                             |
-+-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SolveFootPosition(bool left, Vector3 position, Vector3 bend)``                                          | Solves a leg toward the requested ankle/foot target while respecting its mapped frames.                    |
-+-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
 | ``public virtual void CapturePalmFrames()``                                                                                   | Captures the mapped wrist-to-palm frames used by subsequent hand targeting.                                |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
 | ``public virtual void MapAnimator(Animator animator)``                                                                        | Resolves humanoid bone references from the supplied Animator, optionally filling only missing references.  |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
 | ``public virtual void MapAnimator(Animator animator, bool fillMissingOnly)``                                                  | Resolves humanoid bone references from the supplied Animator, optionally filling only missing references.  |
++-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Solve(PassengerSeat seat)``                                                                             | Solves the mapped humanoid pose for the supplied limb targets/configuration.                               |
++-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Solve(PassengerSeat seat, bool initializeFreeArms)``                                                    | Solves the mapped humanoid pose for the supplied limb targets/configuration.                               |
++-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SolveFootPosition(bool left, Vector3 position, Vector3 bend)``                                          | Solves a leg toward the requested ankle/foot target while respecting its mapped frames.                    |
++-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SolveHands(PassengerSeat seat)``                                                                        | Solves the selected hand targets using the character's mapped arm/palm frames.                             |
++-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SolveHands(PassengerSeat seat, bool initializeFreeArms)``                                               | Solves the selected hand targets using the character's mapped arm/palm frames.                             |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool TryArmPose(PassengerSeat seat, bool left, out Quaternion upperRotation, out Quaternion lowerRotation)`` | Solves a candidate arm pose for the supplied target; ``false`` leaves the caller responsible for fallback. |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
@@ -209,9 +215,9 @@ HumanoidIK
 +----------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
 | Method / event / callback                                                                          | Role                                                                                                   |
 +====================================================================================================+========================================================================================================+
-| ``public virtual void SolveHands(PassengerSeat seat, bool initializeFreeArms, HandleLimbs limbs)`` | See :ref:`HumanoidIK <uvs-api-passengerphysics--humanoidik>` for the declared lifecycle and arguments. |
-+----------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
 | ``public virtual void Solve(PassengerSeat seat, bool initializeFreeArms, HandleLimbs limbs)``      | See :ref:`HumanoidIK <uvs-api-passengerphysics--humanoidik>` for the declared lifecycle and arguments. |
++----------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``public virtual void SolveHands(PassengerSeat seat, bool initializeFreeArms, HandleLimbs limbs)`` | See :ref:`HumanoidIK <uvs-api-passengerphysics--humanoidik>` for the declared lifecycle and arguments. |
 +----------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-passengerphysics--passengerbodypartconfig:
@@ -227,6 +233,19 @@ PassengerBodyPartConfig
 | ``public virtual Transform ResolveTarget(PassengerBodyPart part)`` | Resolves this limb configuration's effective direct/handle contact target. |
 +--------------------------------------------------------------------+----------------------------------------------------------------------------+
 
+.. _uvs-scripting-passengerphysics--passengercollisionejection:
+
+PassengerCollisionEjection
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++----------------------------------------------------------------------------------------+------------------------------------------------------------------------+
+| Method                                                                                 | Purpose                                                                |
++========================================================================================+========================================================================+
+| ``public virtual Vector3 AnimatedVelocityCorrection(PassengerCollisionSample sample)`` | Returns the bounded local velocity correction for the supplied sample. |
++----------------------------------------------------------------------------------------+------------------------------------------------------------------------+
+| ``public virtual PassengerEjectionCause Evaluate(PassengerCollisionSample sample)``    | Classifies the supplied chassis-local collision sample.                |
++----------------------------------------------------------------------------------------+------------------------------------------------------------------------+
+
 .. _uvs-scripting-passengerphysics--passengerfootconfig:
 
 PassengerFootConfig
@@ -237,9 +256,16 @@ PassengerFootConfig
 +---------------------------------------------+---------------------------------------------------------------------+
 | Method                                      | Role                                                                |
 +=============================================+=====================================================================+
-| ``public void PinTo(VehicleHandle target)`` | Assigns an ankle target/handle and the foot's hold/rotation policy. |
-+---------------------------------------------+---------------------------------------------------------------------+
 | ``public void PinTo(Transform target)``     | Assigns an ankle target/handle and the foot's hold/rotation policy. |
++---------------------------------------------+---------------------------------------------------------------------+
+| ``public void PinTo(VehicleHandle target)`` | Assigns an ankle target/handle and the foot's hold/rotation policy. |
 +---------------------------------------------+---------------------------------------------------------------------+
 | ``public void ReleasePin()``                | Removes the foot's pinned target/hold policy.                       |
 +---------------------------------------------+---------------------------------------------------------------------+
+
+.. _uvs-scripting-passengerphysics--ragdollcollisionhelper:
+
+RagdollCollisionHelper
+~~~~~~~~~~~~~~~~~~~~~~
+
+-  ``public override bool ExcludeWheelSupport(Collider target)`` — Rejects standing/tall mannequin colliders as wheel support, then restores support for the fallen body.

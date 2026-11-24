@@ -8,6 +8,7 @@ Read [the system explanation](../Scripting/WheelContact.md) for composition, set
 - [ContactEnvelope](WheelContact.md#contactenvelope)
 - [TireCollision](WheelContact.md#tirecollision)
 - [Wheel](WheelContact.md#wheel)
+- [WheelContactMotion](WheelContact.md#wheelcontactmotion)
 - [WheelDynamics](WheelContact.md#wheeldynamics)
 - [WheelSetup](WheelContact.md#wheelsetup)
 
@@ -56,7 +57,7 @@ Samples tire-shaped support and adjusts effective native support radius.
 | `public virtual int LastGroundQueryCount { get; protected set; }` | Number of native ground raycasts issued by the latest Step; zero on cached/sleeping steps. |
 | `public int longitudinalSamples` | Maximum count/resolution for longitudinal samples. Larger values increase detail or work performed by this system. Initial value: `9`. |
 | `public virtual float MaximumCorrection { get; protected set; }` | Largest active wheel-radius correction, in metres. |
-| `public float maximumLiftRadius` | Maximum lift radius in metres in the owning system's space. Initial value: `.8f`. |
+| `public float maximumLiftRadius` | Maximum lift radius in metres in the owning system's space. Initial value: `1f`. |
 | `public float minimumGroundNormal` | Minimum dot product between a sampled normal and vehicle up for that sample to count as supporting ground. Initial value: `.35f`. |
 | `public bool optimizeWhenStationary` | Enable additional probe throttling for awake stationary vehicles. Driving/steering/flight demand, movement, wake-up and mode or interval changes force a fresh sample. Sleeping Probe Interval remains independent. Default: `true`. |
 | `public override ExecutionPhase Phase { get; }` | Cross-category execution barrier used by the module pipeline. |
@@ -76,13 +77,10 @@ Samples tire-shaped support and adjusts effective native support radius.
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
 | `public override void Configure(VehicleController vehicle)` | Restores prior radii, stores the new owner, clears sampling history and resolves Suspension. | `vehicle` — Vehicle context/owner receiving the operation. |
+| `public void InvalidateSupportQueries()` | Invalidates current-step shared centre rays. Call after a custom module changes terrain, colliders or the physics scene between envelope sampling and tire collision. | — |
 | `public virtual void ResetVehicleState(VehicleResetReason reason)` | Clears transient state for the supplied reset reason without changing persistent configuration. | — |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Samples supported circular tire geometry and updates effective native support radii; sleeping idle bodies use periodic resampling. | `vehicle` — Vehicle context/owner receiving the operation. `command` — Command sampled for this tick; use its channel metadata as well as axes. `deltaTime` — Elapsed time in seconds supplied by the owning loop. |
 | `public override bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. | `profile` — Movement/surface configuration, according to its declared type. **Returns:** `true` when the described condition holds; `false` otherwise. |
-
-| Declaration | Usage |
-| --- | --- |
-| `public void InvalidateSupportQueries()` | Invalidates current-step shared centre rays. Call after a custom module changes terrain, colliders or the physics scene between envelope sampling and tire collision. |
 
 ## TireCollision
 
@@ -164,9 +162,37 @@ Adds supplemental solid tire contacts.
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
 | `public virtual void Configure()` | Applies clamped native radius/mass, captures contact radius and configures native substeps when attached to a `Rigidbody`. | No arguments; no returned value. |
+| `public virtual WheelContactMotion GetContactMotion(Rigidbody body, WheelHit hit)` | Resolves tire motion from an existing WheelHit, avoiding a repeated native ground query. | — |
 | `public virtual bool GetGroundHit(out WheelHit hit)` | Reads native tire contact in physical mode or the presentation ground query in direct mode. | Returns true for a supporting hit; direct force is an approximate static mass share and slip is zero. |
 | `public virtual void GetWorldPose(out Vector3 position, out Quaternion rotation)` | Gets the wheel hub pose including steering/spin in either control mode. | World position in metres and world quaternion, before visual mesh offsets. |
 | `public virtual void SetAttached(bool attached)` | Sets low-level wheel attachment state, clears actuators/direct/contact/visual history and updates native collider availability. Notifies once per change. Does not physically detach/remount a visual object; use WheelPart for debris lifecycle. | — |
+| `public virtual bool TryGetContactMotion(Rigidbody body, out WheelContactMotion motion)` | Samples native wheel support and returns contact-relative motion; returns false for an unsupported or unavailable wheel. | — |
+
+## WheelContactMotion
+
+**Runtime/Physics/Wheels/Contact/WheelContactMotion.cs**
+
+Immutable tire-contact motion shared by ABS, traction control and motorcycle brake assistance. Speeds are signed and relative to the supporting surface, including moving or rotating roads.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public Vector3 Forward { get; }` | Steered forward direction projected onto the contact plane. |
+| `public float NativeForwardSlip { get; }` | Native PhysX longitudinal slip from the supplied contact. |
+| `public Vector3 RelativeVelocity { get; }` | Chassis contact velocity minus surface velocity, in m/s. |
+| `public float RoadSpeed { get; }` | Signed contact-relative longitudinal speed in m/s. |
+| `public float SideSpeed { get; }` | Signed contact-relative lateral speed in m/s. |
+| `public float TreadSpeed { get; }` | Signed circumference speed in m/s using the sampled effective tire radius. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public float BrakingSlip(float referenceSpeed = 1)` | Returns signed-motion-normalized braking slip: near zero while rolling and near one when locked. Wheelspin does not count as braking. | — |
+| `public float DriveSlip(float torqueDirection, float referenceSpeed = 3)` | Returns positive tire overspeed in the requested torque direction, with a low-speed reference and native-slip contribution. | — |
+| `public float RelativeSlip(float referenceSpeed = 3)` | Returns absolute tread/road speed mismatch normalized by the larger road/reference speed. | — |
 
 ## WheelDynamics
 

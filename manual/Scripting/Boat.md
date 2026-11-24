@@ -115,14 +115,14 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public event System.Action<bool> SinkingChanged` | Reports explicit sinking state changes once per transition. |
+| `public override bool CanUsePropulsionBoost(VehicleController vehicle)` | Checks the profile propulsion switch and required water/support context before activation. |
+| `public virtual bool ContainsWater(Vector3 position)` | Checks whether a position lies inside this profile's fallback water region. |
 | `public virtual void SetBuoyancyEnabled(bool enabled)` | Toggles gravity-derived flotation independently of water damping. |
 | `public virtual void SetSinking(bool enabled)` | Suspends or resumes configured upward flotation and damping; preserves the authored switches and current momentum. |
+| `public event System.Action<bool> SinkingChanged` | Reports explicit sinking state changes once per transition. |
 | `public virtual void StartSinking()` | Starts sinking under native Rigidbody gravity without altering hull mass or teleporting. |
-| `public virtual void StopSinking()` | Resumes configured flotation at the current depth; does not force a separately disabled buoyancy switch on. |
-| `public override bool CanUsePropulsionBoost(VehicleController vehicle)` | Checks the profile propulsion switch and required water/support context before activation. |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Resolves steering, samples water and applies buoyancy, water-relative resistance, thrust and trim/rocking. |
-| `public virtual bool ContainsWater(Vector3 position)` | Checks whether a position lies inside this profile's fallback water region. |
+| `public virtual void StopSinking()` | Resumes configured flotation at the current depth; does not force a separately disabled buoyancy switch on. |
 
 ### DriveProfile
 
@@ -130,12 +130,12 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
-| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
-| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 | `public virtual DriveProfile Clone()` | Creates an independent serialized profile-configuration copy; configure it on its destination vehicle before use. |
+| `public virtual void Configure(VehicleController vehicle)` | Empty base strategy setup hook; family implementations may ensure helpers and apply profile-owned settings. |
+| `public virtual Settings CreateSettings()` | Returns a fresh initial shared settings object for explicit creation/profile selection. |
 | `public virtual float ResolveDriveDemand(VehicleController vehicle, Command command)` | Maps the command and strategy state to propulsion demand for surrounding mechanics. |
 | `public virtual float ResolveExternalDriveIntent(VehicleController vehicle)` | Returns signed non-wheel propulsion intent used by shared coasting/contact policy. |
+| `public abstract void Step(VehicleController vehicle, Command command, float deltaTime)` | Abstract movement-strategy step called by Drive; apply the selected family's movement using this vehicle context. |
 
 ### FreeProfile
 

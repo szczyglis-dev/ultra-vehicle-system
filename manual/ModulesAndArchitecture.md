@@ -4,7 +4,7 @@ A vehicle is built around one **Vehicle Controller** and a set of components cal
 
 ## Start from the Inspector
 
-Select the root and open **Vehicle Controller > Modules**. Choose a category, expand an installed module or use **Add module...** at the bottom. Fill its references before pressing **Apply vehicle configuration**. Components added directly through Unity's Add Component can be picked up with **Discover and order vehicle modules**. Model-mounted helpers still need their specific registry/parent connections.
+Select the root and open **Vehicle Controller > Modules**. Choose a category, expand an installed module or use **Add module...**. Fill its references before pressing **Apply vehicle configuration**. Components added directly through Unity's Add Component can be picked up with **Discover and order vehicle modules**. Model-mounted helpers still need their specific registry/parent connections.
 
 Use [Basic Inspector workflow](InspectorConfiguration.md#basic-inspector-workflow) for the complete add/assign/save sequence and a table of subsystem entry points. Continue with a system's practical guide before using its API reference; installing a module alone does not place lights, exhaust outlets, hinges or seat anchors on the model.
 
@@ -49,7 +49,7 @@ For code integration and execution details, continue with [Architecture and upda
 
 ## Modules list
 
-Use this catalog to choose the components to add to a vehicle. Categories describe responsibilities; they do not determine fixed-step order. A **Module** is registered with VehicleController and participates through Configure/Step. The **Helpers** groups also include the root controller and nested audio, camera and passenger components driven by their own owners; adding one of these components to the hierarchy does not turn it into a standalone scheduled mechanic. **Assets** are reusable configuration, not components to attach.
+Use this catalog to choose the runtime components to add to a vehicle. Demo-only setup and control helpers are covered in [Demo](Demo.md). Categories describe responsibilities; they do not determine fixed-step order. A **Module** is registered with VehicleController and participates through Configure/Step. The **Helpers** groups also include the root controller and nested audio, camera and passenger components driven by their own owners; adding one of these components to the hierarchy does not turn it into a standalone scheduled mechanic. **Assets** are reusable configuration, not components to attach.
 
 Start with VehicleController, Rigidbody, body colliders, an input provider and a compatible drive profile. Add only the capabilities required by the model. For modules, discover/register the instance and apply configuration after assigning references. Dependency names below identify built-in component contracts or referenced collaborators; assign geometry, clips, materials and limits as described in the linked Inspector reference. Optional references do not all have to be filled. A component can also require the profile/capability described by its setup guide.
 
@@ -75,6 +75,8 @@ Select one active input source for the vehicle. Input providers require a Vehicl
 
 - `KeyboardFlightInput`: Reads keyboard commands for flight operation; select as the vehicle input provider when using the built-in keyboard controls. Requirements / collaborators: VehicleController registration; ActionInput (analogInput). [Settings](InspectorReference/Controller.md#keyboardflightinput).
 
+- `KeyboardSpaceshipInput`: Reads retained spacecraft thrust, reverse thrust, local translation, attitude and momentum-brake commands. Requirements / collaborators: VehicleController input-source assignment and SpaceshipProfile. [Settings](InspectorReference/Controller.md#keyboardspaceshipinput).
+
 - `KeyboardSubmarineInput`: Reads keyboard commands for submarine operation; select as the vehicle input provider when using the built-in keyboard controls. Requirements / collaborators: VehicleController registration; ActionInput (analogInput). [Settings](InspectorReference/Controller.md#keyboardsubmarineinput).
 
 - `ProfileSwitcher`: Owns an ordered list of registered drive strategies and selects optional pair-specific transitions. Inherits ControllerModule. Requirements / collaborators: VehicleController registration; registered profile assets and optional transition routes. [Settings](InspectorReference/Drive.md#profileswitcher).
@@ -88,6 +90,8 @@ Select one active input source for the vehicle. Input providers require a Vehicl
 Use these for steering, brakes, ground support and drive-profile execution. Wheel mechanics need configured Wheel adapters/native WheelColliders. Visual linkages need authored pivots and anchors.
 
 #### Modules
+
+- `AntiLockBrakes`: Modulates each wheel's requested service-brake pressure when braking slip exceeds the configured threshold; it does not create braking demand. Requirements / collaborators: Brakes and operational wheel contacts. [Settings](InspectorReference/Drive.md#antilockbrakes).
 
 - `AntiRoll`: Optional, manually added module; default vehicle presets and full setup do not install it. Adds cross-wheel roll support for the configured wheel relationships. Requirements / collaborators: VehicleController registration; Wheel (left); Wheel (right). [Settings](InspectorReference/Drive.md#antiroll).
 
@@ -147,6 +151,8 @@ Use for sound, particles, decals and feedback. Assign sources/profiles/prefabs. 
 
 - `ExhaustSmoke`: Controls emission from configured exhaust outlets. Requirements / collaborators: VehicleController registration; VehicleController (vehicle); Engine (engine). [Settings](InspectorReference/Effects.md#exhaustsmoke).
 
+- `JetBlast`: Applies physical exhaust forces to nearby rigidbodies inside the configured blast volumes. Requirements / collaborators: VehicleController, outward-facing exhaust outlets and affected-layer settings. [Settings](InspectorReference/Effects.md#jetblast).
+
 - `TireFeedback`: Builds per-wheel presentation state after mechanics. Requirements / collaborators: VehicleController registration; VehicleController (vehicle); TireSurfaceProfile (defaultSurface). [Settings](InspectorReference/Effects.md#tirefeedback).
 
 - `PropulsionJets`: Presents propulsion exhaust/jet outlets. Requirements / collaborators: VehicleController registration; VehicleController (vehicle); Engine (engine). [Settings](InspectorReference/Effects.md#propulsionjets).
@@ -165,9 +171,15 @@ Use for sound, particles, decals and feedback. Assign sources/profiles/prefabs. 
 
 - `BrakeAudio`: Renders brake-related audio; add to the audio owner with the relevant clips and braking state. Requirements / collaborators: Audio channel owner. [Settings](InspectorReference/Effects.md#brakeaudio).
 
+- `DamageContactRelay`: Forwards attached and detached part contacts to the original DamageFeedback owner. Requirements / collaborators: Prepared DamagePart and DamageFeedback bindings; installed by the damage setup rather than added as an independent effect. [Settings](InspectorReference/Effects.md#damagecontactrelay).
+
+- `DamageSurface`: Classifies a target's impact material, response profile, scrape gain and detached-part surface override. Requirements / collaborators: Target colliders and DamageFeedback; optional DamageFeedbackProfile. [Settings](InspectorReference/Effects.md#damagesurface).
+
 - `EngineAudio`: Renders engine sounds; add under the Audio channel owner and assign its recordings/state references. Requirements / collaborators: Audio channel owner; Engine (engine). [Settings](InspectorReference/Effects.md#engineaudio).
 
 - `EventAudio`: Routes configured application-defined Events notifications to audio playback; add to the audio owner. Requirements / collaborators: Audio channel owner. [Settings](InspectorReference/Effects.md#eventaudio).
+
+- `HandleAudio`: Plays handle movement and value-change cues, with requested-value or actual-movement timing, optional camera gating and automatic-change admission. Requirements / collaborators: Audio channel owner, VehicleHandle and configured cues/loop. [Settings](InspectorReference/Effects.md#handleaudio).
 
 - `HornAudio`: Renders horn sounds; add under the Audio channel owner and assign its recordings/state references. Requirements / collaborators: Audio channel owner. [Settings](InspectorReference/Effects.md#hornaudio).
 
@@ -228,7 +240,11 @@ Use for bodywork, lights, moving geometry and aircraft/track presentation. Assig
 
 - `MovingPart`: Owns rotation/translation requests, constraints and scheduled motion. Requirements / collaborators: VehicleController registration. [Settings](InspectorReference/Exterior.md#movingpart).
 
+- `PedalDrive`: Rotates a bicycle crank and counter-rotates pedal platforms from wheel speed, moving the rider's riding anchors before passenger solving. Requirements / collaborators: BalanceRider, crank/pedal transforms and driven-wheel setup. [Settings](InspectorReference/Exterior.md#pedaldrive).
+
 - `Propulsion`: Animates propellers and rotors for aircraft, boats and submarines. Requirements / collaborators: VehicleController registration; Engine (engine). [Settings](InspectorReference/Exterior.md#propulsion).
+
+- `SteeringPart`: Animates a rudder, outboard motor or other steering pivot using procedural motion, a clip or custom playback. Requirements / collaborators: Part transform and optional IInteriorValueSource; otherwise reads vehicle steering. [Settings](InspectorReference/Exterior.md#steeringpart).
 
 - `TrackVisuals`: Moves visible links and rollers from wheel motion. Requirements / collaborators: VehicleController registration. [Settings](InspectorReference/Exterior.md#trackvisuals).
 
@@ -247,6 +263,8 @@ Use for bodywork, lights, moving geometry and aircraft/track presentation. Assig
 - `LandingGearSuspensionPart`: Defines one hinged leg, wheel link, angular limits and spring response; add per bending landing leg. Requirements / collaborators: LandingGearPart (gearPart). [Settings](InspectorReference/Exterior.md#landinggearsuspensionpart).
 
 - `TrackPathBuilder`: Prepares reusable closed paths during authoring. Requirements / collaborators: TrackVisuals (visuals). [Settings](InspectorReference/Exterior.md#trackpathbuilder).
+
+- `VehicleLampGlow`: Presents a camera-facing lamp-lens halo independently of the Unity Light illuminating the scene. Requirements / collaborators: Glow renderer/material, configured size, brightness and lamp color. [Settings](InspectorReference/Exterior.md#vehiclelampglow).
 
 - `WheelPart`: Specializes DamagePart for wheel debris, wheel disconnection and repair; add on the visual wheel root and link its Wheel adapter. Requirements / collaborators: Wheel (wheel). [Settings](InspectorReference/Exterior.md#wheelpart).
 
@@ -334,19 +352,27 @@ Use for contact, grip, collision or damage support. Wheel-dependent features nee
 
 - `Coasting`: Releases native low-speed sticky wheel behavior on slopes under its torque and brake limits. Requirements / collaborators: VehicleController registration. [Settings](InspectorReference/Physics.md#coasting).
 
+- `Collisions`: Coordinates bounded crash response, body sliding friction and temporary landing grip recovery. Requirements / collaborators: VehicleController body/contact state; optional Suspension, Friction and TireCollision collaborators. [Settings](InspectorReference/Physics.md#collisions).
+
 - `Damage`: Routes accepted collisions and scripted hits to damage boundaries, deformation and detachment; add for damageable vehicles. Requirements / collaborators: VehicleController registration; VehicleMeshDeformation; registered DamagePart/WheelPart boundaries; optional impact profiles. [Settings](InspectorReference/Physics.md#damage).
 
 - `Friction`: Reads physical grip and writes native tire friction behavior. Requirements / collaborators: VehicleController registration. [Settings](InspectorReference/Physics.md#friction).
+
+- `Stabilization`: Damps excessive airborne spin, optionally levels roll and smoothly rights a supported vehicle resting on its side. Requirements / collaborators: VehicleController body, wheel/body support and the enabled stabilization options. [Settings](InspectorReference/Physics.md#stabilization).
 
 - `VehicleMeshDeformation`: Owns readable mesh instances, dent buffers and geometry restoration. Requirements / collaborators: VehicleController registration; readable MeshFilter meshes belonging to prepared damage boundaries. [Settings](InspectorReference/Physics.md#vehiclemeshdeformation).
 
 - `TireCollision`: Adds supplemental solid tire contacts. Requirements / collaborators: VehicleController registration; Wheel (wheel). [Settings](InspectorReference/Physics.md#tirecollision).
 
 - `WheelDynamics`: Applies wheel rotational behavior including airborne losses. Requirements / collaborators: VehicleController registration. [Settings](InspectorReference/Physics.md#wheeldynamics).
+- `WheelLift`: Uses bounded physical forces to lift configured wheels and manage the return to normal support. Requirements / collaborators: VehicleController, eligible wheels or lift point and wheel-lift input; optional pitch support. [Settings](InspectorReference/Physics.md#wheellift).
+
 
 #### Helpers
 
 - `DamageCollisionRelay`: Relays relevant native collisions into damage handling. Requirements / collaborators: Owning Damage component and collider/contact source; normally installed by damage setup. [Settings](InspectorReference/Physics.md#damagecollisionrelay).
+
+- `DynamicObstacle`: Configures a movable obstacle's native collision detection, interpolation, solver quality and penetration-recovery limit. Requirements / collaborators: Rigidbody; preserves the original settings when disabled. [Settings](InspectorReference/Physics.md#dynamicobstacle).
 
 - `Surface`: Stores the physical grip multiplier on a contact collider. Requirements / collaborators: Collider on the contacted world surface; grip multiplier for Friction. [Settings](InspectorReference/Physics.md#surface).
 
@@ -386,6 +412,8 @@ Use for occupants, cameras, weapons, towing and water. Assign seats/characters, 
 
 - `CustomPassengerBody`: Minimal body for application-owned Custom occupancy. Requirements / collaborators: PassengerSeat/Passengers ownership; application-provided occupancy behavior. [Settings](InspectorReference/World.md#custompassengerbody).
 
+- `DamageContactLimiter`: Limits repeated impact presentation while one vehicle remains in contact with a target. Requirements / collaborators: Target collider hierarchy and DamageFeedback; implements IDamageContactFilter without removing physical contacts or damage. [Settings](InspectorReference/World.md#damagecontactlimiter).
+
 - `DroppableObject`: Detaches the actual payload and establishes released physics. Requirements / collaborators: ObjectDropper payload entry; releasable object with suitable physics geometry. [Settings](InspectorReference/World.md#droppableobject).
 
 - `GearLeverHandle`: Defines an IK palm contact on a moving gear lever; pair with the lever animator when a passenger should operate it. Requirements / collaborators: Passengers / seat handle owner. [Settings](InspectorReference/World.md#gearleverhandle).
@@ -393,6 +421,8 @@ Use for occupants, cameras, weapons, towing and water. Assign seats/characters, 
 - `GearPaddleHandle`: Defines an IK palm contact on a moving shift paddle; pair with the paddle animator for passenger hand motion. Requirements / collaborators: Passengers / seat handle owner. [Settings](InspectorReference/World.md#gearpaddlehandle).
 
 - `HandGrip`: Stores character hand frames and fallback finger poses. Requirements / collaborators: Character hand/finger transforms and authored fallback poses. [Settings](InspectorReference/World.md#handgrip).
+
+- `HandleAnimationEvents`: Delivers animation-event markers to fixed and currently registered handle gesture receivers. Requirements / collaborators: Animator event source and VehicleHandle receivers. [Settings](InspectorReference/World.md#handleanimationevents).
 
 - `HandleAnimatorBinding`: Binds animation or Timeline values to a passenger handle before the normal IK overlay; use when a clip controls handle feedback. Requirements / collaborators: PassengerSeat (seat); VehicleHandle (handle); VehicleHandle (ResolvedHandle). [Settings](InspectorReference/World.md#handleanimatorbinding).
 
@@ -410,15 +440,23 @@ Use for occupants, cameras, weapons, towing and water. Assign seats/characters, 
 
 - `OrbitCamera`: Mouse orbit, scroll zoom, smoothed framing and obstruction avoidance around an explicit anchor. Requirements / collaborators: Cameras owner, explicit camera and follow anchor; collision settings for obstruction checks. [Settings](InspectorReference/World.md#orbitcamera).
 
+- `OrbitCameraGround`: Marks map-ground colliders, including children, as orbit-camera obstructions. Requirements / collaborators: Ground collider hierarchy and the vehicle's OrbitCamera setup. [API](API/Camera.md#orbitcameraground).
+
 - `PassengerAccess`: Owns the entry/exit state machine, reservation and cancellation. Requirements / collaborators: PassengerBody (passenger); AccessMotion (motion). [Settings](InspectorReference/World.md#passengeraccess).
 
+- `PassengerAnimatorLayers`: Applies configured overlay-layer weights to a seat's current humanoid Animator; the AnimatorController still owns states and masks. Requirements / collaborators: PassengerSeat, existing layer names and controller setup. [Settings](InspectorReference/World.md#passengeranimatorlayers).
+
 - `PassengerSeat`: Owns one occupant slot and its controller/pose bindings; add per usable seat and register with Passengers. Requirements / collaborators: PassengerBody (bodyPrefab); PassengerBody (body). [Settings](InspectorReference/World.md#passengerseat).
+
+- `PassengerVariants`: Selects and restores occupant presentation variants, including optional first-person bodies, without owning seat or physics transactions. Requirements / collaborators: PassengerSeat, variant prefabs and optional Cameras binding. [Settings](InspectorReference/World.md#passengervariants).
 
 - `PedalHandle`: Defines the passenger foot/ankle contact for a pedal; pair with its pedal animator. Requirements / collaborators: Passengers / seat handle owner. [Settings](InspectorReference/World.md#pedalhandle).
 
 - `RagdollCollisionHelper`: Supports collision policy for physical passenger bodies; use with the owning ragdoll configuration. Requirements / collaborators: HumanoidPassenger ragdoll bodies/colliders and configured collision ownership. [Settings](InspectorReference/World.md#ragdollcollisionhelper).
 
 - `RagdollCollisionRelay`: Forwards physical passenger contacts to the owning passenger system; use on configured ragdoll bodies. Requirements / collaborators: Owning physical passenger and the ragdoll collision source. [Settings](InspectorReference/World.md#ragdollcollisionrelay).
+
+- `RiderAnimator`: Maps rider motion and custom conditions to Animator parameters, state transitions and callbacks. Requirements / collaborators: BalanceRider, Animator and configured animation rules. [Settings](InspectorReference/World.md#rideranimator).
 
 - `Rocket`: Owns launched-rocket motor, collision and lifetime behavior. Requirements / collaborators: RocketLauncher store/prefab setup; Rigidbody/collider and configured motor/lifetime. [Settings](InspectorReference/World.md#rocket).
 
@@ -434,20 +472,25 @@ Use for occupants, cameras, weapons, towing and water. Assign seats/characters, 
 
 - `ThrottleHandle`: Defines hand contact on a throttle lever; pair with ThrottleAnimator for the visible lever motion. Requirements / collaborators: Passengers / seat handle owner. [Settings](InspectorReference/World.md#throttlehandle).
 
+- `VehicleCargo`: Manages free, secured, spring or tethered cargo, carrier collision policy and placement/attachment lifecycle. Requirements / collaborators: Cargo Rigidbody, optional carrier vehicle and configured attachment/collision settings. [Settings](InspectorReference/World.md#vehiclecargo).
+
 - `WaterSurface`: Built-in water-surface provider implementation. Requirements / collaborators: Authored water geometry/level and sampling settings; optional WaterSurfaceProfile. [Settings](InspectorReference/World.md#watersurface).
 
 - `YokeHandle`: Describes steering contacts, surface geometry and hand participation. Requirements / collaborators: Passengers / seat handle owner. [Settings](InspectorReference/World.md#yokehandle).
 
 ### Shared assets and extension bases
 
-DriveProfile assets select movement algorithms; the built-in profiles cover wheeled, motorcycle, tracked, free, hover, air/airplane/aerobatic/jet/helicopter, boat and submarine movement. ProfileTransition and HoverDriveTransition are route components rather than additional drive profiles.
+Drive profiles select movement algorithms for wheeled, motorcycle, tracked, hover, airplane/jet, helicopter, boat, submarine and spaceship vehicles. AirplaneProfile covers conventional, aerobatic and jet setups. ProfileTransition and HoverDriveTransition are route components rather than additional drive profiles.
 
 - `AccessAnimationProfile`: Stores animation states, references and timing configuration.
+- `DamageFeedbackProfile`: Stores shared impact/scrape recordings, material responses, pooled effect settings and strength thresholds for DamageFeedback. [Settings](InspectorReference/Effects.md#damagefeedbackprofile).
 - `DamageImpactProfile`: Reusable immutable-at-playback configuration; cooldown/pool state belongs to each vehicle.
 - `EngineSoundProfile`: Stores engine sound behavior and asset configuration.
 - `HandleHandPositionProfile`: ScriptableObject created with **Create > UltraVehicleSystem > Controls > Hand Position Profile**. Its `left` and `right` HandleHandPose blocks are shared by every referencing handle; **Local** makes an independent copy. See Reusable hand positions.
 - `TireSurfaceProfile`: Stores presentation assets and effect multipliers.
 - `WaterSurfaceProfile`: Stores shared water presentation configuration; assign to water presentation components.
+
+The abstract `VehicleCollisionHandler` is a target-side extension base for wheel-support admission and prioritized body-contact handling. Derive an implementation; `RagdollCollisionHelper` uses it for standing-to-fallen support changes. See [collision hooks](CollisionsAndStabilization.md#custom-wheel-and-body-collision-handling).
 
 Abstract category bases, AudioModule, CameraModule, PassengerBehaviour, PassengerBody, VehicleHandle, ControlAnimator, value-source bases and WaterProvider are extension contracts. Derive a concrete implementation; do not install a second generic base to make a helper run. See Architecture and the scripting reference for their nested ownership and lifecycle.
 

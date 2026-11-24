@@ -306,3 +306,28 @@ For a missing menu type, check compilation, public/concrete visibility, filename
 For a visible component with no `Step`, check registry membership, vehicle ownership and validation, enabled state, profile support and direct-control mode. For no visible force, check speed, native ground support and the configured `acceleration`. Use the automatic module scope and a custom `ProfilerMarker` to inspect execution; do not rely on per-tick logging for performance measurements.
 
 Continue with [`VehicleModule` lifecycle](Modules.md), [Architecture](../Architecture.md) and [Profiling and debugging](ProfilingAndDebugging.md).
+
+
+## Extend an existing component at a state notification
+
+Use a `protected virtual On...` method to extend an existing notification boundary without replacing the whole public operation. These hooks are available on the existing extensible vehicle, engine, drivetrain, steering, suspension, part, passenger, coupling, water and weapon components. Internal coordinators call the same hook through `protected internal` access where needed; there is no separate forwarding notification method. They run where the component already publishes that notification; they are not extra per-frame callbacks. Existing hooks such as `DamagePart.OnDetaching` and `OnRestoring` remain available for their specific mounting transitions.
+
+Call `base.On...` exactly once to preserve the component's C# events and Inspector callbacks. Put work after that call when it must follow the existing listeners, or before it when it must precede them. Both forms run synchronously: a listener may disable, reset or otherwise modify the component before your following code runs. Do not recursively invoke the same public operation from its notification. Use the documented public operation or policy interfaces when you need to reject or change an operation; a notification hook is not an admission filter.
+
+<!-- example: EngineStopExtension.cs -->
+```csharp
+using UltraVehicleSystem;
+using UnityEngine;
+
+public sealed class EngineStopExtension : Engine
+{
+    // Notifies normal listeners, then records an accepted engine stop.
+    protected override void OnEngineStateChanged(bool running)
+    {
+        base.OnEngineStateChanged(running);
+        if (!running) Debug.Log("Engine stopped", this);
+    }
+}
+```
+
+Use this subclass in place of the built-in Engine component, with the vehicle's module registration and dependent Engine references assigned to it. Do not install a second Engine beside the original merely to receive a hook. For observation from a separate component, subscribe to `EngineStateChanged` instead; no subclass is required. Inspector `on...` fields, C# events and protected `On...` methods are three different extension surfaces and do not replace each other.

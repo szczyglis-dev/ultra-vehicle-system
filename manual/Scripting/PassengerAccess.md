@@ -91,7 +91,7 @@ Use `EnterBegin`, `EnterInProgress`, `EnterFinished`, `EnterCancelled` and the c
 
 `EnterInProgress`/`ExitInProgress` supply a `PassengerAccessProgress` value: `Context` retains the original vehicle/passenger/seat, `IsEntering` gives the direction, `NormalizedTime` is nominal motion time from 0 to 1, and `ElapsedTime`/`Duration` are seconds. It starts at zero and can repeat one while animation blending, marker waits or final handover continue. Do not unlock controls or assume occupancy from progress alone. Progress callbacks can cancel; the old operation then stops before committing occupancy or publishing stale Inspector progress.
 
-The Inspector exposes the same directional lifecycle through `onEnterBegin`, `onEnterInProgress`, `onEnterFinish`, `onEnterCancelled` and their `onExit...` counterparts. Progress is a dynamic float argument (0..1); the other Inspector callbacks have no arguments. Existing `started`, `completed`, `cancelled`, `Finished`, `Before...`, `After...` and `StateChanged` remain available. Prefer one API family for each application action to avoid handling the same phase twice.
+The Inspector exposes the same directional lifecycle through `onEnterBegin`, `onEnterInProgress`, `onEnterFinish`, `onEnterCancelled` and their `onExit...` counterparts. Progress is a dynamic float argument (0..1); the other Inspector callbacks have no arguments. The general Inspector callbacks `onStarted`, `onCompleted` and `onCancelled` remain available alongside the C# events `Finished`, `BeforeEnter`, `BeforeExit`, `AfterEnter`, `AfterExit`, `Cancelled` and `StateChanged`. Prefer one API family for each application action to avoid handling the same phase twice.
 
 The normal order is Before → Opening/started/directional Begin → Moving/progress → Closing → Idle/outcome cleanup → completed/Finished(success)/directional Finished → After. On failure, cancelled/Finished(false)/directional Cancelled/Cancelled replace the success notifications. A Before listener can veto a reserved attempt before directional Begin; cancellation is still reported. A begin callback that calls `Cancel` or disables the component is cleaned up after begin observers return, and the request returns false. Capture the context passed to a callback instead of reading `Target` after completion, because `Target` is already cleared.
 
@@ -210,9 +210,13 @@ This is the preferred integration when you want different motion but still want 
 8. In success/cancellation handlers restore locomotion according to actual occupancy, including an interrupted exit that has been reseated. If Begin returns false after acquiring a resource, clean up that partial acquisition in Begin; do not depend on successful Begin having occurred.
 9. Test interruption/disable and moving endpoints. Your framework must own any navigation, collision sweep and skeleton/character-controller handover it needs; endpoint clearance is not a whole-path solver.
 
-### Minimal root-motion adapter for an application-owned character
+### Example: E to board with your own animation
 
-This example demonstrates the contract with a doorless, nonphysical `CustomPassengerBody`. It smoothly moves the character root between two authored root markers. It is deliberately not a Humanoid clip retargeter or obstacle-avoiding walking controller. Use **Passenger Seat > Passenger Controller = Custom**, leave **Custom supports** lists empty, and have your application hold the seated pose/root after successful entry. Both markers must be outside the character hierarchy. **Seated Root** is a root-space destination; do not substitute a pelvis marker for a root marker.
+This example demonstrates the contract with a doorless, nonphysical `CustomPassengerBody`. It plays your own in-place entry/exit animations while smoothly moving the character root between two authored root markers. It is deliberately not a Humanoid clip retargeter or obstacle-avoiding walking controller. Use **Passenger Seat > Passenger Controller = Custom**, leave **Custom supports** lists empty, and have your application hold the seated pose/root after successful entry. Both markers must be outside the character hierarchy. **Seated Root** is a root-space destination; do not substitute a pelvis marker for a root marker.
+
+Create four states on Animator layer 0: **EnterVehicle**, **ExitVehicle**, **Seated**, **Standing**, or assign their full state paths in the Inspector. Entry/exit clips must be non-looping, in-place clips with no root-transform curves; give these states no automatic transitions. Set **Duration** to the intended access duration (the example samples each access clip from start to end across that duration). Keep the Animator on the visual child and put `CustomPassengerBody` on the character root. The adapter owns root translation/rotation; it temporarily disables Animator root motion to avoid applying movement twice. Your locomotion and CharacterController/Rigidbody scripts must yield control during access and while seated; this example assumes a nonphysical character, not a live humanoid ragdoll. For the package's physical humanoids, use `HumanoidAccessMotion` with your own `AccessAnimationProfile` instead.
+
+Assign this adapter to **Passenger Access > Motion**, its body to **Passenger**, and the two root markers/Animator to the adapter. Keep the seated root under the vehicle and outside the character hierarchy. Your seated controller must keep the character at that root as the vehicle moves. The clip must be authored for the chosen endpoints; interpolation does not automatically retarget hands, open doors or avoid obstacles.
 
 **Example: `ApplicationAccessMotion.cs`**
 
@@ -227,25 +231,42 @@ namespace VehicleDocumentationExamples
     {
         public Transform seatedRoot;
         public Transform outsideRoot;
+        public Animator animator;
+        public string enterState = "Base Layer.EnterVehicle";
+        public string exitState = "Base Layer.ExitVehicle";
+        public string seatedState = "Base Layer.Seated";
+        public string standingState = "Base Layer.Standing";
         [Min(0.01f)] public float duration = 1.2f;
         private Transform character, destination;
         private Vector3 startPosition;
         private Quaternion startRotation;
-        private bool active;
+        private bool active, savedRootMotion, enteringSeat;
+        private int motionState;
+        private PassengerBody passenger;
 
         public override bool CanPlay(SeatAccess access, PassengerBody body, bool entering)
             => !active && access && body is CustomPassengerBody &&
                access.seat && access.seat.Controller == PassengerControllerType.Custom &&
-               seatedRoot && outsideRoot;
+               seatedRoot && outsideRoot && animator && animator.isActiveAndEnabled &&
+               animator.HasState(0, Animator.StringToHash(entering ? enterState : exitState)) &&
+               animator.HasState(0, Animator.StringToHash(seatedState)) &&
+               animator.HasState(0, Animator.StringToHash(standingState));
 
         public override bool Begin(SeatAccess access, PassengerBody body, bool entering)
         {
             if (!CanPlay(access, body, entering)) return false;
             character = body.transform;
+            passenger = body;
+            enteringSeat = entering;
+            savedRootMotion = animator.applyRootMotion;
+            animator.applyRootMotion = false;
+            motionState = Animator.StringToHash(entering ? enterState : exitState);
             destination = entering ? seatedRoot : outsideRoot;
             startPosition = character.position;
             startRotation = character.rotation;
             active = true;
+            animator.Play(motionState, 0, 0);
+            animator.Update(0);
             return true;
         }
 
@@ -259,6 +280,9 @@ namespace VehicleDocumentationExamples
         public override void Sample(float normalizedTime)
         {
             if (!active || !character || !destination) return;
+            // Sample the authored in-place pose with the same progress as the root path.
+            animator.Play(motionState, 0, Mathf.Clamp01(normalizedTime));
+            animator.Update(0);
             float t = Mathf.SmoothStep(0, 1, Mathf.Clamp01(normalizedTime));
             character.SetPositionAndRotation(
                 Vector3.Lerp(startPosition, destination.position, t),
@@ -267,9 +291,15 @@ namespace VehicleDocumentationExamples
 
         public override void End(bool completed)
         {
-            // Do not force a teleport here: exit rollback/actual occupancy is decided by the coordinator.
-            // An integration that acquired locomotion/animation resources must release them here too.
+            // End(true) precedes the entry commit; use the requested direction for the final pose.
+            if (animator && active) {
+                bool seated = completed ? enteringSeat : passenger && passenger.Seat;
+                animator.Play(seated ? seatedState : standingState, 0, 0);
+                animator.Update(0);
+                animator.applyRootMotion = savedRootMotion;
+            }
             active = false;
+            passenger = null;
             character = destination = null;
         }
     }
@@ -277,6 +307,31 @@ namespace VehicleDocumentationExamples
 ```
 
 For NavMesh/Timeline/network motion, replace interpolation with that framework's start/update/stop calls. Do not start navigation toward the seated pelvis while physics is still pinning the character. Capture exactly the state your integration changes; restore it on rejection/cancellation, or hand it to the seated controller on success. The custom root example leaves movement/input control to the caller so no hidden script toggles your framework.
+
+Add the following input script to an always-active player/controller object. Assign **Access** to the character's `PassengerAccess` and **Target** to the desired `SeatAccess`. Place the character within Target's interaction distance of its Outside marker. E requests boarding; reservations, admission and the final `TryEnter` handover remain the coordinator's responsibility. The adapter never calls `TryEnter` itself. To implement your own exit input, call `access.TryExit()` and provide the exit animation above.
+
+<!-- example: CustomBoardingInputExample.cs -->
+```csharp
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UltraVehicleSystem;
+
+public sealed class CustomBoardingInputExample : MonoBehaviour
+{
+    public PassengerAccess access;
+    public SeatAccess target;
+
+    private void Update()
+    {
+        if (Keyboard.current == null || !Keyboard.current.eKey.wasPressedThisFrame ||
+            !access || !target || access.IsBusy) return;
+
+        // Admission may reject entry; do not start a separate animation on rejection.
+        if (!access.TryEnter(target))
+            Debug.Log("Entry rejected: check occupancy, distance and access settings.", this);
+    }
+}
+```
 
 ### Door contract for a custom adapter
 
@@ -323,9 +378,9 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
+| `public virtual void AccessCloseDoor()` | Delivers an animation marker requesting closure of the current access door. |
 | `public virtual void AccessOpenDoor()` | Delivers an animation marker requesting opening of the current access door. |
 | `public virtual void AccessWaitForOpenDoor()` | Holds the animation until the actual door opens or Door Timeout cancels access. |
-| `public virtual void AccessCloseDoor()` | Delivers an animation marker requesting closure of the current access door. |
 
 ### AccessMotion
 
@@ -334,8 +389,8 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public abstract bool Begin(SeatAccess access, PassengerBody passenger, bool entering)` | Attempts to begin character motion for the selected endpoint/body/direction. False rejects the adapter operation before successful motion ownership. |
-| `public abstract void End(bool completed)` | Ends the motion adapter, using the completion flag to restore or hand over its owned state. |
 | `public virtual bool CanPlay(SeatAccess access, PassengerBody passenger, bool entering)` | Checks whether the motion adapter can play this access operation for the supplied body and direction. |
+| `public abstract void End(bool completed)` | Ends the motion adapter, using the completion flag to restore or hand over its owned state. |
 | `public virtual float GetDuration(SeatAccess access, bool entering)` | Returns nominal access-motion duration for this endpoint and direction. |
 | `public abstract void Sample(float normalizedTime)` | Receives normalized access progress from `PassengerAccess`; implement pose/motion sampling without choosing a new seat. |
 
@@ -345,14 +400,14 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual void Configure(AccessAnimationProfile profile)` | Selects the `AccessAnimationProfile` used by subsequent access motion. |
 | `public override bool Begin(SeatAccess target, PassengerBody passenger, bool isEntering)` | Validates humanoid Animator, clips, mapped feet/pelvis and non-ragdoll state, then captures character/Animator state for access motion. |
-| `public override void End(bool completed)` | Ends the motion adapter, using the completion flag to restore or hand over its owned state. |
-| `public virtual float Duration(bool entering)` | Returns the built-in humanoid motion duration for the selected access direction/configuration. |
 | `public override bool CanPlay(SeatAccess target, PassengerBody passenger, bool isEntering)` | Checks whether the motion adapter can play this access operation for the supplied body and direction. |
+| `public virtual void Configure(AccessAnimationProfile profile)` | Selects the `AccessAnimationProfile` used by subsequent access motion. |
+| `public virtual float Duration(bool entering)` | Returns the built-in humanoid motion duration for the selected access direction/configuration. |
+| `public override void End(bool completed)` | Ends the motion adapter, using the completion flag to restore or hand over its owned state. |
 | `public override float GetDuration(SeatAccess target, bool isEntering)` | Returns nominal access-motion duration for this endpoint and direction. |
-| `public override void Sample(float normalizedTime)` | Evaluates the access motion or water style at the supplied normalized/world sample coordinates. |
 | `public virtual void ReleaseIdleFeet()` | Releases temporary idle-foot ownership held during humanoid access motion. |
+| `public override void Sample(float normalizedTime)` | Evaluates the access motion or water style at the supplied normalized/world sample coordinates. |
 
 ### PassengerAccess
 
@@ -360,39 +415,39 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual bool TryEnter(SeatAccess access)` | Admits an asynchronous entry and reserves the endpoint/seat. True means started, not occupied/completed; observe Finished and actual seat occupancy. |
-| `public virtual bool TryExit()` | Admits asynchronous departure. Seat release and motion completion occur at different boundaries; observe Finished for sequence outcome. |
 | `public virtual void AnimationDoor(bool open)` | Routes an animation door request into the current passenger access sequence. |
 | `public virtual void Cancel()` | Unwinds this access attempt's motion/reservation and performs its state-specific occupancy cleanup. Already committed occupancy need not be undone. |
+| `public virtual bool TryEnter(SeatAccess access)` | Admits an asynchronous entry and reserves the endpoint/seat. True means started, not occupied/completed; observe Finished and actual seat occupancy. |
+| `public virtual bool TryExit()` | Admits asynchronous departure. Seat release and motion completion occur at different boundaries; observe Finished for sequence outcome. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event Action<PassengerSeatContext> EnterBegin` | Once an admitted entry starts in Opening, after Before checks; seat reservation is held. |
-| `public UnityEvent onEnterBegin` | Inspector counterpart of `EnterBegin`; no payload. |
-| `public event Action<PassengerAccessProgress> EnterInProgress` | After each entry motion sample in Moving, starting at zero; progress one is not whole-sequence completion. |
-| `public UnityEvent<float> onEnterInProgress` | Inspector counterpart of `EnterInProgress`; receives normalized motion time (0..1). |
-| `public event Action<PassengerSeatContext> EnterFinished` | Only after the entire entry succeeds, including the required door state and reservation/Target cleanup. |
-| `public UnityEvent onEnterFinish` | Inspector counterpart of `EnterFinished`; no payload. |
-| `public event Action<PassengerSeatContext> EnterCancelled` | After a reserved entry is cancelled or fails and cleanup finishes; an immediately rejected request emits nothing. |
-| `public UnityEvent onEnterCancelled` | Inspector counterpart of `EnterCancelled`; no payload. |
-| `public event Action<PassengerSeatContext> ExitBegin` | Once an admitted exit starts in Opening, after Before checks; seat reservation is held. |
-| `public UnityEvent onExitBegin` | Inspector counterpart of `ExitBegin`; no payload. |
-| `public event Action<PassengerAccessProgress> ExitInProgress` | After each exit motion sample in Moving, starting at zero; progress one is not whole-sequence completion. |
-| `public UnityEvent<float> onExitInProgress` | Inspector counterpart of `ExitInProgress`; receives normalized motion time (0..1). |
-| `public event Action<PassengerSeatContext> ExitFinished` | Only after the entire exit succeeds, including the required door state and reservation/Target cleanup. |
-| `public UnityEvent onExitFinish` | Inspector counterpart of `ExitFinished`; no payload. |
-| `public event Action<PassengerSeatContext> ExitCancelled` | After a reserved exit is cancelled or fails and cleanup finishes; an immediately rejected request emits nothing. |
-| `public UnityEvent onExitCancelled` | Inspector counterpart of `ExitCancelled`; no payload. |
-| `public event Action<PassengerSeatContext> BeforeEnter` | Before collision preparation, door requests and entry motion, after reservation succeeds. Payload: immutable PassengerSeatContext. |
 | `public event Action<PassengerSeatContext> AfterEnter` | After the complete entry sequence succeeds and the reservation/Target are cleared. Payload: immutable PassengerSeatContext. |
-| `public event Action<PassengerSeatContext> BeforeExit` | Before collision preparation, door requests and exit motion, while occupancy is retained. Payload: immutable PassengerSeatContext. |
 | `public event Action<PassengerSeatContext> AfterExit` | After the complete exit sequence succeeds and the reservation/Target are cleared. Payload: immutable PassengerSeatContext. |
+| `public event Action<PassengerSeatContext> BeforeEnter` | Before collision preparation, door requests and entry motion, after reservation succeeds. Payload: immutable PassengerSeatContext. |
+| `public event Action<PassengerSeatContext> BeforeExit` | Before collision preparation, door requests and exit motion, while occupancy is retained. Payload: immutable PassengerSeatContext. |
 | `public event Action<PassengerSeatContext> Cancelled` | After a started/prepared sequence is cancelled and the reservation/Target are cleared; context retains the original seat/passenger. Payload: immutable PassengerSeatContext. |
-| `public event Action<PassengerAccess, AccessState> StateChanged` | When access sequencing changes. Payload: `PassengerAccess` and `AccessState`; seat occupancy may commit at a different boundary. |
+| `public event Action<PassengerSeatContext> EnterBegin` | Once an admitted entry starts in Opening, after Before checks; seat reservation is held. |
+| `public event Action<PassengerSeatContext> EnterCancelled` | After a reserved entry is cancelled or fails and cleanup finishes; an immediately rejected request emits nothing. |
+| `public event Action<PassengerSeatContext> EnterFinished` | Only after the entire entry succeeds, including the required door state and reservation/Target cleanup. |
+| `public event Action<PassengerAccessProgress> EnterInProgress` | After each entry motion sample in Moving, starting at zero; progress one is not whole-sequence completion. |
+| `public event Action<PassengerSeatContext> ExitBegin` | Once an admitted exit starts in Opening, after Before checks; seat reservation is held. |
+| `public event Action<PassengerSeatContext> ExitCancelled` | After a reserved exit is cancelled or fails and cleanup finishes; an immediately rejected request emits nothing. |
+| `public event Action<PassengerSeatContext> ExitFinished` | Only after the entire exit succeeds, including the required door state and reservation/Target cleanup. |
+| `public event Action<PassengerAccessProgress> ExitInProgress` | After each exit motion sample in Moving, starting at zero; progress one is not whole-sequence completion. |
 | `public event Action<PassengerAccess, bool> Finished` | When an access attempt ends. Payload: `PassengerAccess` and success bool; inspect actual occupancy after cancellation/handover. |
-| `public UnityEvent started` | Inspector callback when access sequencing starts; no payload. |
-| `public UnityEvent completed` | Inspector callback when access succeeds; no payload. |
-| `public UnityEvent cancelled` | Inspector callback when access is cancelled; no payload. |
+| `public event Action<PassengerAccess, AccessState> StateChanged` | When access sequencing changes. Payload: `PassengerAccess` and `AccessState`; seat occupancy may commit at a different boundary. |
+| `public UnityEvent onCancelled` | Inspector callback when access is cancelled; no payload. |
+| `public UnityEvent onCompleted` | Inspector callback when access succeeds; no payload. |
+| `public UnityEvent onEnterBegin` | Inspector counterpart of `EnterBegin`; no payload. |
+| `public UnityEvent onEnterCancelled` | Inspector counterpart of `EnterCancelled`; no payload. |
+| `public UnityEvent onEnterFinish` | Inspector counterpart of `EnterFinished`; no payload. |
+| `public UnityEvent<float> onEnterInProgress` | Inspector counterpart of `EnterInProgress`; receives normalized motion time (0..1). |
+| `public UnityEvent onExitBegin` | Inspector counterpart of `ExitBegin`; no payload. |
+| `public UnityEvent onExitCancelled` | Inspector counterpart of `ExitCancelled`; no payload. |
+| `public UnityEvent onExitFinish` | Inspector counterpart of `ExitFinished`; no payload. |
+| `public UnityEvent<float> onExitInProgress` | Inspector counterpart of `ExitInProgress`; receives normalized motion time (0..1). |
+| `public UnityEvent onStarted` | Inspector callback when access sequencing starts; no payload. |
 
 ### PassengerAccessProgress
 
@@ -408,25 +463,19 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual void RequestDoor(bool open)` | Requests the configured access door's required state for the current operation. |
-| `public virtual bool DoorReady(bool open)` | Checks whether the configured door has reached the required access state. |
 | `public virtual bool CanContinue(PassengerBody passenger)` | Checks whether an admitted seat-access sequence can still continue. |
 | `public virtual bool CanUse(PassengerBody passenger, bool entering)` | Checks whether a seat-access endpoint is currently usable by the supplied passenger. |
+| `public virtual bool DoorReady(bool open)` | Checks whether the configured door has reached the required access state. |
 | `public virtual bool IsExitClear(PassengerBody passenger)` | Checks the configured outside endpoint capsule for exit clearance; it does not plan a route. |
+| `public virtual void RequestDoor(bool open)` | Requests the configured access door's required state for the current operation. |
 
 | Method / event / callback | Role |
 | --- | --- |
 | `public UnityEvent onEnterBegin` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
-| `public UnityEvent<float> onEnterInProgress` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
-| `public UnityEvent onEnterFinish` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
 | `public UnityEvent onEnterCancelled` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
+| `public UnityEvent onEnterFinish` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
+| `public UnityEvent<float> onEnterInProgress` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
 | `public UnityEvent onExitBegin` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
-| `public UnityEvent<float> onExitInProgress` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
-| `public UnityEvent onExitFinish` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
 | `public UnityEvent onExitCancelled` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
-
-### Motion ownership and cancellation
-
-The coordinator retains the motion provider admitted for the whole operation. Replacing **Passenger Access > Motion** during access cancels the operation and cleans up the original provider. Keep admission queries side-effect free. Return a finite, nonnegative duration and completion timeout.
-
-Cancellation requested inside `Begin`, `End`, or the exit occupancy callback is deferred until that call returns. This prevents committing an already cancelled entry or rolling back an exit before detachment completes. A successful `Begin` owns one cleanup call; a throwing `Begin` also receives `End(false)` to release partially acquired resources. A `Begin` returning false must clean up its own partial work. `End` must tolerate cleanup of partial initialization.
+| `public UnityEvent onExitFinish` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |
+| `public UnityEvent<float> onExitInProgress` | See [SeatAccess](../API/PassengerAccess.md#seataccess) for the declared lifecycle and arguments. |

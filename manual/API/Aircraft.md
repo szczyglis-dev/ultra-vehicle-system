@@ -4,9 +4,7 @@ Read [the system explanation](../Scripting/Aircraft.md) for composition, setup a
 
 ## Types
 
-- [AerobaticAirplaneProfile](Aircraft.md#aerobaticairplaneprofile)
 - [AircraftAerodynamics](Aircraft.md#aircraftaerodynamics)
-- [AircraftControlMode](Aircraft.md#aircraftcontrolmode)
 - [AircraftControlMotion](Aircraft.md#aircraftcontrolmotion)
 - [AircraftControlMotionMode](Aircraft.md#aircraftcontrolmotionmode)
 - [AircraftControlSurface](Aircraft.md#aircraftcontrolsurface)
@@ -14,10 +12,10 @@ Read [the system explanation](../Scripting/Aircraft.md) for composition, setup a
 - [AircraftSurfaceType](Aircraft.md#aircraftsurfacetype)
 - [AirplaneGroundContact](Aircraft.md#airplanegroundcontact)
 - [AirplaneProfile](Aircraft.md#airplaneprofile)
+- [AirplaneWaterLandingSettings](Aircraft.md#airplanewaterlandingsettings)
 - [HelicopterProfile](Aircraft.md#helicopterprofile)
 - [HoverVisuals](Aircraft.md#hovervisuals)
 - [HoverVisuals.TiltMount](Aircraft.md#hovervisualstiltmount)
-- [JetProfile](Aircraft.md#jetprofile)
 - [LandingGear](Aircraft.md#landinggear)
 - [LandingGearPart](Aircraft.md#landinggearpart)
 - [LandingGearPartType](Aircraft.md#landinggearparttype)
@@ -27,24 +25,6 @@ Read [the system explanation](../Scripting/Aircraft.md) for composition, setup a
 - [Propulsion](Aircraft.md#propulsion)
 - [Propulsion.Propeller](Aircraft.md#propulsionpropeller)
 
-## AerobaticAirplaneProfile
-
-**Runtime/Drive/Profiles/AerobaticAirplaneProfile.cs**
-
-Initial parameter preset for unrestricted body-rate controls.
-
-**Inherits / implements:** [AirplaneProfile](Aircraft.md#airplaneprofile).
-
-### Methods
-
-All runtime behavior and editable fields are inherited from [AirplaneProfile](Aircraft.md#airplaneprofile). This class only supplies initial parameter values.
-
-### Methods
-
-| Signature | Role and behavior | Arguments and result |
-| --- | --- | --- |
-| `public AerobaticAirplaneProfile()` | Constructs `AerobaticAirplaneProfile` with the supplied initial state. | **Returns:** New instance initialized from the supplied arguments. |
-
 ## AircraftAerodynamics
 
 **Runtime/Drive/Profiles/AirplaneProfile.cs**
@@ -53,15 +33,6 @@ All runtime behavior and editable fields are inherited from [AirplaneProfile](Ai
 
 - `Simplified = 0`: Simplified lift, drag and flight-path alignment.
 - `RelativeAirflow = 1`: Relative-airflow normal forces and parasite, induced and pressure drag.
-
-## AircraftControlMode
-
-**Runtime/Drive/Profiles/AirplaneProfile.cs**
-
-### Values
-
-- `AssistedAttitude = 0`: Pitch/bank target control.
-- `BodyRates = 1`: Unrestricted body angular-rate control.
 
 ## AircraftControlMotion
 
@@ -81,7 +52,10 @@ Configuration/implementation type for aircraft control motion within cockpit ins
 | `public float minimum` | Lower deflection angle in degrees mapped to the selected aircraft control channel. Initial value: `-20`. |
 | `public AircraftControlMotionMode mode` | Selects the operating policy; see the listed options and the owning component guide. Options: `Rotation`, `Translation`. |
 | `public Transform movingPart` | Assign the moving part reference used by AircraftControlMotion. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
+| `public PartMotionPlayback playback` | Animation/custom binding and lifecycle callbacks for this moving part. |
+| `public bool reverse` | Mirror motion around the neutral pose without changing input or travel limits. |
 | `public bool showGizmos` | Shows this component’s scene guides and editing handles. Enabled by default; Inspector: **Gizmos > Show gizmos**. Does not change gameplay or physics. |
+| `public PartMotionSignals Signals { get; }` | Notifications for requests, progress and operation termination. |
 | `public virtual float Value { get; protected set; }` | Current value in this control's domain; use the declaring control's detailed value contract. |
 
 
@@ -89,13 +63,13 @@ Configuration/implementation type for aircraft control motion within cockpit ins
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public virtual void SetValue(float normalized)` | Applies normalized aircraft-control travel to its authored rotation/translation mapping. | `normalized` — Normalized value; the owner maps it to its configured range. |
-
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reverse` | Mirror motion around the neutral pose without changing input or travel limits. |
+| `public virtual void Cancel()` | Cancels active movement and releases its operation ownership. | — |
+| `public virtual void CompleteCustomMotion()` | Completes the current custom movement operation successfully. | — |
+| `public virtual void ReportProgress(float value)` | Reports actual normalized progress from a custom pose owner. | — |
+| `public virtual void SetValue(float normalized)` | Applies normalized aircraft-control travel to its authored rotation/translation mapping. | — |
+| `public virtual void StartMotion(float target)` | Requests movement to a normalized destination using the selected motion mode. | — |
+| `public virtual void Stop()` | Stops the current movement operation without reporting successful completion. | — |
+| `public virtual bool TryGetPose(float normalized, out Vector3 position, out Quaternion rotation)` | Returns the prospective procedural pose for normalized progress; returns false when an external mode owns the geometry. | — |
 
 ## AircraftControlMotionMode
 
@@ -103,10 +77,12 @@ Configuration/implementation type for aircraft control motion within cockpit ins
 
 Defines the allowed aircraft control motion mode choices used by this topic.
 
-### Values
-
-- `Rotation`
-- `Translation`
+| Value | Meaning |
+| --- | --- |
+| Rotation | `Rotation` — Inspector display label for this mode. |
+| Translation | `Translation` — Inspector display label for this mode. |
+| Animation | `Animation` — Clip-sampled movement. |
+| Custom | `Custom` — Application-owned movement through callbacks or a custom driver. |
 
 ## AircraftControlSurface
 
@@ -231,28 +207,26 @@ Owns the configurable fixed-wing flight pipeline, including assisted attitude, b
 | --- | --- |
 | `public AircraftAerodynamics aerodynamics` | Simplified lift/alignment or relative-airflow forces. |
 | `public bool airspeedControlAuthorityEnabled` | Scale control torque with airspeed/attached flow. Disable to retain full commanded control authority at low speed. Default: enabled. |
-| `public bool allowGroundReverse` | Permit reverse propulsion on supported landing gear with positive ground reverse limits. Default: `false`; never authorizes airborne reverse. |
+| `public bool allowGroundReverse` | Permit reverse propulsion on supported landing gear with positive ground reverse limits. Default: enabled; never authorizes airborne reverse. |
 | `public bool angularDampingEnabled` | Apply angular velocity damping inside profile attitude/rate control; disabling retains commanded control torque. Default: enabled. |
 | `public bool attitudeControlEnabled` | Master switch for profile pitch/roll/yaw control torque; leaves aerodynamic forces active. Default: enabled. |
 | `public float attitudeDamping` | Attitude damping. Initial value: `6f`. |
 | `public bool attitudeSpringEnabled` | AssistedAttitude mode: angle-to-target restoring torque, including pitch/roll input response. BodyRates uses rate control instead. Default: enabled. |
 | `public float attitudeStrength` | Attitude strength. Initial value: `14f`. |
-| `public bool bankCompensationEnabled` | Simplified aerodynamics: increase lift to compensate for bank. Disabled by the Aerobatic/Jet preset constructors. Default: enabled. |
-| `public AircraftControlMode controlMode` | Assisted attitude targets or unrestricted body-rate control. |
+| `public bool bankCompensationEnabled` | Simplified aerodynamics: increase lift to compensate for bank. Default: disabled. |
 | `public float coordinatedTurn` | Coordinated turn. Initial value: `1.8f`. |
 | `public float coordinatedTurnAssist` | Coordinated turn assist. Initial value: `0.8f`. |
 | `public bool coordinatedTurnEnabled` | Add bank-derived automatic turn demand. BodyRates also requires Rate Coordinated Turn Enabled. Default: enabled. |
 | `public bool dragEnabled` | Apply profile air resistance. In RelativeAirflow mode this also gates parasite, induced and pressure drag. Default: enabled. |
-| `public float engineIdleRpm` | Engine idle rpm. Initial value: `700f`. |
-| `public float engineMaximumRpm` | Engine maximum rpm. Initial value: `2700f`. |
-| `public float enginePowerKw` | Engine power kw. Initial value: `180f`. |
-| `public float maximumThrustNewtons` | Static thrust at full spool in N. Positive values replace ground/flight acceleration-based thrust; zero preserves it. Throttle, spool, speed envelope and optional power limit still apply. Default 0; Jet default 90000. |
+| `public float engineIdleRpm` | Engine idle rpm. Initial value: `1800f`. |
+| `public float engineMaximumRpm` | Engine maximum rpm. Initial value: `12000f`. |
+| `public float enginePowerKw` | Engine power kw. Initial value: `12000f`. |
 | `public bool enginePowerLimitEnabled` | Limit thrust acceleration by engine power, speed and mass. Disabling retains throttle and spool response. Default: enabled. |
 | `public bool flightAlignmentEnabled` | Apply flight-path alignment toward the airframe. In RelativeAirflow mode gates pitch/yaw crossflow correction, independently of lift trim. Default: enabled. |
-| `public float flightPathResponse` | Flight path response. Initial value: `2f`. |
+| `public float flightPathResponse` | Flight path response. Initial value: `3f`. |
 | `public float flightTransitionTime` | Flight transition time. Initial value: `0.35f`. |
-| `public bool gLimiterEnabled` | Apply G-derived pitch-rate and aerodynamic normal-force limits. Disabled in the base preset; enabled by Jet. |
-| `public float groundAcceleration` | Ground acceleration. Initial value: `6f`. |
+| `public bool gLimiterEnabled` | Apply G-derived pitch-rate and aerodynamic normal-force limits. Enabled by default in the Jet-based preset. |
+| `public float groundAcceleration` | Ground acceleration. Initial value: `5f`. |
 | `public float groundFriction` | Hull-contact friction for wheel-free aircraft only. Gear tires use the shared Friction module. |
 | `public float groundHandlingAssistance` | Shared steering yaw and lateral grip assistance, only while tires touch the ground. |
 | `public float groundLateralResponse` | Ground lateral response. Initial value: `5f`. |
@@ -260,63 +234,65 @@ Owns the configurable fixed-wing flight pipeline, including assisted attitude, b
 | `public float groundReverseSpeed` | Ground-only reverse speed in m/s. Zero disables reverse thrust. |
 | `public float groundRotationAuthority` | Ground rotation authority. Initial value: `0.7f`. |
 | `public bool groundRotationEnabled` | Allow pitch control for rotation while still grounded. Airborne pitch control remains independent. Default: enabled. |
-| `public float groundSteeringAngle` | Ground steering angle. Initial value: `35f`. |
-| `public float groundSteeringRate` | Ground steering rate. Initial value: `75f`. |
+| `public float groundSteeringAngle` | Ground steering angle. Initial value: `30f`. |
+| `public float groundSteeringRate` | Ground steering rate. Initial value: `60f`. |
 | `public float groundYawResponse` | Ground yaw response. Initial value: `4f`. |
 | `public float inducedDrag` | Induced drag acceleration at one G; grows with aerodynamic load squared. |
 | `public bool inducedDragEnabled` | Allow aerodynamic-load induced drag when the inherited Drag Enabled master is on. Default: enabled. |
 | `public float landingTransitionTime` | Landing transition time. Initial value: `0.08f`. |
 | `public bool liftEnabled` | Apply aerodynamic lift. Disabling does not remove gravity, drag or attitude control. Default: enabled. |
-| `public float liftMultiplier` | Lift multiplier. Initial value: `1.12f`. |
+| `public float liftMultiplier` | Lift multiplier. Initial value: `1.18f`. |
 | `public float liftSpeed` | Minimum forward airspeed for ground rotation/takeoff, in m/s. |
-| `public float maximumAlignmentAcceleration` | Maximum alignment acceleration. Initial value: `18f`. |
+| `public float maximumAlignmentAcceleration` | Maximum alignment acceleration. Initial value: `55f`. |
 | `public float maximumBank` | Maximum bank. Initial value: `45f`. |
-| `public float maximumControlAcceleration` | Maximum control acceleration. Initial value: `20f`. |
+| `public float maximumControlAcceleration` | Maximum control acceleration. Initial value: `8f`. |
 | `public float maximumG` | Maximum g. Initial value: `4.5f`. |
-| `public float maximumGroundLateralAcceleration` | Maximum ground lateral acceleration. Initial value: `5f`. |
-| `public float maximumLiftAcceleration` | Maximum lift acceleration. Initial value: `35f`. |
+| `public float maximumGroundLateralAcceleration` | Maximum ground lateral acceleration. Initial value: `6f`. |
+| `public float maximumLiftAcceleration` | Maximum lift acceleration. Initial value: `70f`. |
 | `public float maximumPitch` | Pitch attitude limit in AssistedAttitude mode. BodyRates uses angular rates instead. |
 | `public float maximumSpeed` | Forward airspeed limit in m/s. Thrust fades out near this speed. |
+| `public float maximumThrustNewtons` | Static thrust at full spool in N. Positive values replace ground/flight acceleration-based thrust; zero preserves it. Throttle, spool, speed envelope and optional power limit still apply. Default 90000. |
 | `public float maximumTurnRate` | Maximum turn rate. Initial value: `70f`. |
-| `public float minimumAirControlAuthority` | Low-speed control assistance. Base default: zero; Aerobatic: 0.2; Jet: 0.05. |
-| `public float minimumGroundTurnRadius` | Minimum ground turn radius. Initial value: `6f`. |
+| `public float minimumAirControlAuthority` | Low-speed control assistance. Default: 0.05. |
+| `public float minimumGroundTurnRadius` | Minimum ground turn radius. Initial value: `12f`. |
 | `public float parasiteDrag` | Forward parasite drag acceleration / speed squared, in 1/metres. |
 | `public bool parasiteDragEnabled` | Allow forward-speed parasite drag when the inherited Drag Enabled master is on. Default: enabled. |
-| `public float parkingBrakeTorque` | Parking brake torque. Initial value: `5000f`. |
+| `public float parkingBrakeTorque` | Parking brake torque. Initial value: `45000f`. |
 | `public bool pitchControlEnabled` | Allow profile control torque around the local pitch axis. Does not suppress aerodynamic torque from other systems. Default: enabled. |
 | `public float pitchPathResponse` | Pitch path response. Initial value: `5f`. |
-| `public float pitchRate` | Pitch rate. Initial value: `110f`. |
+| `public float pitchRate` | Pitch rate. Initial value: `30f`. |
 | `public bool pressureDragEnabled` | Allow crossflow pressure drag when the inherited Drag Enabled master is on. Default: enabled. |
 | `public bool progressiveThrustEnvelope` | Progressive fourth-power thrust fade instead of linear fade. |
 | `public bool propulsionEnabled` | Apply engine/propeller thrust, including supported ground reverse. Engine and propeller presentation remain independent. Default: enabled. |
-| `public bool rateCoordinatedTurnEnabled` | Enable bank-derived turn assistance for body-rate control when coordinatedTurnEnabled is on. |
+| `public bool rateCoordinatedTurnEnabled` | Coordinate body-rate turns when coordinatedTurnEnabled is on: follow airflow in Relative Airflow, or use bank-derived heading assistance in Simplified. |
 | `public float rateResponse` | Rate response. Initial value: `6f`. |
 | `public float referenceAirspeed` | Reference airspeed. Initial value: `100f`. |
 | `public override bool RequiresWheels { get; }` | Whether this profile requires valid wheel definitions during configuration. |
 | `public bool rollControlEnabled` | Allow profile control torque around the local roll axis. Default: enabled. |
-| `public float rollRate` | Roll rate. Initial value: `200f`. |
+| `public float rollRate` | Roll rate. Initial value: `75f`. |
 | `public bool rudderEnabled` | Allow commanded yaw/rudder input in profile attitude control. Default: enabled. |
 | `public float rudderRate` | Rudder rate. Initial value: `35f`. |
-| `public float serviceBrakeTorque` | Service brake torque. Initial value: `3000f`. |
+| `public float serviceBrakeTorque` | Service brake torque. Initial value: `25000f`. |
 | `public bool sideForceEnabled` | Allow sideways aerodynamic normal force; inherited Lift Enabled controls the lift-axis force. Default: enabled. |
 | `public float sidePressureDrag` | Side pressure drag. Initial value: `0.008f`. |
+| `public bool simpleSteering` | Assisted pitch/bank targets when true; unrestricted body-rate controls when false. Default: disabled. |
 | `public bool speedLimiterEnabled` | Fade thrust near configured forward/reverse speed limits; does not directly clamp Rigidbody velocity. Default: enabled. |
 | `public float stallAngle` | Stall angle. Initial value: `35f`. |
 | `public bool stallEnabled` | Reduce lift/support near low airspeed; RelativeAirflow mode also reduces attached flow at excessive angle of attack. Disable for full aerodynamic support. Default: enabled. |
-| `public float stallSpeedRatio` | Stall speed ratio. Initial value: `0.55f`. |
-| `public float suspensionDamper` | Suspension damper. Initial value: `1785f`. |
-| `public float suspensionSpring` | Suspension spring. Initial value: `24000f`. |
-| `public float suspensionTravel` | Suspension travel. Initial value: `0.18f`. |
+| `public float stallSpeedRatio` | Stall speed ratio. Initial value: `0.65f`. |
+| `public float suspensionDamper` | Suspension damper. Initial value: `28050f`. |
+| `public float suspensionSpring` | Suspension spring. Initial value: `375000f`. |
+| `public float suspensionTravel` | Suspension travel. Initial value: `0.28f`. |
 | `public float takeoffContactGrace` | Seconds without tire contact before entering flight. Touchdown is detected on the first tire contact. |
-| `public float tireGrip` | Tire grip. Initial value: `1.3f`. |
+| `public float tireGrip` | Tire grip. Initial value: `1.6f`. |
 | `public bool useLandingGear` | Keep native tires active in flight to detect touchdown without rebuilding wheel actors. Disable only for a wheel-free aircraft. |
 | `public override bool UsesWheelPropulsion { get; }` | True for wheel/track drive; false for native thrust profiles, including aircraft with support wheels. |
+| `public AirplaneWaterLandingSettings waterLanding` | Optional floats, boat control and automatic water/flight handover. Disabled by default. |
 | `public float wingPressureDrag` | Additional quadratic pressure drag for airflow across the wings / across the fuselage. |
 | `public bool yawControlEnabled` | Allow profile control torque around the local yaw axis. Default: enabled. |
 | `public bool yawLimiterEnabled` | Limit body-rate yaw demand by airspeed and gravity. |
 | `public float yawPathResponse` | Yaw path response. Initial value: `4f`. |
-| `public float yawRate` | Yaw rate. Initial value: `45f`. |
-| `public Vector3 ResolveAngularRates(float speedKph)` | Returns speed-scaled pitch/yaw/roll rates in degrees/s. |
+| `public float yawRate` | Yaw rate. Initial value: `20f`. |
 
 
 ### Methods
@@ -327,10 +303,30 @@ Owns the configurable fixed-wing flight pipeline, including assisted attitude, b
 | `public override bool CanUsePropulsionBoost(VehicleController vehicle)` | Checks the profile propulsion switch and required water/support context before activation. | Uses the supplied vehicle and command context; returns the profile-specific admission result. |
 | `public override void Configure(VehicleController vehicle)` | Ensures propulsion/ground-contact helpers and writes aircraft-owned engine, steering, braking, grip/travel and suspension settings. | `vehicle` — Vehicle context/owner receiving the operation. |
 | `public virtual Vector3 PressureDragAcceleration(Transform frame, Vector3 velocity)` | Evaluates jet pressure-drag acceleration from the supplied speed/state. | `frame` — Frame, interpreted by this operation in the declared type. `velocity` — World velocity in m/s. **Returns:** Returned Vector3; ownership remains as specified by the creating/lookup operation. |
+| `public Vector3 ResolveAngularRates(float speedKph)` | Returns speed-scaled pitch/yaw/roll rates in degrees/s. | — |
 | `public override float ResolveBoostDemand(VehicleController vehicle, Command command)` | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes. | Uses the supplied vehicle and command context; returns the profile-specific admission result. |
 | `public override float ResolveDriveDemand(VehicleController vehicle, Command command)` | Maps the command and strategy state to propulsion demand for surrounding mechanics. | `vehicle` — Vehicle context/owner receiving the operation. `command` — Command sampled for this tick; use its channel metadata as well as axes. **Returns:** Computed float in the operation's documented unit/domain. |
 | `public override float ResolveExternalDriveIntent(VehicleController vehicle)` | Returns signed non-wheel propulsion intent used by shared coasting/contact policy. | `vehicle` — Vehicle context/owner receiving the operation. **Returns:** Computed float in the operation's documented unit/domain. |
 | `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Runs the shared fixed-wing physics pipeline using the selected control/aerodynamic parameters and ground-contact authority. | `vehicle` — Vehicle context/owner receiving the operation. `command` — Command sampled for this tick; use its channel metadata as well as axes. `deltaTime` — Elapsed time in seconds supplied by the owning loop. |
+
+## AirplaneWaterLandingSettings
+
+**Runtime/Drive/Water/AirplaneWaterLandingSettings.cs**
+
+Optional water support and a separate boat force controller. Transient state belongs to Drive, not the serialized settings.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public BoatProfile boat` | Independent depth, damping, drag, waves, rocking and water steering/thrust settings. Never applies vehicle settings or reconfigures the aircraft engine/gear. |
+| `public bool boatControls` | Permits automatic boat thrust/rudder control while waterborne. Default true. Off retains aircraft controls with passive hull forces. |
+| `public bool enabled` | Enables water sampling, flotation and water control. Default false. |
+| `public Vector3 floatOffset` | Float waterline reference in body-local axes relative to centre of mass. Default `(0, -.65, 0)`. |
+| `public float landingSpeedRatio` | Below this fraction of Lift Speed, water contact can select boat control. Default .8. |
+| `public float minimumControlHold` | Minimum time between control changes, seconds. Default .25. Loss of water forces immediate aircraft control. |
+| `public float takeoffPitch` | Minimum magnitude of negative Pitch for takeoff handover. Default .05. |
+| `public float takeoffSpeedRatio` | Required fraction of Lift Speed for a nose-up takeoff request to select flight control. Default 1. |
 
 ## HelicopterProfile
 
@@ -404,24 +400,6 @@ Configuration/implementation type for tilt mount within flight and landing gear.
 | `public Quaternion restRotation` | Reference/orientation rotation for rest rotation. Identity adds no rotation. Initial value: `Quaternion.identity`. |
 | `public Transform transform` | Assign the transform reference used by HoverVisuals.TiltMount. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
 
-## JetProfile
-
-**Runtime/Drive/Profiles/JetProfile.cs**
-
-Initial parameter preset for relative-airflow fighter response and limits.
-
-**Inherits / implements:** [AerobaticAirplaneProfile](Aircraft.md#aerobaticairplaneprofile).
-
-### Methods
-
-All runtime behavior and editable fields are inherited from [AirplaneProfile](Aircraft.md#airplaneprofile). This class only supplies initial parameter values.
-
-### Methods
-
-| Signature | Role and behavior | Arguments and result |
-| --- | --- | --- |
-| `public JetProfile()` | Constructs `JetProfile` with the supplied initial state. | **Returns:** New instance initialized from the supplied arguments. |
-
 ## LandingGear
 
 **Runtime/Exterior/Aircraft/LandingGear.cs**
@@ -489,11 +467,12 @@ Maps deployment progress to a door/strut pose.
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public virtual void Animate(bool deployed, float elapsed, float deltaTime)` | Applies gear-part deployment animation using its authored motion mapping. | `deployed` — `true` requests deployment; `false` requests retraction. `elapsed` — Elapsed operation time in seconds. `deltaTime` — Elapsed time in seconds supplied by the owning loop. |
-| `public virtual void CaptureDeployedPose()` | Captures the current gear-part pose as the fully deployed baseline. | No arguments; no returned value. |
-| `public virtual void SetImmediate(bool deployed)` | Synchronizes this part immediately to the requested deployed/retracted pose through its gear-part mapping. | `deployed` — `true` requests deployment; `false` requests retraction. |
-| `public virtual void SetRetraction(float amount)` | Applies landing-gear travel with zero deployed and one retracted. | `amount` — Requested damage/repair amount in the mechanic's damage units. |
-| `public override void SetValue(float normalized)` | Applies deployed fraction: 1 fully deployed, 0 fully retracted, retaining the captured deployed mesh offset and current suspension rotation. | `normalized` — Normalized value; the owner maps it to its configured range. |
+| `public virtual void Animate(bool deployed, float elapsed, float deltaTime)` | Applies gear-part deployment animation using its authored motion mapping. | — |
+| `public virtual void CaptureDeployedPose()` | Captures the current gear-part pose as the fully deployed baseline. | — |
+| `public virtual void SetImmediate(bool deployed)` | Synchronizes this part immediately to the requested deployed/retracted pose through its gear-part mapping. | — |
+| `public virtual void SetRetraction(float amount)` | Applies landing-gear travel with zero deployed and one retracted. | — |
+| `public override void SetValue(float normalized)` | Applies deployed fraction: 1 fully deployed, 0 fully retracted, retaining the captured deployed mesh offset and current suspension rotation. | — |
+| `public override bool TryGetPose(float normalized, out Vector3 position, out Quaternion rotation)` | Returns the gear pose for normalized progress, respecting its deployment geometry. | — |
 
 ## LandingGearPartType
 
@@ -559,21 +538,18 @@ Describes load-driven hinge response for a gear part.
 
 | Member | Meaning |
 | --- | --- |
+| `public Transform anchor` | Optional independent suspension hinge and local axis frame. Empty uses the gear part's anchor. |
 | `public float angularInertia` | Effective angular inertia used when converting the suspension response into hinge motion. Initial value: `500`. |
 | `public float authoredAngle` | Angle already present in the authored deployed mesh, in degrees. |
 | `public float dampingTorque` | Force/torque budget for damping torque; this limits or scales how strongly the mechanism changes physical motion. See the owning system guide for its application frame. Initial value: `3500`. |
 | `public LandingGearPart gearPart` | Assign the gear part LandingGearPart component/asset used by LandingGearSuspensionPart. |
 | `public Vector3 localAxis` | Local axis around which the configured motion or operation takes place. Initial value: `Vector3.forward`. |
 | `public float maximumAngle` | Upper rotation angle in degrees for the configured motion. Initial value: `28`. |
+| `public Transform MotionAnchor { get; }` | Transform used as the origin and axis frame for movement; the component supplies its fallback when unassigned. |
+| `public bool reverse` | Mirror motion around the neutral pose without changing input or travel limits. |
 | `public bool showGizmos` | Shows this component’s scene guides and editing handles. Enabled by default; Inspector: **Gizmos > Show gizmos**. Does not change gameplay or physics. |
 | `public float springTorque` | Rotational spring response is integrated by `LandingGearSuspension`; `authoredAngle` describes the existing deployed geometry and must not be captured from a compressed animated pose. |
 | `public WheelCollider wheel` | Assign the wheel reference used by LandingGearSuspensionPart. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
-
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reverse` | Mirror motion around the neutral pose without changing input or travel limits. |
 
 ## Propulsion
 
@@ -619,22 +595,19 @@ Configuration/implementation type for propeller within flight and landing gear.
 
 | Member | Meaning |
 | --- | --- |
+| `public Transform anchor` | Optional independent rotor pivot and local axis frame. Keep it outside the rotating mesh. |
 | `public float degreesPerSecond` | Visible propeller/rotor spin speed at full requested output, in degrees per second. Initial value: `900`. |
 | `public bool instantThrustResponse` | Bypass smoothing of control-driven shaft demand to match immediate thrust forces. Engine-only rotation keeps its engine spool. |
 | `public Vector3 localAxis` | Local axis around which the configured motion or operation takes place. Initial value: `Vector3.up`. |
 | `public float maneuverSpeed` | Shaft speed at full steering, lift or pitch demand; throttle can request a higher speed. |
 | `public bool onlyInWater` | Require an enabled water provider/fallback and at least partial hull immersion. A dry hull stops shaft rotation. |
 | `public bool onlyWithThrust` | Scale rotation by throttle and enabled maneuver demands. No demand stops the shaft. Works with fixed speed or engine RPM. |
+| `public bool physicsRotation` | Advance collidable blades on the physics clock. |
+| `public bool reverse` | Reverse the visible shaft rotation. |
 | `public bool reverseWithThrust` | Reverse rotation for negative throttle. Independent of Only With Thrust and Use Engine Rpm. |
 | `public float rpmRatio` | Rotor RPM / engine RPM. Negative values reverse rotation. |
 | `public bool spinWithLift` | Include vertical Lift demand in shaft rotation. |
 | `public bool spinWithPitch` | Include Pitch demand in shaft rotation. |
 | `public bool spinWithSteering` | Include combined Steering/Yaw demand, including turning at rest. Forward/reverse throttle determines shaft direction. |
 | `public Transform transform` | Assign the transform reference used by Propulsion.Propeller. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
-| `public bool physicsRotation` | Advance collidable blades on the physics clock. |
 | `public bool useEngineRpm` | Derive rotor speed from engine RPM instead of fixed degrees per second. |
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reverse` | Reverse the visible shaft rotation. |

@@ -204,3 +204,12 @@ Moving parts, weapons, recoil, rockets and track visuals retain their category p
 +---------------+----------------------------------------------------------------------------------------------------------------------------+
 
 Shared **Show labels** remains independent of these geometry choices. Trajectory duration and gizmo size remain adjustable where supported. Blast-radius preview is off by default; category visibility switches are on by default.
+
+.. _uvs-configuration--defaults-and-authored-reference-vehicles:
+
+Defaults and authored reference vehicles
+----------------------------------------
+
+New Wheeled vehicles use the blue demo Car's general tuning; Airplane uses Jet and Motorcycle uses the current Motorcycle. Airplane therefore starts with relative-airflow aerodynamics and body-rate controls; enable **Simple Steering** for assisted pitch/bank targets. Other profile families use their corresponding demo reference. These defaults live in runtime profile/component initializers and authoring-time family tuning, without loading Demo assets.
+
+Quick Setup applies family tuning when creating a new vehicle. Running it again preserves existing authored module tuning. Geometry, center of mass, mounts, object references and optional demo equipment remain model-specific; they are not copied wholesale. Existing scene/prefab instances retain their serialized parameters when default initializers change.

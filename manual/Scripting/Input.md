@@ -133,10 +133,10 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual void RefreshBindings()` | Re-resolves Input System action references, including the selected `PlayerInput` action asset. |
-| `public virtual void UseAsVehicleInput()` | Selects this action adapter as the vehicle's current input source. |
 | `public static Command MergeHover(Command keyboard, Command analog)` | Combines hover-related adapter input into the current command. |
 | `public virtual Command ReadCommand()` | Returns a sanitized sampled command and consumes this provider's pending one-shot actions where buffered. |
+| `public virtual void RefreshBindings()` | Re-resolves Input System action references, including the selected `PlayerInput` action asset. |
+| `public virtual void UseAsVehicleInput()` | Selects this action adapter as the vehicle's current input source. |
 
 ### Command
 
@@ -153,10 +153,10 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual bool SetPose(Vector3 position, Quaternion rotation)` | Store a validated world-pose request. |
 | `public virtual void ClearPose()` | Clear the stored pose and hold current placement without a target. |
-| `public virtual void SetDirectControl(bool value)` | Switch pose versus ordinary command control at the next fixed tick. |
 | `public virtual Pose ReadPose(Pose currentPose, float deltaTime)` | Sample the independent target or stored pose. |
+| `public virtual void SetDirectControl(bool value)` | Switch pose versus ordinary command control at the next fixed tick. |
+| `public virtual bool SetPose(Vector3 position, Quaternion rotation)` | Store a validated world-pose request. |
 | `public virtual void UseAsVehicleInput()` | Select this source on its parent vehicle. |
 
 ### IDirectInput
@@ -171,10 +171,11 @@ The lists below cover public methods and events for this topic and their package
 
 [InputBuffer](../API/Input.md#inputbuffer) gives the full declared contract.
 
-- `public virtual void ClearControls()` — // Release all held controls and queued actions, e.g. when AI/network ownership changes.
-- `public virtual Command ReadCommand()` — // Returns the current continuous controls and consumes queued one-shot actions so they cannot repeat on later // physics ticks.
+- `public virtual void ClearControls()` — Release all held controls and queued actions, e.g. when AI/network ownership changes.
+- `public virtual Command ReadCommand()` — Returns the current continuous controls and consumes queued one-shot actions so they cannot repeat on later // physics ticks.
 - `public virtual void ResetInput()` — Clears held input and pending one-shot requests for a vehicle reset.
-- `public virtual void SelectGear(int gear)` — // Queues an explicit gear request; the active gearbox applies its direction and over-rev guards.
+- `public virtual void SelectGear(int gear)` — Queues an explicit gear request; the active gearbox applies its direction and over-rev guards.
+- `public virtual void SetAirAxes(float pitch, float roll)` — Stores independent airborne rider pitch and roll demands.
 - `public virtual void SetAnalogAxes(float throttle, float steering, float brake = 0, bool handbrake = false)` — Current set analog axes.
 - `public virtual void SetAxes(float throttle, float steering, float brake = 0, bool handbrake = false)` — Current set axes.
 - `public virtual void SetBurnout(bool held)` — Current set burnout.
@@ -185,16 +186,16 @@ The lists below cover public methods and events for this topic and their package
 - `public virtual void SetNitro(bool held)` — Current set nitro.
 - `public virtual void SetStrafe(float strafe)` — Current set strafe.
 - `public virtual void SetWheelLift(bool held)` — Current set wheel lift.
-- `public virtual void ShiftGear(int direction)` — // Queues a single upward or downward shift, reducing the supplied direction to its sign.
-- `public virtual void SubmitCommand(Command command)` — // Replace the complete pending command, including one-shot actions. ReadCommand consumes actions once.
-- `public virtual void ToggleGearbox()` — // Queues a transmission-mode cycle for the next command sample.
-- `public virtual void ToggleHazards()` — // Queues one hazard-light toggle for the next command sample.
-- `public virtual void ToggleHeadlights()` — // Queues one low-beam toggle without reading or changing a physical light directly.
-- `public virtual void ToggleHighBeams()` — // Queues one high-beam toggle for the lighting module.
-- `public virtual void ToggleIgnition()` — // Queues one ignition toggle; reading the command consumes it once.
-- `public virtual void ToggleLeftIndicator()` — // Queues one left-indicator toggle for the next command sample.
-- `public virtual void ToggleProfile()` — // Queues one drive-profile toggle for the next command sample.
-- `public virtual void ToggleRightIndicator()` — // Queues one right-indicator toggle for the next command sample.
+- `public virtual void ShiftGear(int direction)` — Queues a single upward or downward shift, reducing the supplied direction to its sign.
+- `public virtual void SubmitCommand(Command command)` — Replace the complete pending command, including one-shot actions. ReadCommand consumes actions once.
+- `public virtual void ToggleGearbox()` — Queues a transmission-mode cycle for the next command sample.
+- `public virtual void ToggleHazards()` — Queues one hazard-light toggle for the next command sample.
+- `public virtual void ToggleHeadlights()` — Queues one low-beam toggle without reading or changing a physical light directly.
+- `public virtual void ToggleHighBeams()` — Queues one high-beam toggle for the lighting module.
+- `public virtual void ToggleIgnition()` — Queues one ignition toggle; reading the command consumes it once.
+- `public virtual void ToggleLeftIndicator()` — Queues one left-indicator toggle for the next command sample.
+- `public virtual void ToggleProfile()` — Queues one drive-profile toggle for the next command sample.
+- `public virtual void ToggleRightIndicator()` — Queues one right-indicator toggle for the next command sample.
 
 ### InputGate
 
@@ -211,7 +212,7 @@ The lists below cover public methods and events for this topic and their package
 
 | Event / callback | Role |
 | --- | --- |
-| `public UnityEvent selected` | Inspector callback when this controller route is selected; no payload. |
+| `public UnityEvent onSelected` | Inspector callback when this controller route is selected; no payload. |
 
 ### IVehicleInput
 
@@ -252,8 +253,8 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
-| `public virtual void CycleHeadlights()` | Queues the next low/high/off state through the normal one-shot command path. |
 | `public virtual float AdvanceSteering(float target, float deltaTime)` | Advances keyboard steering shaping for elapsed time rather than reading a separate mechanical steering state. |
+| `public virtual void CycleHeadlights()` | Queues the next low/high/off state through the normal one-shot command path. |
 | `public virtual Command ReadCommand()` | Returns a sanitized sampled command and consumes this provider's pending one-shot actions where buffered. |
 
 - **KeyboardDriveInput** — `public override void ResetBindings()` — Restores default bindings and clears retained controls.
@@ -262,7 +263,7 @@ The lists below cover public methods and events for this topic and their package
 
 [KeyboardFlightInput](../API/Input.md#keyboardflightinput) gives the full declared contract.
 
-- `public virtual Command ReadCommand()` — // Returns the current continuous controls and consumes queued one-shot actions so they cannot repeat on later // physics ticks.
+- `public virtual Command ReadCommand()` — Returns the current continuous controls and consumes queued one-shot actions so they cannot repeat on later // physics ticks.
 - `public override void ResetBindings()` — Current reset bindings.
 - `public virtual void ResetControls()` — Current reset controls.
 - `public virtual void ResetInput()` — Clears held input and pending one-shot requests for a vehicle reset.
@@ -273,6 +274,15 @@ The lists below cover public methods and events for this topic and their package
 - **KeyboardInput** — `public virtual void SetControlsEnabled(bool value)` — Enables or pauses this component's controls. Keyboard inputs clear queued actions, axes and retained aircraft throttle when disabled; Cameras restores its original camera lens when paused.
 - **KeyboardInput** — `public virtual bool TryGetBinding(string action, out Key key, int index = -1)` — Reads a binding using the same field-name/index rules. Returns false for an invalid lookup and writes Key.None.
 - **KeyboardInput** — `public virtual bool TrySetBinding(string action, Key key, int index = -1)` — Sets a Key field by its exact serialized name, or a Key[] element using index. Returns false for unknown names, wrong types, invalid keys or indices. Key.None unbinds the action. Clears retained controls on success.
+
+### KeyboardSpaceshipInput
+
+[KeyboardSpaceshipInput](../API/Input.md#keyboardspaceshipinput) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public virtual Command ReadCommand()` | Reads current six-axis input and consumes latched ignition. |
+| `public override void ResetBindings()` | Restores the default keyboard bindings. |
 
 ### KeyboardSubmarineInput
 
@@ -291,12 +301,14 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
+
+Independent airborne rider controls: set `Command.AirPitch` (positive nose-down) and `Command.AirRoll` (positive right), or call `InputBuffer.SetAirAxes(pitch, roll)`. These do not borrow throttle, steering or aircraft Pitch/Roll. See the [command mapping reference](../Input.md#continuous-axes-and-held-buttons) for the complete axis list.

@@ -25,11 +25,11 @@ namespace VehicleDocumentationExamples.Cookbook
         public VehicleController vehicle;
         public PassengerSeat seat;
         public string handleId = "DashboardButton";
-        public UnityEvent arrived = new UnityEvent(), rejected = new UnityEvent();
+        public UnityEvent onArrived = new UnityEvent(), onRejected = new UnityEvent();
         public void Press()
         {
             if (!vehicle || !seat || !vehicle.handles.TryGet(handleId, out var handle) ||
-                vehicle.handles.TryUse(seat, handle, () => arrived.Invoke()) == null) rejected.Invoke();
+                vehicle.handles.TryUse(seat, handle, () => onArrived.Invoke()) == null) onRejected.Invoke();
             // Arrival is visual contact; connect actual control logic through its own owner.
         }
     }
@@ -122,12 +122,12 @@ namespace VehicleDocumentationExamples.Cookbook
     public sealed class SeatOccupancyGate : MonoBehaviour
     {
         public PassengerSeat seat;
-        public UnityEvent accepted = new UnityEvent(), rejected = new UnityEvent();
+        public UnityEvent onAccepted = new UnityEvent(), onRejected = new UnityEvent();
         public void Request()
         {
-            if (!seat || !seat.Occupant) { rejected.Invoke(); return; }
+            if (!seat || !seat.Occupant) { onRejected.Invoke(); return; }
             // Occupancy is authoritative; a visible character nearby is insufficient.
-            accepted.Invoke();
+            onAccepted.Invoke();
         }
     }
 }
@@ -194,11 +194,11 @@ namespace VehicleDocumentationExamples.Cookbook
     {
         public VehicleController vehicle;
         public PassengerAccess access;
-        public UnityEvent rejected = new UnityEvent();
+        public UnityEvent onRejected = new UnityEvent();
         public void RequestExit()
         {
             if (!vehicle || !access || vehicle.IsMoving() || access.IsBusy || !access.TryExit())
-                rejected.Invoke();
+                onRejected.Invoke();
         }
     }
 }
@@ -225,7 +225,7 @@ namespace VehicleDocumentationExamples.Cookbook
         public VehicleController vehicle;
         public PassengerSeat seat;
         public string handleId = "radio";
-        public UnityEvent<bool> transmittingChanged = new UnityEvent<bool>();
+        public UnityEvent<bool> onTransmittingChanged = new UnityEvent<bool>();
         HandleUse use;
         PassengerBody speaker;
         bool transmitting;
@@ -247,7 +247,7 @@ namespace VehicleDocumentationExamples.Cookbook
         void SetTransmitting(bool value)
         {
             if (transmitting == value) return;
-            transmitting = value; transmittingChanged.Invoke(value);
+            transmitting = value; onTransmittingChanged.Invoke(value);
         }
         public void Release()
         {
@@ -317,7 +317,7 @@ namespace VehicleDocumentationExamples.Cookbook
     public sealed class PassengerCapacitySign : MonoBehaviour
     {
         public PassengerSeat[] passengerSeats;
-        public UnityEvent<int> spacesChanged = new UnityEvent<int>();
+        public UnityEvent<int> onSpacesChanged = new UnityEvent<int>();
         int previous = -1;
         void OnEnable() { previous = -1; Refresh(); }
         void Update() { Refresh(); }
@@ -327,7 +327,7 @@ namespace VehicleDocumentationExamples.Cookbook
             foreach (var seat in passengerSeats ?? System.Array.Empty<PassengerSeat>())
                 if (seat && !seat.Occupant) free++;
             if (free == previous) return;
-            previous = free; spacesChanged.Invoke(free);
+            previous = free; onSpacesChanged.Invoke(free);
         }
     }
 }
@@ -354,21 +354,21 @@ namespace VehicleDocumentationExamples.Cookbook
         public VehicleController vehicle;
         public PassengerSeat seat;
         public string readerId = "TicketReader";
-        public UnityEvent validated = new UnityEvent(), rejected = new UnityEvent();
+        public UnityEvent onValidated = new UnityEvent(), onRejected = new UnityEvent();
         HandleUse use;
         PassengerBody paidPassenger;
         public void ValidateTicket()
         {
             if (!vehicle || !seat || !seat.Occupant || vehicle.IsMoving() ||
                 seat.Occupant == paidPassenger || (use != null && use.IsActive))
-            { rejected.Invoke(); return; }
+            { onRejected.Invoke(); return; }
             var customer = seat.Occupant;
             use = vehicle.handles.TryUse(seat, vehicle.handles.Get(readerId), () =>
             {
                 if (!seat || seat.Occupant != customer || !vehicle || vehicle.IsMoving()) return;
-                paidPassenger = customer; validated.Invoke();
+                paidPassenger = customer; onValidated.Invoke();
             });
-            if (use == null) rejected.Invoke();
+            if (use == null) onRejected.Invoke();
         }
         void OnDisable() { if (use != null && use.IsActive) use.Cancel(); use = null; }
     }

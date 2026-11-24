@@ -133,7 +133,7 @@ Value data for finger pose; its fields are listed below.
 
 ## IHandAvailabilitySource
 
-**Runtime/World/Passengers/IK/IHandAvailabilitySource.cs**
+**Runtime/Contracts/Passengers/IHandAvailabilitySource.cs**
 
 Presentation or lifecycle contract for independent vehicle components.
 
@@ -145,7 +145,7 @@ Presentation or lifecycle contract for independent vehicle components.
 
 ## IPassengerHandPose
 
-**Runtime/World/Passengers/IK/IPassengerHandPose.cs**
+**Runtime/Contracts/Passengers/IPassengerHandPose.cs**
 
 Configuration/implementation type for ipassenger hand pose within grip fitting and steering ownership.
 

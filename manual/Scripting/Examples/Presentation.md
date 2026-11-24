@@ -90,7 +90,7 @@ namespace VehicleDocumentationExamples.Cookbook
     {
         // The cooldown bounds repeated effects during a multi-contact collision.
         public VehicleController vehicle;
-        public UnityEvent<float> pulse = new UnityEvent<float>();
+        public UnityEvent<float> onPulse = new UnityEvent<float>();
         [Min(1)] public float fullImpulse = 10000;
         float nextTime;
         void OnEnable() { if (vehicle) vehicle.Impacted += Hit; }
@@ -101,7 +101,7 @@ namespace VehicleDocumentationExamples.Cookbook
             float strength = Mathf.Clamp01(impact.Impulse.magnitude / fullImpulse);
             if (strength < .05f) return;
             nextTime = Time.unscaledTime + .25f;
-            pulse.Invoke(strength);
+            onPulse.Invoke(strength);
         }
     }
 }

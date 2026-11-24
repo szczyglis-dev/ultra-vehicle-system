@@ -54,7 +54,7 @@ Inspector paths in this manual include the component and every enclosing header/
 
 If modules were added directly through Unity rather than the controller, use **Discover and order vehicle modules** and **Apply vehicle configuration**. The package discovers seats and handles inside the owned hierarchy; it does not claim seats beneath a different nearest VehicleController.
 
-**Select** beside a passenger or IK panel selects its scene GameObject in the Hierarchy. If the seat has only a prefab template and no spawned instance yet, the scene Select button is disabled; enter Play Mode/spawn the occupant or assign a pre-placed Body.
+**Select** beside a passenger or IK panel reveals and highlights its scene GameObject in the Hierarchy without changing the current Inspector. If the seat has only a prefab template and no spawned instance yet, the scene Select button is disabled; enter Play Mode/spawn the occupant or assign a pre-placed Body.
 
 ### Pre-placed body or spawned prefab
 

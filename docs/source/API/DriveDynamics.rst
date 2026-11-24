@@ -10,11 +10,12 @@ Read :doc:`the system explanation </Scripting/DriveDynamics>` for composition, s
 Types
 -----
 
+-  :ref:`AntiLockBrakes <uvs-api-drivedynamics--antilockbrakes>`
 -  :ref:`AutomaticGearbox <uvs-api-drivedynamics--automaticgearbox>`
--  :ref:`Brakes <uvs-api-drivedynamics--brakes>`
 -  :ref:`BoostSuspensionSettings <uvs-api-drivedynamics--boostsuspensionsettings>`
--  :ref:`BurnoutSuspensionSettings <uvs-api-drivedynamics--burnoutsuspensionsettings>`
+-  :ref:`Brakes <uvs-api-drivedynamics--brakes>`
 -  :ref:`Burnout <uvs-api-drivedynamics--burnout>`
+-  :ref:`BurnoutSuspensionSettings <uvs-api-drivedynamics--burnoutsuspensionsettings>`
 -  :ref:`Clutch <uvs-api-drivedynamics--clutch>`
 -  :ref:`Differential <uvs-api-drivedynamics--differential>`
 -  :ref:`Differential.Axle <uvs-api-drivedynamics--differentialaxle>`
@@ -26,12 +27,90 @@ Types
 -  :ref:`Gearbox <uvs-api-drivedynamics--gearbox>`
 -  :ref:`ManualGearbox <uvs-api-drivedynamics--manualgearbox>`
 -  :ref:`MotorcycleBalance <uvs-api-drivedynamics--motorcyclebalance>`
+-  :ref:`MotorcycleGroundAssist <uvs-api-drivedynamics--motorcyclegroundassist>`
+-  :ref:`MotorcycleWheelieControl <uvs-api-drivedynamics--motorcyclewheeliecontrol>`
 -  :ref:`Nitro <uvs-api-drivedynamics--nitro>`
 -  :ref:`ParkingHold <uvs-api-drivedynamics--parkinghold>`
 -  :ref:`Steering <uvs-api-drivedynamics--steering>`
 -  :ref:`TractionControl <uvs-api-drivedynamics--tractioncontrol>`
 -  :ref:`Transmission <uvs-api-drivedynamics--transmission>`
 -  :ref:`TransmissionMode <uvs-api-drivedynamics--transmissionmode>`
+
+.. _uvs-api-drivedynamics--antilockbrakes:
+
+AntiLockBrakes
+--------------
+
+**Runtime/Drive/Brakes/AntiLockBrakes.cs**
+
+Optional per-wheel service-brake pressure modulation after Brakes. Detects impending lock-up from contact-relative tire speed; parking brakes, low-speed holding and airborne wheels remain independent.
+
+**Inherits / implements:** ``DriveModule``, ``IVehicleResetHandler``.
+
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks:
+
+Events and Inspector callbacks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++----------------------------------------------------+-------------------------------------------------------------------------------------------------+
+| Member                                             | Meaning                                                                                         |
++====================================================+=================================================================================================+
+| ``public event System.Action<bool> ActiveChanged`` | Raised when any wheel enters or leaves ABS pressure reduction; payload is the new active state. |
++----------------------------------------------------+-------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-drivedynamics--state-and-configuration:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                                | Meaning                                                                                                                                    |
++=======================================================================+============================================================================================================================================+
+| ``public virtual bool Active { get; protected set; }``                | Whether ABS is currently reducing service-brake pressure on at least one wheel.                                                            |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override int ExecutionOrder { get; }``                       | Default local priority within phase/category.                                                                                              |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float MaximumSlip { get; protected set; }``          | Highest measured braking-slip ratio in the latest ABS step.                                                                                |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumPressure``                                      | Lowest retained fraction of requested service-brake torque. Zero allows complete pressure release.                                         |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float MinimumPressureScale { get; protected set; }`` | Lowest retained service-brake fraction in the latest step; one means no intervention.                                                      |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumReleaseDuration``                               | Minimum duration of a pressure-release pulse, giving the tire time to recover rotation. Initial value: ``.04f``.                           |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumSpeedKph``                                      | Minimum contact speed in km/h for pressure modulation. Below this speed normal brakes can stop and hold the vehicle. Initial value: ``5``. |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override ExecutionPhase Phase { get; }``                     | Execution phase; ABS runs during Braking after service-brake demand is applied.                                                            |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float recoverySlip``                                         | Braking-slip ratio below which pressure builds again. Kept below Target Slip to avoid rapid switching. Initial value: ``.1f``.             |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float recoveryTime``                                         | Seconds to rebuild full pressure once the tire rolls again. Initial value: ``.12f``.                                                       |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float releaseTime``                                          | Seconds to release full service-brake pressure after detecting a locking tire. Initial value: ``.035f``.                                   |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float targetSlip``                                           | Longitudinal braking-slip ratio that starts pressure release. A locked tire has a ratio near one. Initial value: ``.2f``.                  |
++-----------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-drivedynamics--methods:
+
+Methods
+~~~~~~~
+
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+----------------------+
+| Signature                                                                                  | Role and behavior                                                                                     | Arguments and result |
++============================================================================================+=======================================================================================================+======================+
+| ``public override void Configure(VehicleController vehicle)``                              | Clears transient intervention state when the module is configured.                                    | —                    |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual float GetPressureScale(Wheel wheel)``                                     | Returns the retained service-brake fraction for this wheel, or one when no modulation history exists. | —                    |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void ResetVehicleState(VehicleResetReason reason)``                       | Clears transient state when the vehicle is reset.                                                     | —                    |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void SetAbsEnabled(bool value)``                                          | Enables or disables ABS through the module enabled state; disabling clears pressure history.          | —                    |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+----------------------+
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Updates the mechanism for this vehicle, command and fixed-step duration.                              | —                    |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+----------------------+
+| ``public override bool SupportsProfile(DriveProfile profile)``                             | Returns whether the profile requires wheel-based mechanics.                                           | —                    |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+----------------------+
 
 .. _uvs-api-drivedynamics--automaticgearbox:
 
@@ -44,7 +123,7 @@ Makes automatic shift decisions from operating conditions.
 
 **Inherits / implements:** :ref:`Gearbox <uvs-api-drivedynamics--gearbox>`.
 
-.. _uvs-api-drivedynamics--state-and-configuration:
+.. _uvs-api-drivedynamics--state-and-configuration-1:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,6 +142,47 @@ State and configuration
 | ``public float upshiftRpm``                          | Upshift in revolutions per minute. Initial value: ``7000``.                                                                                                                                                                 |
 +------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+.. _uvs-api-drivedynamics--methods-1:
+
+Methods
+~~~~~~~
+
++-----------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------+
+| Signature                                                             | Role and behavior                                                                                                                                                    | Arguments and result                              |
++=======================================================================+======================================================================================================================================================================+===================================================+
+| ``public override void ResetVehicleState(VehicleResetReason reason)`` | Respawn clears reverse-input admission, cancels pending shifting and restores forward launch through the base reset. Other reset reasons leave this state unchanged. | ``reason`` — Reset stage supplied by the vehicle. |
++-----------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------+
+
+.. _uvs-api-drivedynamics--boostsuspensionsettings:
+
+BoostSuspensionSettings
+-----------------------
+
+**Runtime/Drive/Suspension/BoostSuspensionSettings.cs**
+
+Shared physical suspension kick configuration. See :ref:`setup and behavior <uvs-drivingactions--suspension-kick-and-departure-wheelspin>`.
+
+.. _uvs-api-drivedynamics--state-and-configuration-2:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                           | Meaning                                                                                                                                      |
++==================================+==============================================================================================================================================+
+| ``public bool enabled``          | Enable effect; default true.                                                                                                                 |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float frontLift``       | Front extension in metres; default 0.035.                                                                                                    |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumTilt``     | Gravity-relative pitch/roll cancellation angle; default 20 degrees. A fresh boost press is required after automatic suspension cancellation. |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float rearCompression`` | Rear compression in metres; default 0.02.                                                                                                    |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float returnTime``      | Smooth recovery in seconds; default 0.3.                                                                                                     |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float riseTime``        | Smooth rise in seconds; default 0.15.                                                                                                        |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+
 .. _uvs-api-drivedynamics--brakes:
 
 Brakes
@@ -74,7 +194,7 @@ Configuration/implementation type for brakes within engine and drivetrain.
 
 **Inherits / implements:** :ref:`DriveModule <uvs-api-driveprofiles--drivemodule>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-1:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,7 +209,7 @@ Events and Inspector callbacks
 | ``public event System.Action<float> ServiceBrakeChanged`` | When resolved service braking changes. Payload: normalized resolved brake demand.                                |
 +-----------------------------------------------------------+------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-1:
+.. _uvs-api-drivedynamics--state-and-configuration-3:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,7 +244,7 @@ State and configuration
 | ``public float slopeReverseReleaseGrace``                     | Seconds to recognize a fresh reverse press after releasing a stopped brake on a slope. Does not engage reverse from a continuously held brake.                                                      |
 +---------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods:
+.. _uvs-api-drivedynamics--methods-2:
 
 Methods
 ~~~~~~~
@@ -139,46 +259,6 @@ Methods
 | ``public override bool SupportsProfile(DriveProfile profile)``          | Checks movement-family compatibility; this is independent of the Unity enabled flag.                             | ``profile`` — Movement/surface configuration, according to its declared type. **Returns:** ``true`` when the described condition holds; ``false`` otherwise.    |
 +-------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--boostsuspensionsettings:
-
-BoostSuspensionSettings
------------------------
-
-**Runtime/Drive/Suspension/BoostSuspensionSettings.cs**
-
-Shared physical suspension kick configuration. See :ref:`setup and behavior <uvs-drivingactions--suspension-kick-and-departure-wheelspin>`.
-
-+----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                           | Meaning                                                                                                                                      |
-+==================================+==============================================================================================================================================+
-| ``public bool enabled``          | Enable effect; default true.                                                                                                                 |
-+----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float frontLift``       | Front extension in metres; default 0.035.                                                                                                    |
-+----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float rearCompression`` | Rear compression in metres; default 0.02.                                                                                                    |
-+----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float riseTime``        | Smooth rise in seconds; default 0.15.                                                                                                        |
-+----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumTilt``     | Gravity-relative pitch/roll cancellation angle; default 20 degrees. A fresh boost press is required after automatic suspension cancellation. |
-+----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float returnTime``      | Smooth recovery in seconds; default 0.3.                                                                                                     |
-+----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-
-.. _uvs-api-drivedynamics--burnoutsuspensionsettings:
-
-BurnoutSuspensionSettings
--------------------------
-
-**Runtime/Drive/Suspension/BoostSuspensionSettings.cs**
-
-**Inherits / implements:** :ref:`BoostSuspensionSettings <uvs-api-drivedynamics--boostsuspensionsettings>`.
-
-+------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                                         | Meaning                                                                                                                                                                                                                                                    |
-+================================================+============================================================================================================================================================================================================================================================+
-| ``public float maximumForwardActivationSpeed`` | Maximum forward speed for starting suspension kick, default 5 m/s (18 km/h). Reverse movement has no lower bound. An accepted kick remains active above this threshold; a rejected start requires a fresh press. Independent of burnout propulsion limits. |
-+------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
 .. _uvs-api-drivedynamics--burnout:
 
 Burnout
@@ -188,7 +268,7 @@ Burnout
 
 **Inherits / implements:** :ref:`DriveModule <uvs-api-driveprofiles--drivemodule>`, :ref:`IVehicleResetHandler <uvs-api-modules--ivehicleresethandler>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-1:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-2:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -203,7 +283,7 @@ Events and Inspector callbacks
 | ``public event System.Action<bool> StateChanged`` | Reports transitions into and out of active assistance. |
 +---------------------------------------------------+--------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-2:
+.. _uvs-api-drivedynamics--state-and-configuration-4:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -211,11 +291,7 @@ State and configuration
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Member                                                  | Meaning                                                                                                                                                                                          |
 +=========================================================+==================================================================================================================================================================================================+
-| ``public BurnoutSuspensionSettings suspensionKick``     | Supported front/rear spring shift; enabled by default, with a 0.9-second return.                                                                                                                 |
-+---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool automaticThrottle``                       | Supply a throttle request in the selected drive direction before brakes/gearbox/clutch while the held launch request is eligible. Default true.                                                  |
-+---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool forceForwardDirection``                   | Request forward drive during boost; disable to retain the selected direction. Default true.                                                                                                      |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float boatBowLiftDegrees``                     | Extra boat powered-pitch target degrees while Burnout is active; default 2, range 0–5; existing tilt/pitch guards remain.                                                                        |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -228,6 +304,8 @@ State and configuration
 | ``public float CooldownRemaining { get; }``             | Seconds before another launch can begin.                                                                                                                                                         |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override int ExecutionOrder { get; }``         | 240; resolves wheelspin before engine torque.                                                                                                                                                    |
++---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool forceForwardDirection``                   | Request forward drive during boost; disable to retain the selected direction. Default true.                                                                                                      |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float forwardGrip``                            | Driven tire longitudinal grip scale during wheelspin. Default 0.55, allowing forward motion while spinning.                                                                                      |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -263,6 +341,8 @@ State and configuration
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override bool SupportsDirectControl { get; }`` | Processes direct mode to clear assistance.                                                                                                                                                       |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public BurnoutSuspensionSettings suspensionKick``     | Supported front/rear spring shift; enabled by default, with a 0.9-second return.                                                                                                                 |
++---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float sustainSteeringThreshold``               | Steering magnitude required to retain a held powered slide. Default 0.15.                                                                                                                        |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool sustainWhileSteering``                    | Hold wheelspin while steering beyond sustainSteeringThreshold, even after the duration and minimum end speed. Default true; releasing Ctrl or the safety cutoff still ends assistance.           |
@@ -274,7 +354,7 @@ State and configuration
 | ``public float wheelSpeedMultiplier``                   | Bounded native wheel overspeed allowance during wheelspin. Default 1.5; range 1–2; prevents runaway wheel energy.                                                                                |
 +---------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-1:
+.. _uvs-api-drivedynamics--methods-3:
 
 Methods
 ~~~~~~~
@@ -293,6 +373,26 @@ Methods
 | ``public override void Step(VehicleController vehicle, Command command, float dt)`` | Advance rolling or standing wheelspin, sustained powered turns and release recovery; apply optional holding brakes. | See signature for arguments.                                                                  |
 +-------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
+.. _uvs-api-drivedynamics--burnoutsuspensionsettings:
+
+BurnoutSuspensionSettings
+-------------------------
+
+**Runtime/Drive/Suspension/BoostSuspensionSettings.cs**
+
+**Inherits / implements:** :ref:`BoostSuspensionSettings <uvs-api-drivedynamics--boostsuspensionsettings>`.
+
+.. _uvs-api-drivedynamics--state-and-configuration-5:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                         | Meaning                                                                                                                                                                                                                                                    |
++================================================+============================================================================================================================================================================================================================================================+
+| ``public float maximumForwardActivationSpeed`` | Maximum forward speed for starting suspension kick, default 5 m/s (18 km/h). Reverse movement has no lower bound. An accepted kick remains active above this threshold; a rejected start requires a fresh press. Independent of burnout propulsion limits. |
++------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 .. _uvs-api-drivedynamics--clutch:
 
 Clutch
@@ -304,7 +404,7 @@ Models coupling and finite rotational energy transfer.
 
 **Inherits / implements:** :ref:`EngineModule <uvs-api-drivedynamics--enginemodule>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-2:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-3:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -317,7 +417,7 @@ Events and Inspector callbacks
 | ``public event System.Action<float> EngagementChanged`` | When resolved clutch coupling changes. Payload: normalized engagement, distinct from pedal travel. |
 +---------------------------------------------------------+----------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-3:
+.. _uvs-api-drivedynamics--state-and-configuration-6:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -352,7 +452,7 @@ State and configuration
 | ``public float torqueCapacity``                             | Maximum crankshaft torque transmitted by a fully engaged clutch, in Nm.                                                                                                                                |
 +-------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-2:
+.. _uvs-api-drivedynamics--methods-4:
 
 Methods
 ~~~~~~~
@@ -380,7 +480,7 @@ Distributes driven axle torque.
 
 **Inherits / implements:** :ref:`EngineModule <uvs-api-drivedynamics--enginemodule>`.
 
-.. _uvs-api-drivedynamics--state-and-configuration-4:
+.. _uvs-api-drivedynamics--state-and-configuration-7:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -407,7 +507,7 @@ State and configuration
 | ``public float tractionCoefficient``              | Scales the traction estimate used to distribute differential torque. Initial value: ``1``.                                                                                                             |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-3:
+.. _uvs-api-drivedynamics--methods-5:
 
 Methods
 ~~~~~~~
@@ -429,7 +529,7 @@ Differential.Axle
 
 Configuration/implementation type for axle within engine and drivetrain.
 
-.. _uvs-api-drivedynamics--state-and-configuration-5:
+.. _uvs-api-drivedynamics--state-and-configuration-8:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -475,7 +575,7 @@ Configuration/implementation type for driving assists within engine and drivetra
 
 **Inherits / implements:** :ref:`DriveModule <uvs-api-driveprofiles--drivemodule>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-3:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-4:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -488,48 +588,48 @@ Events and Inspector callbacks
 | ``public event System.Action<bool> TractionControlChanged``  | When ``DrivingAssists`` changes its coordinated traction-control choice. Payload: bool. |
 +--------------------------------------------------------------+-----------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-6:
+.. _uvs-api-drivedynamics--state-and-configuration-9:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                                            | Meaning                                                                                                                                                  |
-+===================================================+==========================================================================================================================================================+
-| ``public float corneringFreedom``                 | Amount of cornering freedom retained while allocating traction between propulsion and turning. Initial value: ``.65f``.                                  |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float lateralResponse``                  | Strength of sideways-motion correction relative to the vehicle. Initial value: ``4``.                                                                    |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float launchReferenceSpeed``             | Low-speed reference in m/s used to stabilize slip/traction calculations during launch. Initial value: ``3``.                                             |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumYawRate``                   | Upper requested yaw rate used by turning assistance, in rad/s.                                                                                           |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float minimumTorqueScale``               | Multiplier/fraction controlling minimum torque scale. Increasing it increases this contribution relative to the unscaled value. Initial value: ``.08f``. |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override ExecutionPhase Phase { get; }`` | Cross-category execution barrier used by the module pipeline.                                                                                            |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float recoveryRate``                     | Rate at which allowed drive torque recovers after excess slip subsides. Initial value: ``1.8f``.                                                         |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float reductionRate``                    | Rate at which allowed drive torque decreases when wheel slip exceeds the target. Initial value: ``12``.                                                  |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool reserveGripForCornering``           | When checked, reserve grip for cornering is active; when unchecked the owning system skips that optional policy.                                         |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool stabilityControlEnabled``           | Enables stability control behavior for this system. Initial value: ``true``.                                                                             |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float stabilityStrength``                | Overall blend/strength of the stability corrections; zero removes this assistance contribution. Initial value: ``.70f``.                                 |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool stabilizePoweredSlides``            | Allows stability assistance to correct powered sliding instead of leaving it entirely to driver input. Initial value: ``true``.                          |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float targetSlip``                       | Desired longitudinal slip magnitude while applying propulsion torque. Initial value: ``.22f``.                                                           |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool tractionControlEnabled``            | Enables traction control behavior for this system. Initial value: ``true``.                                                                              |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float tractionReserve``                  | Fraction of estimated traction kept available when limiting drive torque. Initial value: ``.9f``.                                                        |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float yawResponse``                      | Strength/speed of the yaw response toward the requested heading/turn behavior. Initial value: ``7``.                                                     |
-+---------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                            | Meaning                                                                                                                                                 |
++===================================================+=========================================================================================================================================================+
+| ``public float corneringFreedom``                 | Amount of cornering freedom retained while allocating traction between propulsion and turning. Initial value: ``.65f``.                                 |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float lateralResponse``                  | Strength of sideways-motion correction relative to the vehicle. Initial value: ``5``.                                                                   |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float launchReferenceSpeed``             | Low-speed reference in m/s used to stabilize slip/traction calculations during launch. Initial value: ``3``.                                            |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumYawRate``                   | Upper requested yaw rate used by turning assistance, in rad/s.                                                                                          |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumTorqueScale``               | Multiplier/fraction controlling minimum torque scale. Increasing it increases this contribution relative to the unscaled value. Initial value: ``.2f``. |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override ExecutionPhase Phase { get; }`` | Cross-category execution barrier used by the module pipeline.                                                                                           |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float recoveryRate``                     | Rate at which allowed drive torque recovers after excess slip subsides. Initial value: ``4``.                                                           |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float reductionRate``                    | Rate at which allowed drive torque decreases when wheel slip exceeds the target. Initial value: ``8``.                                                  |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool reserveGripForCornering``           | When checked, reserve grip for cornering is active; when unchecked the owning system skips that optional policy.                                        |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool stabilityControlEnabled``           | Enables stability control behavior for this system. Initial value: ``true``.                                                                            |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float stabilityStrength``                | Overall blend/strength of the stability corrections; zero removes this assistance contribution. Initial value: ``.72f``.                                |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool stabilizePoweredSlides``            | Allows stability assistance to correct powered sliding instead of leaving it entirely to driver input. Initial value: ``true``.                         |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float targetSlip``                       | Desired longitudinal slip magnitude while applying propulsion torque. Initial value: ``.24f``.                                                          |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool tractionControlEnabled``            | Enables traction control behavior for this system. Initial value: ``true``.                                                                             |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float tractionReserve``                  | Fraction of estimated traction kept available when limiting drive torque. Initial value: ``.98f``.                                                      |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float yawResponse``                      | Strength/speed of the yaw response toward the requested heading/turn behavior. Initial value: ``7.5f``.                                                 |
++---------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-4:
+.. _uvs-api-drivedynamics--methods-6:
 
 Methods
 ~~~~~~~
@@ -561,7 +661,7 @@ Resolves running state, RPM and propulsion torque/power.
 
 **Inherits / implements:** :ref:`EngineModule <uvs-api-drivedynamics--enginemodule>`, :ref:`IVehicleResetHandler <uvs-api-modules--ivehicleresethandler>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-4:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-5:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -576,7 +676,7 @@ Events and Inspector callbacks
 | ``public event System.Action<int> GearChanged``              | After accepted gear selection. Payload: signed gear index, with reverse -1, neutral 0 and forward gears positive.        |
 +--------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-7:
+.. _uvs-api-drivedynamics--state-and-configuration-10:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -591,6 +691,8 @@ State and configuration
 | ``public virtual float AverageWheelRpm { get; protected set; }``         | Read-only/resolved average wheel rpm for Engine.                                                                                                                                                                                                           |
 +--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Clutch clutch``                                                 | Assign the clutch Clutch component/asset used by Engine.                                                                                                                                                                                                   |
++--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool compensateDriveResistance``                                | Allow available torque to overcome measured opposing load and gravity without spending the acceleration budget; default true. Does not create torque or bypass tire traction.                                                                              |
 +--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float directSpeedLimiterRangeKph``                              | Additional speed fade range in km/h used by direct drive.                                                                                                                                                                                                  |
 +--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -623,8 +725,6 @@ State and configuration
 | ``public float launchRpm``                                               | Engine speed target used for initial launch/clutch engagement. Initial value: ``3200``.                                                                                                                                                                    |
 +--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float maximumDriveAcceleration``                                | Propulsion acceleration budget in m/s²; zero disables the limit. Compensate Drive Resistance additionally admits opposing load within available torque/power.                                                                                              |
-+--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool compensateDriveResistance``                                | Allow available torque to overcome measured opposing load and gravity without spending the acceleration budget; default true. Does not create torque or bypass tire traction.                                                                              |
 +--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float maximumPowerKw``                                          | Maximum output power in ``kW``; zero disables the power cap.                                                                                                                                                                                               |
 +--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -665,7 +765,7 @@ State and configuration
 | ``public virtual float TransmittedClutchTorque { get; protected set; }`` | Read-only/resolved transmitted clutch torque for Engine.                                                                                                                                                                                                   |
 +--------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-5:
+.. _uvs-api-drivedynamics--methods-7:
 
 Methods
 ~~~~~~~
@@ -701,7 +801,7 @@ Configuration/implementation type for engine core within engine and drivetrain.
 
 **Inherits / implements:** :ref:`CategoryCore <uvs-api-modules--categorycore>`.
 
-.. _uvs-api-drivedynamics--state-and-configuration-8:
+.. _uvs-api-drivedynamics--state-and-configuration-11:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -712,7 +812,7 @@ State and configuration
 | ``public override ModuleCategory Category { get; }`` | Module responsibility category; it does not independently determine execution phase. |
 +------------------------------------------------------+--------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-6:
+.. _uvs-api-drivedynamics--methods-8:
 
 Methods
 ~~~~~~~
@@ -734,7 +834,7 @@ Configuration/implementation type for engine module within engine and drivetrain
 
 **Inherits / implements:** :ref:`VehicleModule <uvs-api-modules--vehiclemodule>`, :ref:`IEngineModule <uvs-api-modules--ienginemodule>`.
 
-.. _uvs-api-drivedynamics--state-and-configuration-9:
+.. _uvs-api-drivedynamics--state-and-configuration-12:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -756,7 +856,7 @@ Shared validated selection, ratios and shift state.
 
 **Inherits / implements:** :ref:`EngineModule <uvs-api-drivedynamics--enginemodule>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-5:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-6:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -771,7 +871,7 @@ Events and Inspector callbacks
 | ``public event System.Action<int> ShiftStarted``   | When an accepted selection starts its shift interval. Payload: selected gear index.                               |
 +----------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-10:
+.. _uvs-api-drivedynamics--state-and-configuration-13:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -808,7 +908,7 @@ State and configuration
 | ``public float shiftDuration``                      | Time in seconds during which gear-changing torque transfer is interrupted/blended. Initial value: ``.14f``.                                                                        |
 +-----------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-7:
+.. _uvs-api-drivedynamics--methods-9:
 
 Methods
 ~~~~~~~
@@ -817,6 +917,8 @@ Methods
 | Signature                                                                                                            | Role and behavior                                                                                                                                                                                                                                                                          | Arguments and result                                                                                                                                                                                                                                                                                                                                        |
 +======================================================================================================================+============================================================================================================================================================================================================================================================================================+=============================================================================================================================================================================================================================================================================================================================================================+
 | ``public virtual void ConfigureFor(VehicleController vehicle, Engine engine)``                                       | Connects and prepares the gearbox for its vehicle and engine context.                                                                                                                                                                                                                      | ``vehicle`` — Vehicle context/owner receiving the operation. ``engine`` — Engine whose running/RPM/gearbox state supplies the operation.                                                                                                                                                                                                                    |
++----------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void ResetVehicleState(VehicleResetReason reason)``                                                 | Respawn cancels an unfinished shift; automatic direction returns to first gear. AutomaticGearbox also clears reverse-input admission. Other reset reasons leave this state unchanged.                                                                                                      | —                                                                                                                                                                                                                                                                                                                                                           |
 +----------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void Simulate(VehicleController vehicle, Command command, float wheelRpm, float maxRpm, float dt)`` | Advances gearbox shift/selection state for one mechanical timestep.                                                                                                                                                                                                                        | ``vehicle`` — Vehicle context/owner receiving the operation. ``command`` — Command sampled for this tick; use its channel metadata as well as axes. ``wheelRpm`` — Wheel rotational speed in revolutions per minute. ``maxRpm`` — Engine redline used for selection validation. ``dt`` — Elapsed time in seconds.                                           |
 +----------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -853,75 +955,253 @@ Configuration/implementation type for motorcycle balance within engine and drive
 
 **Inherits / implements:** :ref:`DriveModule <uvs-api-driveprofiles--drivemodule>`.
 
-.. _uvs-api-drivedynamics--state-and-configuration-11:
+.. _uvs-api-drivedynamics--state-and-configuration-14:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                                                       | Meaning                                                                                                                                         |
-+==============================================================+=================================================================================================================================================+
-| ``public virtual void SuspendBalance(float duration)``       | Temporarily release assisted roll control for the given seconds without changing authored settings. Respawn or driver entry clears suppression. |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float accelerationSmoothTime``                      | Smoothing time for measured path acceleration, in seconds. Initial value: ``.2``.                                                               |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool coordinateSteering``                           | Optional wheel-angle limit based on the supported bank at speed. Initial value: ``false``.                                                      |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float reversalLeanRate``                            | Opposite-bank target rate in degrees/s, at least Lean Rate. Initial value: ``280``.                                                             |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual float CorneringAccelerationLimit { get; }`` | Supported lateral path acceleration in m/s², derived from gravity, Maximum Lean and Steering Balance Margin.                                    |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float steeringBalanceMargin``                       | Cornering capacity fraction shared by path assistance and optional wheel-angle limiting. Initial value: ``.85``.                                |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual float ActualLean { get; protected set; }``  | Read-only/resolved actual lean for ``MotorcycleBalance``.                                                                                       |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float balanceDamping``                              | Damping applied to roll while maintaining motorcycle balance. Initial value: ``65``.                                                            |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float balanceStrength``                             | Strength of the restoring torque toward the requested motorcycle lean. Initial value: ``1200``.                                                 |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual float CurrentLean { get; protected set; }`` | Read-only/resolved current lean for ``MotorcycleBalance``.                                                                                      |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override int ExecutionOrder { get; }``              | Default local priority within phase/category.                                                                                                   |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float fullLeanSpeed``                               | Ground speed in m/s at which full banking is available.                                                                                         |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float leanRate``                                    | Maximum rate at which requested motorcycle lean changes, in degrees per second. Initial value: ``140``.                                         |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float leanRateDamping``                             | Feed-forward damping of the requested lean rate.                                                                                                |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float leanStartSpeed``                              | Ground speed in m/s below which banking fades to zero.                                                                                          |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumAngularAcceleration``                  | Upper bound on the profile's applied angular acceleration. Initial value: ``150``.                                                              |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumLean``                                 | Largest requested motorcycle lean angle in degrees. Initial value: ``35``.                                                                      |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float measuredAccelerationWeight``                  | Blend steering anticipation with actual path acceleration; chassis yaw spin does not count as cornering.                                        |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override ExecutionPhase Phase { get; }``            | Cross-category execution barrier used by the module pipeline.                                                                                   |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float recoveryAngle``                               | Recovery angle in degrees, relative to the owning mechanism's reference frame. Initial value: ``65``.                                           |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float steeringPrediction``                          | Blend from current wheel steering to anticipated driver steering.                                                                               |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual float TargetLean { get; protected set; }``  | Requested motorcycle lean after steering and speed resolution, in degrees.                                                                      |
-+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                       | Meaning                                                                                                                                                                                                                                                                 |
++==============================================================+=========================================================================================================================================================================================================================================================================+
+| ``public float accelerationSmoothTime``                      | Smoothing time for measured path acceleration, in seconds. Initial value: ``.2``.                                                                                                                                                                                       |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float ActualLean { get; protected set; }``  | Resolved gravity-relative bank around the pitched longitudinal axis, in degrees. Climbing pitch is excluded.                                                                                                                                                            |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool assistBrakingTurns``                           | Keep supported braking turns aligned with steering through bounded physical torque; yields during wheel lift. Default ``true``.                                                                                                                                         |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool assistBurnoutTurns``                           | Enable bounded low-speed heading torque during powered circles with both tires supported. Does not overwrite position or velocity. Default ``true``.                                                                                                                    |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float balanceDamping``                              | Damping applied to roll while maintaining motorcycle balance. Initial value: ``65``.                                                                                                                                                                                    |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float balanceStrength``                             | Strength of the restoring torque toward the requested motorcycle lean. Initial value: ``1200``.                                                                                                                                                                         |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool BalanceSuppressed { get; }``                   | Whether temporary impact suppression or configured driver-ejection policy currently suppresses balance.                                                                                                                                                                 |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float brakingYawDamping``                           | Fallback braking-slide heading damping when ground assistance is disabled; assisted turns use the shared yaw controller. Default ``6``.                                                                                                                                 |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float burnoutTurnAcceleration``                     | Heading acceleration cap in radians per second squared. Default ``3``.                                                                                                                                                                                                  |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float burnoutTurnLean``                             | Maximum inside bank during assisted powered circles, in degrees; existing clearance and balance limits still apply. Default ``14``.                                                                                                                                     |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float burnoutTurnMaximumSpeed``                     | Maximum assisted circle speed in m/s; fades through the upper quarter of the range. Default ``8``.                                                                                                                                                                      |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float burnoutTurnRate``                             | Maximum assisted heading rate in radians per second. Default ``1.1``.                                                                                                                                                                                                   |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool coordinateSteering``                           | Optional wheel-angle limit based on the supported bank at speed. Initial value: ``false``.                                                                                                                                                                              |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float CorneringAccelerationLimit { get; }`` | Supported lateral path acceleration in m/s², derived from gravity, Maximum Lean and Steering Balance Margin.                                                                                                                                                            |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float CurrentLean { get; protected set; }`` | Read-only/resolved current lean for ``MotorcycleBalance``.                                                                                                                                                                                                              |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool disableBalanceOnDriverEject``                  | Stop assisted riding balance and Stabilization angular damping/righting when the driver is ejected, allowing native falling and tumbling. A new driver or vehicle respawn restores balance. Ordinary passenger ejection does not affect it.                             |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override int ExecutionOrder { get; }``              | Default local priority within phase/category.                                                                                                                                                                                                                           |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float fullLeanSpeed``                               | Ground speed in m/s at which full banking is available.                                                                                                                                                                                                                 |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public MotorcycleGroundAssist groundAssist``               | Optional ground-contact assistance for hard turns and boost. Does not act in flight or during requested wheelies. Initial value: ``new MotorcycleGroundAssist()``.                                                                                                      |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundLeanBrakingAcceleration``               | Maximum acceleration opposing excessive outward bank in radians per second squared; physical contact can cause a small transient overshoot. Default ``30``.                                                                                                             |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundLeanLimit``                             | Base side-bank boundary relative to gravity in degrees; slope bank reduction scales this bound on inclined terrain. Default ``55``.                                                                                                                                     |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundLeanLimitMargin``                       | Minimum anticipation margin in degrees before the boundary. Fast outward roll brakes earlier when its stopping distance requires it. Default ``10``.                                                                                                                    |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float leanObstacleClearance``                       | Safety margin before a blocked rider bank. Initial value: ``.08`` metres.                                                                                                                                                                                               |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public LayerMask leanObstacleLayers``                      | Solid obstacle layers used by the rider bank-clearance check. Initial value: all layers.                                                                                                                                                                                |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float leanRate``                                    | Maximum rate at which requested motorcycle lean changes, in degrees per second. Initial value: ``170``.                                                                                                                                                                 |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float leanRateDamping``                             | Feed-forward damping of the requested lean rate.                                                                                                                                                                                                                        |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float leanStartSpeed``                              | Ground speed in m/s below which banking fades to zero.                                                                                                                                                                                                                  |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool limitGroundLean``                              | Enable gravity-relative and support-plane bank boundaries on tire support. The latter uses Maximum Lean to retain slope clearance. Brakes outward roll and yields to inward recovery; uses no new ground probes. Default ``true``.                                      |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumAngularAcceleration``                  | Upper bound on the profile's applied angular acceleration. Initial value: ``150``.                                                                                                                                                                                      |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumBrakingYawAcceleration``               | Maximum fallback braking-slide heading deceleration without ground assistance, in radians per second squared. Default ``12``.                                                                                                                                           |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumLean``                                 | Largest requested motorcycle lean angle in degrees. Initial value: ``45``.                                                                                                                                                                                              |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float measuredAccelerationWeight``                  | Blend steering anticipation with actual path acceleration; chassis yaw spin does not count as cornering.                                                                                                                                                                |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool nativeCollisionResponseAfterDriverEject``      | After driver ejection, use native collider friction and restitution instead of additional Collisions body-friction, rebound and crash-transfer impulses. Requires Disable Balance On Driver Eject. Driver re-entry or respawn restores configured collision assistance. |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override ExecutionPhase Phase { get; }``            | Cross-category execution barrier used by the module pipeline.                                                                                                                                                                                                           |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool preventObstacleLean``                          | Limit assisted bank near solid obstacles using one approximate torso capsule per occupant. Initial value: ``true``.                                                                                                                                                     |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float recoveryAngle``                               | Maximum gravity-relative bank eligible for normal motorcycle balance, in degrees. Pitch is excluded. Initial value: ``65``.                                                                                                                                             |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float reversalLeanRate``                            | Opposite-bank target rate in degrees/s, at least Lean Rate. Initial value: ``335``.                                                                                                                                                                                     |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float steeringBalanceMargin``                       | Cornering capacity fraction shared by path assistance and optional wheel-angle limiting. Initial value: ``.95``.                                                                                                                                                        |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float steeringPrediction``                          | Blend from current wheel steering to anticipated driver steering.                                                                                                                                                                                                       |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float TargetLean { get; protected set; }``  | Requested motorcycle lean after steering and speed resolution, in degrees.                                                                                                                                                                                              |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool UseNativeCollisionResponse { get; }``          | Whether driver ejection currently requests native collision response.                                                                                                                                                                                                   |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public MotorcycleWheelieControl wheelieControl``           | Separate bank and turn response while Wheel Lift owns the maneuver, including controlled lowering. Initial value: ``new MotorcycleWheelieControl()``.                                                                                                                   |
++--------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-8:
+.. _uvs-api-drivedynamics--methods-10:
 
 Methods
 ~~~~~~~
 
-+---------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Signature                                                                                   | Role and behavior                                                                                                                             | Arguments and result                                                                                                                                                                                                     |
-+=============================================================================================+===============================================================================================================================================+==========================================================================================================================================================================================================================+
-| ``public virtual float ConstrainSteering(VehicleController vehicle, float requestedAngle)`` | Resolve a steering demand inside the configured cornering envelope without changing Rigidbody inertia. Low-speed full lock remains available. | ``vehicle`` — Owning vehicle. ``requestedAngle`` — Road-wheel angle in degrees. **Returns:** Allowed road-wheel angle in degrees.                                                                                        |
-+---------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override void Configure(VehicleController vehicle)``                               | Measures wheelbase and prepares wheel/contact geometry for balance response.                                                                  | ``vehicle`` — Vehicle context/owner receiving the operation.                                                                                                                                                             |
-+---------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)``  | Uses gravity, contact and steering evidence to apply bounded motorcycle lean/balance support.                                                 | ``vehicle`` — Vehicle context/owner receiving the operation. ``command`` — Command sampled for this tick; use its channel metadata as well as axes. ``deltaTime`` — Elapsed time in seconds supplied by the owning loop. |
-+---------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override bool SupportsProfile(DriveProfile profile)``                              | Checks movement-family compatibility; this is independent of the Unity enabled flag.                                                          | ``profile`` — Movement/surface configuration, according to its declared type. **Returns:** ``true`` when the described condition holds; ``false`` otherwise.                                                             |
-+---------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| Signature                                                                                   | Role and behavior                                                                                                                               | Arguments and result |
++=============================================================================================+=================================================================================================================================================+======================+
+| ``public override void Configure(VehicleController vehicle)``                               | Measures wheelbase and prepares wheel/contact geometry for balance response.                                                                    | —                    |
++---------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual float ConstrainSteering(VehicleController vehicle, float requestedAngle)`` | Resolve a steering demand inside the configured cornering envelope without changing Rigidbody inertia. Low-speed full lock remains available.   | —                    |
++---------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void ResetVehicleState(VehicleResetReason reason)``                        | Clears transient state for the supplied vehicle reset reason.                                                                                   | —                    |
++---------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public override void Step(VehicleController vehicle, Command command, float deltaTime)``  | Uses gravity, contact and steering evidence to apply bounded motorcycle lean/balance support.                                                   | —                    |
++---------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public override bool SupportsProfile(DriveProfile profile)``                              | Checks movement-family compatibility; this is independent of the Unity enabled flag.                                                            | —                    |
++---------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void SuspendBalance(float duration)``                                      | Temporarily release assisted roll control for the given seconds without changing authored settings. Respawn or driver entry clears suppression. | —                    |
++---------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+
+.. _uvs-api-drivedynamics--motorcyclegroundassist:
+
+MotorcycleGroundAssist
+----------------------
+
+**Runtime/Drive/Grounded/Assistance/MotorcycleGroundAssist.cs**
+
+Bounded ground-contact, cornering and braking assistance for MotorcycleBalance.
+
+.. _uvs-api-drivedynamics--state-and-configuration-15:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                         | Meaning                                                                                                                                                                                                 |
++================================================+=========================================================================================================================================================================================================+
+| ``public float angularDamping``                | Damping of unwanted pitch and roll rate relative to the requested bank. Does not damp yaw. Initial value: ``12``.                                                                                       |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float bankResponseTime``              | Seconds for a critically damped bank-target response. Smooths both pickup and reversal without reducing wheel steering. Initial value: ``.17f``.                                                        |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float bankTurnInfluence``             | Contribution of actual bank to the supported turn, including coasting with neutral steering. Initial value: ``.35f``.                                                                                   |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float brakeRecoveryTime``             | Seconds to restore full service-brake pressure after a load/slip intervention. Initial value: ``.15f``.                                                                                                 |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float brakeReleaseTime``              | Seconds to release service-brake pressure after detecting excessive tire slip. Initial value: ``.04f``.                                                                                                 |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float brakeSlipLimit``                | Tread/road speed slip ratio above which service-brake pressure is eased. Reduced while banked to retain lateral grip. Initial value: ``.25f``.                                                          |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float brakingLeanScale``              | Fraction of normal maximum bank retained under full braking. One preserves the steering envelope; smaller values deliberately widen braking turns. Initial value: ``1``.                                |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float brakingResponseMultiplier``     | Response-time multiplier when reversing a turn while braking. Lower values admit the opposite turn sooner. Initial value: ``.65f``.                                                                     |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool brakingSupport``                 | Reserve service-brake grip for steering and ease front pressure when the rear tire unloads. Does not change handbrake or standstill holding. Initial value: ``true``.                                   |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float brakingYawStrength``            | Correction of persistent unwanted yaw while braking into a requested turn. Zero uses proportional steering response only. Initial value: ``40``.                                                        |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float contactAcceleration``           | Maximum contact rebound damping acceleration in m/s² with at least two supported tires. No steady downforce or single-contact hold-down is applied. Initial value: ``15``.                              |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float corneringStrength``             | Multiplier for the supported cornering envelope. Higher values allow tighter assisted turns without raising the rider's maximum bank. Initial value: ``1.85f``.                                         |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool enabled``                        | Controls enabled for this mechanism.                                                                                                                                                                    |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float fullSpeed``                     | Ground speed in m/s where full assistance is available. Initial value: ``12``.                                                                                                                          |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float handbrakeSlideDeceleration``    | Extra road-plane deceleration in m/s² at tight handbrake steering; dissipates slide speed without adding yaw. Initial value: ``5``. Zero disables it.                                                   |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumAngularAcceleration``    | Maximum added pitch/roll angular acceleration in rad/s². Initial value: ``60``.                                                                                                                         |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumBankRate``               | Maximum bank-target speed in degrees per second. Bank Response Time smooths acceleration and reversal around this limit. Initial value: ``140``.                                                        |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumBrakingYawAcceleration`` | Maximum requested yaw correction under full service or handbrake braking, in rad/s². Applied through the current chassis inertia. Initial value: ``25``.                                                |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumContactAuthority``       | Minimum turn-assist contact authority with at least two supported tires. Incidental single-tire contact keeps its actual support share; manual wheelie uses separate settings. Initial value: ``.65f``. |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float pitchSupport``                  | Restoring pitch acceleration toward the supporting surface, in rad/s² per radian. Inactive without tire contact or during wheelie. Initial value: ``40``.                                               |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float rearLoadReserve``               | Rear share of total contact load below which front brake pressure is eased to discourage stoppies. Initial value: ``.12f``.                                                                             |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool reduceLeanOnSlopes``             | Reduce the bank request and physical world-bank boundary as terrain gets steeper, retaining ordinary handlebar steering instead. Initial value: ``true``.                                               |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float responseTime``                  | Seconds for the assistance strength to approach a changed steering/boost demand. Initial value: ``.12f``.                                                                                               |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float slopeLeanFullAngle``            | Terrain inclination in degrees where the minimum bank scale is reached. Initial value: ``45``.                                                                                                          |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float slopeLeanMinimumScale``         | Fraction of the normal bank request and world-bank boundary retained on steep terrain; handlebar steering stays available. Initial value: ``.2f``.                                                      |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float slopeLeanResponseTime``         | Response time in seconds for following sustained terrain inclination; filters short bumps and smooths the physical bank boundary. Zero is immediate. Initial value: ``.35f``.                           |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float slopeLeanStartAngle``           | Supporting terrain inclination in degrees where bank reduction starts. Initial value: ``5``.                                                                                                            |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float startSpeed``                    | Ground speed in m/s where assistance begins fading in. Initial value: ``3``.                                                                                                                            |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float steeringResponseTime``          | Seconds to ease steering into a new turn while the bank target anticipates the input. Zero disables this easing. Initial value: ``.12f``.                                                               |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float stoppiePitchAngle``             | Nose-down pitch relative to the supporting surface, in degrees, at which rear unloading receives full front-pressure relief. Initial value: ``6``.                                                      |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float supportDamping``                | Damping of separating support-point velocity, in 1/s. Does not compress resting suspension. Initial value: ``10``.                                                                                      |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float turnEntrySupport``              | Cornering authority before the chassis banks into a new turn. The rest arrives smoothly with actual lean; parking steering stays unchanged. Initial value: ``.45f``.                                    |
++------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-drivedynamics--motorcyclewheeliecontrol:
+
+MotorcycleWheelieControl
+------------------------
+
+**Runtime/Drive/Grounded/Assistance/MotorcycleWheelieControl.cs**
+
+Lean and yaw limits while a motorcycle is supported by its rear wheel, with smooth recovery after landing.
+
+.. _uvs-api-drivedynamics--state-and-configuration-16:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                      | Meaning                                                                                                                                                                          |
++=============================================+==================================================================================================================================================================================+
+| ``public float accelerationMultiplier``     | Powered acceleration scale on one driven support with the steering tire raised. Defaults to 1.08; does not increase top speed.                                                   |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float balanceDamping``             | Roll damping for rear-wheel balance. Initial value: ``200``.                                                                                                                     |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float balanceStrength``            | Roll spring for rear-wheel balance; separate from the stiffer two-wheel cornering response. Initial value: ``1200``.                                                             |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool enabled``                     | Controls enabled for this mechanism.                                                                                                                                             |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float highSpeedLeanScale``         | Fraction of wheelie lean retained at high speed. Reduces single-tire camber wobble. Initial value: ``.65f``.                                                                     |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float leanFadeEndSpeed``           | Speed at which High Speed Lean Scale is fully applied. Initial value: ``25``.                                                                                                    |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float leanFadeStartSpeed``         | Speed above which the small wheelie bank is reduced further. Initial value: ``12``.                                                                                              |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float leanResponseTime``           | Seconds to ease wheelie bank changes. Does not set the body's rotation. Initial value: ``.2f``.                                                                                  |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumLateralAcceleration`` | Arcade sideways acceleration budget in m/s² during wheelie. Allows a useful turn without requiring a large body bank. Initial value: ``3``.                                      |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumLean``                | Maximum sideways lean in degrees during wheel lift and controlled lowering. Initial value: ``12``.                                                                               |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumRollAcceleration``    | Maximum wheelie roll correction in radians per second squared. Initial value: ``300``.                                                                                           |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumSteeringAngle``       | Maximum wheel angle during wheelie, capped by the vehicle steering lock independently of speed. Recovery blends back to ordinary steering after lowering. Initial value: ``90``. |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumYawAcceleration``     | Maximum wheelie yaw correction in radians per second squared. Initial value: ``8``.                                                                                              |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumYawRate``             | Requested wheelie heading rate in radians per second at full steering. Separate from body lean; also limited by Maximum Lateral Acceleration. Initial value: ``.22f``.           |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumContactAuthority``    | Minimum steering-assist authority on the supporting tire. One rear tire is the expected wheelie support, not half of normal support. Initial value: ``1``.                       |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float releaseRecoveryTime``        | Seconds to hand stance, steering and damping back to normal riding after the front wheel settles. Initial value: ``.9f``.                                                        |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float turnResponse``               | Response toward the requested wheelie turn rate. Initial value: ``8``.                                                                                                           |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-api-drivedynamics--nitro:
 
@@ -932,7 +1212,7 @@ Nitro
 
 **Inherits / implements:** :ref:`EngineModule <uvs-api-drivedynamics--enginemodule>`, :ref:`IVehicleResetHandler <uvs-api-modules--ivehicleresethandler>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-6:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-7:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -953,7 +1233,7 @@ Events and Inspector callbacks
 | ``public event Action<bool> OutputStateChanged`` | Reports a change of the propulsion-output session. Receivers can be absent without affecting boost. |
 +--------------------------------------------------+-----------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-12:
+.. _uvs-api-drivedynamics--state-and-configuration-17:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -961,18 +1241,6 @@ State and configuration
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Member                                                             | Meaning                                                                                                                                                                                                                                                                           |
 +====================================================================+===================================================================================================================================================================================================================================================================================+
-| ``public BoostSuspensionSettings suspensionKick``                  | Configurable supported spring displacement, enabled by default.                                                                                                                                                                                                                   |
-+--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool launchWheelspin``                                    | Enable one departure grip pulse per nitro activation; default true.                                                                                                                                                                                                               |
-+--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float launchSpeed``                                       | Departure threshold in m/s; default 1.                                                                                                                                                                                                                                            |
-+--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float launchGripDuration``                                | Smooth recovery duration in seconds; default 0.65.                                                                                                                                                                                                                                |
-+--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float launchForwardGrip``                                 | Departure longitudinal grip fraction; default 0.35.                                                                                                                                                                                                                               |
-+--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float launchSidewaysGrip``                                | Departure lateral grip fraction; default 0.65.                                                                                                                                                                                                                                    |
-+--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float accelerationMultiplier``                            | Multiplier for the finite wheel-drive acceleration cap. Default 3.                                                                                                                                                                                                                |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float additionalAcceleration``                            | Additional grounded chassis acceleration in m/s², independent of tire torque limits. Default 10; zero uses engine torque only. Stops immediately on release, braking or loss of eligibility; fades near boosted top speed.                                                        |
@@ -984,8 +1252,6 @@ State and configuration
 | ``public bool allowPitchAboveMaxRpm``                              | Default true. Controls RPM-driven Engine Audio pitch above its ordinary maximum when actual RPM exceeds this engine base redline. Applies per Nitro component to sounds following its engine; constant/motion/fixed-pitch sounds remain unchanged. Unity pitch ceiling remains 3. |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool allowReverse``                                       | Permit boost in reverse. Default true.                                                                                                                                                                                                                                            |
-+--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool forceForwardDirection``                              | Request forward drive during boost; disable to retain the selected direction. Default true.                                                                                                                                                                                       |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool automaticRefill``                                    | Refill automatically after release and refillDelay. Default false; demo Car enables it.                                                                                                                                                                                           |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -1003,11 +1269,23 @@ State and configuration
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override int ExecutionOrder { get; }``                    | 250, so supply and boost resolve before Engine output.                                                                                                                                                                                                                            |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool forceForwardDirection``                              | Request forward drive during boost; disable to retain the selected direction. Default true.                                                                                                                                                                                       |
++--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float fullTankDuration``                                  | Seconds of full boost supplied by a full tank. Default 15; consumption is capacity / duration per second.                                                                                                                                                                         |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool HasOutput { get; private set; }``            | Current propulsion-output session, including retained output during internal shifts. Read on subscription to initialize presentation.                                                                                                                                             |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool IsBoosting { get; }``                        | Whether an enabled Nitro component currently contributes boost.                                                                                                                                                                                                                   |
++--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float launchForwardGrip``                                 | Departure longitudinal grip fraction; default 0.35.                                                                                                                                                                                                                               |
++--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float launchGripDuration``                                | Smooth recovery duration in seconds; default 0.65.                                                                                                                                                                                                                                |
++--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float launchSidewaysGrip``                                | Departure lateral grip fraction; default 0.65.                                                                                                                                                                                                                                    |
++--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float launchSpeed``                                       | Departure threshold in m/s; default 1.                                                                                                                                                                                                                                            |
++--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool launchWheelspin``                                    | Enable one departure grip pulse per nitro activation; default true.                                                                                                                                                                                                               |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool lockAutomaticGearChanges``                           | Default true. Suppresses automatic gear selection while boost is actually active, including an internal shift interruption. Explicit manual gear requests still use normal safety guards. Disabling this restores the usual automatic shift behavior.                             |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -1037,12 +1315,14 @@ State and configuration
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override bool SupportsDirectControl { get; }``            | True so direct-pose mode can clear the active boost state without consuming supply or producing forces.                                                                                                                                                                           |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public BoostSuspensionSettings suspensionKick``                  | Configurable supported spring displacement, enabled by default.                                                                                                                                                                                                                   |
++--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float topSpeedMultiplier``                                | Multiplier for the engine road-speed envelope. Default 1.35.                                                                                                                                                                                                                      |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float torqueMultiplier``                                  | Engine combustion/direct-drive torque multiplier. Default 3.                                                                                                                                                                                                                      |
 +--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-9:
+.. _uvs-api-drivedynamics--methods-11:
 
 Methods
 ~~~~~~~
@@ -1078,7 +1358,7 @@ Configuration/implementation type for parking hold within engine and drivetrain.
 
 **Inherits / implements:** :ref:`DriveModule <uvs-api-driveprofiles--drivemodule>`.
 
-.. _uvs-api-drivedynamics--state-and-configuration-13:
+.. _uvs-api-drivedynamics--state-and-configuration-18:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1097,7 +1377,7 @@ State and configuration
 | ``public override ExecutionPhase Phase { get; }`` | Cross-category execution barrier used by the module pipeline.                                                                                        |
 +---------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-10:
+.. _uvs-api-drivedynamics--methods-12:
 
 Methods
 ~~~~~~~
@@ -1123,7 +1403,7 @@ Configuration/implementation type for steering within engine and drivetrain.
 
 **Inherits / implements:** :ref:`DriveModule <uvs-api-driveprofiles--drivemodule>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-7:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-8:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1134,7 +1414,7 @@ Events and Inspector callbacks
 | ``public event System.Action<float> AngleChanged`` | When resolved road-wheel steering angle changes. Payload: angle in degrees, not column degrees. |
 +----------------------------------------------------+-------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-14:
+.. _uvs-api-drivedynamics--state-and-configuration-19:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1152,7 +1432,7 @@ State and configuration
 +--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float arcadeLateralAcceleration``                         | Force/torque budget for arcade lateral acceleration; this limits or scales how strongly the mechanism changes physical motion. See the owning system guide for its application frame. Initial value: ``35``. |
 +--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float assistanceStrength``                                | Overall strength of the optional yaw/lateral steering assistance. Initial value: ``.70f``.                                                                                                                   |
+| ``public float assistanceStrength``                                | Overall strength of the optional yaw/lateral steering assistance. Initial value: ``.72f``.                                                                                                                   |
 +--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual float CurrentAngleLimit { get; protected set; }`` | Read-only/resolved current angle limit for Steering.                                                                                                                                                         |
 +--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -1180,10 +1460,10 @@ State and configuration
 +--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual float Wheelbase { get; protected set; }``         | Measured axle span used by steering geometry, in metres.                                                                                                                                                     |
 +--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float yawResponse``                                       | Strength/speed of the yaw response toward the requested heading/turn behavior. Initial value: ``7``.                                                                                                         |
+| ``public float yawResponse``                                       | Strength/speed of the yaw response toward the requested heading/turn behavior. Initial value: ``7.5f``.                                                                                                      |
 +--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-11:
+.. _uvs-api-drivedynamics--methods-13:
 
 Methods
 ~~~~~~~
@@ -1191,9 +1471,9 @@ Methods
 +-------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Signature                                                               | Role and behavior                                                                                                                           | Arguments and result                                                                                                                                            |
 +=========================================================================+=============================================================================================================================================+=================================================================================================================================================================+
-| ``public virtual void RefreshWheelBindings(VehicleController vehicle)`` | Rebuilds prepared steering membership, multipliers and tie-rod links while preserving actuator angle; removed steering outputs are cleared. | —                                                                                                                                                               |
-+-------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override void Configure(VehicleController vehicle)``           | Discovers owned steering tie rods and measures axle/wheel geometry for its steering model.                                                  | ``vehicle`` — Vehicle context/owner receiving the operation.                                                                                                    |
++-------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void RefreshWheelBindings(VehicleController vehicle)`` | Rebuilds prepared steering membership, multipliers and tie-rod links while preserving actuator angle; removed steering outputs are cleared. | —                                                                                                                                                               |
 +-------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override void Step(VehicleController v, Command c, float dt)`` | Advances steering response/native wheel angles, publishes the resolved actuator and emits ``AngleChanged`` on a change.                     | ``v`` — V, interpreted by this operation in the declared type. ``c`` — C, interpreted by this operation in the declared type. ``dt`` — Elapsed time in seconds. |
 +-------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -1211,7 +1491,7 @@ Limits propulsion according to contact capacity and slip.
 
 **Inherits / implements:** :ref:`EngineModule <uvs-api-drivedynamics--enginemodule>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-8:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-9:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1222,42 +1502,42 @@ Events and Inspector callbacks
 | ``public event System.Action<bool> ActiveChanged`` | When resolved traction-control intervention changes between active/inactive. Payload: bool; enabled configuration is a separate state. |
 +----------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-15:
+.. _uvs-api-drivedynamics--state-and-configuration-20:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                                                              | Meaning                                                                                                                                                  |
-+=====================================================================+==========================================================================================================================================================+
-| ``public virtual bool Active { get; }``                             | Read-only/resolved active for ``TractionControl``.                                                                                                       |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float corneringFreedom``                                   | Allow power-dependent wheelspin during tight powered turns, while retaining straight-line launch control.                                                |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override int ExecutionOrder { get; }``                     | Default local priority within phase/category.                                                                                                            |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float launchReferenceSpeed``                               | Low-speed reference in m/s used to stabilize slip/traction calculations during launch. Initial value: ``3``.                                             |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual float MaximumSlip { get; protected set; }``        | Read-only/resolved maximum slip for ``TractionControl``.                                                                                                 |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float minimumTorqueScale``                                 | Multiplier/fraction controlling minimum torque scale. Increasing it increases this contribution relative to the unscaled value. Initial value: ``.08f``. |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual float MinimumTorqueScale { get; protected set; }`` | Read-only/resolved minimum torque scale for ``TractionControl``.                                                                                         |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override ExecutionPhase Phase { get; }``                   | Cross-category execution barrier used by the module pipeline.                                                                                            |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float recoveryRate``                                       | Rate at which allowed drive torque recovers after excess slip subsides. Initial value: ``1.8f``.                                                         |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float reductionRate``                                      | Rate at which allowed drive torque decreases when wheel slip exceeds the target. Initial value: ``12``.                                                  |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool reserveGripForCornering``                             | When checked, reserve grip for cornering is active; when unchecked the owning system skips that optional policy.                                         |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float targetSlip``                                         | Desired longitudinal slip magnitude while applying propulsion torque. Initial value: ``.22f``.                                                           |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float tractionReserve``                                    | Fraction of estimated traction kept available when limiting drive torque. Initial value: ``.9f``.                                                        |
-+---------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                              | Meaning                                                                                                                                                 |
++=====================================================================+=========================================================================================================================================================+
+| ``public virtual bool Active { get; }``                             | Read-only/resolved active for ``TractionControl``.                                                                                                      |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float corneringFreedom``                                   | Allow power-dependent wheelspin during tight powered turns, while retaining straight-line launch control.                                               |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override int ExecutionOrder { get; }``                     | Default local priority within phase/category.                                                                                                           |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float launchReferenceSpeed``                               | Low-speed reference in m/s used to stabilize slip/traction calculations during launch. Initial value: ``3``.                                            |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float MaximumSlip { get; protected set; }``        | Read-only/resolved maximum slip for ``TractionControl``.                                                                                                |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumTorqueScale``                                 | Multiplier/fraction controlling minimum torque scale. Increasing it increases this contribution relative to the unscaled value. Initial value: ``.2f``. |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual float MinimumTorqueScale { get; protected set; }`` | Read-only/resolved minimum torque scale for ``TractionControl``.                                                                                        |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override ExecutionPhase Phase { get; }``                   | Cross-category execution barrier used by the module pipeline.                                                                                           |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float recoveryRate``                                       | Rate at which allowed drive torque recovers after excess slip subsides. Initial value: ``4``.                                                           |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float reductionRate``                                      | Rate at which allowed drive torque decreases when wheel slip exceeds the target. Initial value: ``8``.                                                  |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool reserveGripForCornering``                             | When checked, reserve grip for cornering is active; when unchecked the owning system skips that optional policy.                                        |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float targetSlip``                                         | Desired longitudinal slip magnitude while applying propulsion torque. Initial value: ``.24f``.                                                          |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float tractionReserve``                                    | Fraction of estimated traction kept available when limiting drive torque. Initial value: ``.98f``.                                                      |
++---------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-12:
+.. _uvs-api-drivedynamics--methods-14:
 
 Methods
 ~~~~~~~
@@ -1285,7 +1565,7 @@ Selects Direct, Manual or Automatic transmission operation.
 
 **Inherits / implements:** :ref:`EngineModule <uvs-api-drivedynamics--enginemodule>`.
 
-.. _uvs-api-drivedynamics--events-and-inspector-callbacks-9:
+.. _uvs-api-drivedynamics--events-and-inspector-callbacks-10:
 
 Events and Inspector callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1296,7 +1576,7 @@ Events and Inspector callbacks
 | ``public event System.Action<TransmissionMode> ModeChanged`` | After the declaring component's selected mode changes. Payload: its mode enum. |
 +--------------------------------------------------------------+--------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--state-and-configuration-16:
+.. _uvs-api-drivedynamics--state-and-configuration-21:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1317,7 +1597,7 @@ State and configuration
 | ``public override ExecutionPhase Phase { get; }`` | Cross-category execution barrier used by the module pipeline.                                                                                                                       |
 +---------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-drivedynamics--methods-13:
+.. _uvs-api-drivedynamics--methods-15:
 
 Methods
 ~~~~~~~

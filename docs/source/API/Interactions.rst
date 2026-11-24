@@ -54,13 +54,13 @@ State and configuration
 +====================================================================================+==================================================================================================================================================================================================================+
 | ``public virtual ControlInteractionRequest ActiveRequest { get; protected set; }`` | Exact active interaction request, or ``null`` when idle; retain this identity for delayed callbacks.                                                                                                             |
 +------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float animationEnterBlend``                                               | Duration of the Animator gesture layer fade in seconds (default 0.2). Starts from the previous weight; zero applies immediately. Gesture timing continues during the fade.                                       |
++------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool animationEvents``                                                    | Use Animation Events to call ``Commit`` and ``Complete`` instead of elapsed time.                                                                                                                                |
 +------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public string animationLayer``                                                   | Optional Animator layer name. Empty leaves layer weights unchanged; configure a matching trigger transition on the chosen layer.                                                                                 |
 +------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float animationLayerWeight``                                              | Layer weight captured for the request, clamped to 0–1. Default 1; restored on completion/cancellation unless externally changed.                                                                                 |
-+------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float animationEnterBlend``                                               | Duration of the Animator gesture layer fade in seconds (default 0.2). Starts from the previous weight; zero applies immediately. Gesture timing continues during the fade.                                       |
 +------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float animationReturnBlend``                                              | Duration of the completed Animator gesture layer fade in seconds (default 0.2). The interaction retains ownership until the fade finishes; zero restores immediately. Cancellation remains immediate.            |
 +------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -225,7 +225,7 @@ Methods
 IControlInteractionDriver
 -------------------------
 
-**Runtime/Interior/Controls/ControlInteraction.cs**
+**Runtime/Contracts/Handles/IControlInteractionDriver.cs**
 
 Configuration/implementation type for icontrol interaction driver within committed control interactions.
 

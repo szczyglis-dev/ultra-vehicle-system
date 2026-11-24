@@ -71,7 +71,7 @@ Save as ``TelemetryPulseModule.cs``.
        {
            // Read or request state through its owning component; do not bypass the vehicle pipeline.
            [Min(.02f)] public float interval = 1;
-           public UnityEvent pulse = new UnityEvent();
+           public UnityEvent onPulse = new UnityEvent();
            float elapsed;
            public override ExecutionPhase Phase => ExecutionPhase.Feedback;
            public override void Configure(VehicleController vehicle) { elapsed = 0; }
@@ -80,7 +80,7 @@ Save as ``TelemetryPulseModule.cs``.
                elapsed += deltaTime;
                if (elapsed < Mathf.Max(.02f, interval)) return;
                elapsed = 0;
-               pulse.Invoke();
+               onPulse.Invoke();
            }
        }
    }
@@ -150,7 +150,7 @@ Save as ``SpeedBandModule.cs``.
        public sealed class SpeedBandModule : WorldModule
        {
            // Emit on changes only, not on every physics tick.
-           public UnityEvent<int> bandChanged = new UnityEvent<int>();
+           public UnityEvent<int> onBandChanged = new UnityEvent<int>();
            int previous = -1;
            public override ExecutionPhase Phase => ExecutionPhase.Feedback;
            public override bool SupportsDirectControl => true;
@@ -159,7 +159,7 @@ Save as ``SpeedBandModule.cs``.
            {
                int band = vehicle.SpeedKph < 1 ? 0 : vehicle.SpeedKph < 50 ? 1 : 2;
                if (band == previous) return;
-               previous = band; bandChanged.Invoke(band);
+               previous = band; onBandChanged.Invoke(band);
            }
        }
    }
@@ -367,7 +367,7 @@ Save as ``CoolantTemperatureModule.cs``.
            public float ambientCelsius = 20, warningCelsius = 105;
            [Min(0)] public float degreesPerSecond = 1;
            public float Celsius { get; private set; } = 20;
-           public UnityEvent overheated = new UnityEvent();
+           public UnityEvent onOverheated = new UnityEvent();
            Engine engine;
            bool warned;
            public override ExecutionPhase Phase => ExecutionPhase.Feedback;
@@ -379,7 +379,7 @@ Save as ``CoolantTemperatureModule.cs``.
                if (engine && engine.IsRunning)
                    target += 65 + engine.Throttle * 35 - Mathf.Min(20, vehicle.SpeedKph * .15f);
                Celsius = Mathf.MoveTowards(Celsius, target, Mathf.Max(0, degreesPerSecond) * deltaTime);
-               if (!warned && Celsius >= warningCelsius) { warned = true; overheated.Invoke(); }
+               if (!warned && Celsius >= warningCelsius) { warned = true; onOverheated.Invoke(); }
                if (Celsius < warningCelsius - 5) warned = false;
            }
        }
@@ -413,7 +413,7 @@ Save as ``ServiceMileageModule.cs``.
        {
            [Min(.01f)] public float intervalKm = 10;
            public float Kilometres { get; private set; }
-           public UnityEvent serviceDue = new UnityEvent();
+           public UnityEvent onServiceDue = new UnityEvent();
            bool notified;
            public override ExecutionPhase Phase => ExecutionPhase.Feedback;
            public void MarkServiced() { Kilometres = 0; notified = false; }
@@ -424,7 +424,7 @@ Save as ``ServiceMileageModule.cs``.
                if (!supported) return;
                Kilometres += vehicle.Velocity.magnitude * deltaTime / 1000;
                if (!notified && Kilometres >= Mathf.Max(.01f, intervalKm))
-               { notified = true; serviceDue.Invoke(); }
+               { notified = true; onServiceDue.Invoke(); }
            }
        }
    }

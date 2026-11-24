@@ -10,10 +10,13 @@ Read [the system explanation](../Scripting/Handles.md) for composition, setup an
 - [GearLeverHandle](Handles.md#gearleverhandle)
 - [GearPaddleHandle](Handles.md#gearpaddlehandle)
 - [HandleActionSource](Handles.md#handleactionsource)
+- [HandleAnimationEvents](Handles.md#handleanimationevents)
 - [HandleAnimatorBinding](Handles.md#handleanimatorbinding)
+- [HandleAnimatorController](Handles.md#handleanimatorcontroller)
 - [HandleContactContext](Handles.md#handlecontactcontext)
 - [HandleContactSource](Handles.md#handlecontactsource)
 - [HandleController](Handles.md#handlecontroller)
+- [HandleControlMode](Handles.md#handlecontrolmode)
 - [HandleCurlAxis](Handles.md#handlecurlaxis)
 - [HandleFinger](Handles.md#handlefinger)
 - [HandleFingerPosition](Handles.md#handlefingerposition)
@@ -36,14 +39,12 @@ Read [the system explanation](../Scripting/Handles.md) for composition, setup an
 - [PedalFootMode](Handles.md#pedalfootmode)
 - [PedalHandle](Handles.md#pedalhandle)
 - [RotaryHandle](Handles.md#rotaryhandle)
+- [SteeringRegripMode](Handles.md#steeringregripmode)
 - [SteeringWheelHandle](Handles.md#steeringwheelhandle)
 - [SteeringWheelHandle.RimSample](Handles.md#steeringwheelhandlerimsample)
 - [SteeringWheelHandle.SteeringGripMode](Handles.md#steeringwheelhandlesteeringgripmode)
 - [SwitchHandle](Handles.md#switchhandle)
 - [ThrottleHandle](Handles.md#throttlehandle)
-- [HandleControlMode](Handles.md#handlecontrolmode)
-- [HandleAnimatorController](Handles.md#handleanimatorcontroller)
-- [HandleAnimationEvents](Handles.md#handleanimationevents)
 - [VehicleHandle](Handles.md#vehiclehandle)
 - [YokeHandle](Handles.md#yokehandle)
 
@@ -125,6 +126,25 @@ Automatic request source: value events, absolute command magnitude or resolved s
 
 Values: `ValueChange`, `Command`, `ServiceBrake`.
 
+## HandleAnimationEvents
+
+**Runtime/World/Passengers/IK/Handle/Core/HandleAnimationEvents.cs**
+
+Place on the character Animator's GameObject. `HandleAnimationEvent(string signal)` routes a configured name to active handle gestures. The optional `handles` array declares fixed receivers. Active requests register automatically, so no per-request Inspector rewiring is required. Physical passengers forward events from their seated animation source. Receivers ignore signals while no gesture is active; use distinct event names for gestures that can run concurrently.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public VehicleHandle[] handles` | Optional fixed receivers. Active handle-owned gestures also register automatically. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public void HandleAnimationEvent(string signal)` | Animation Events have fixed method names; the string argument supplies the user-defined signal name. | — |
+
 ## HandleAnimatorBinding
 
 **Runtime/World/Passengers/IK/Handle/Core/HandleAnimatorBinding.cs**
@@ -167,6 +187,66 @@ See [custom animation and IK](../HandleAnimation.md) for setup, event timing and
 | `public void SetControlValue(float value)` | Animation Event relay to SetAnimationValue(float). This reports a signal; use the concrete control API to command a switch/vehicle. | — |
 | `public void SetFingerWeight(float value)` | Animation Event convenience method: sets the clamped fingerWeight. | — |
 | `public void SetIKWeight(float value)` | Animation Event convenience method: sets both positionWeight and rotationWeight to the clamped value. | — |
+
+## HandleAnimatorController
+
+**Runtime/World/Passengers/IK/Handle/Core/HandleAnimatorController.cs**
+
+Configure through **[Handle] > Animator controller**. The seat supplies the current passenger and active seated Animator unless an explicit Animator is assigned. `controller`, `valueMask`, `mask` and `contactMask` are Edit Mode authoring inputs for the mask Apply button. Runtime layer ownership uses names and valid indices; changing controller or disabling the owner restores a previously owned weight when it has not been changed externally.
+
+### Events and Inspector callbacks
+
+| Member | Meaning |
+| --- | --- |
+| `public event Action Cancelled` | After interruption or cancellation. |
+| `public event Action Completed` | After successful gesture completion. |
+| `public event Action InMove` | When the gesture reports movement. |
+| `public event Action Reached` | When the action commits, at most once per gesture. |
+| `public event Action Started` | After the gesture is accepted. |
+| `public UnityEvent onCancelled` | After interruption or cancellation. |
+| `public UnityEvent onCompleted` | After successful gesture completion. |
+| `public UnityEvent onInMove` | When the gesture reports movement. |
+| `public UnityEvent onReached` | When the action commits, at most once per gesture. |
+| `public UnityEvent onStarted` | After the gesture is accepted. |
+
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public bool animateInIKMode` | Enables an authored contact/gesture clip for an IK handle. |
+| `public bool animationEvents` | Use named clip events for commit/completion; otherwise use timing settings. |
+| `public Animator animator` | Optional explicit Animator. Otherwise follows the seat's current seated Animator, including physical pose sources. |
+| `public string cancelledEvent` | Clip Animation Event string routed to the cancelled gesture phase. |
+| `public string changingParameter` | Optional Animator bool reporting continuous value changes. |
+| `public float commitTime` | Seconds until the gameplay action commits when clip events are disabled. |
+| `public string completedEvent` | Clip Animation Event string routed to the completed gesture phase. |
+| `public string contactLayer` | Layer used for the contact/finger gesture after an IK reach. |
+| `public AvatarMask contactMask` | Edit-mode Avatar Mask for the contact layer. |
+| `public string contactParameter` | Optional Animator bool reporting handle contact. |
+| `public string contactTrigger` | Animator + IK: trigger/layer for a contact or finger clip after reaching the handle with IK. |
+| `public RuntimeAnimatorController controller` | Controller asset used by the mask authoring button. Does not replace the occupant's controller at runtime. |
+| `public float duration` | Seconds until timed completion when clip events are disabled. |
+| `public float enterBlend` | Seconds used to blend into the gesture. |
+| `public string inMoveEvent` | Clip Animation Event string routed to the inMove gesture phase. |
+| `public string layer` | Layer used for the authored reach gesture. |
+| `public float layerWeight` | Target gesture-layer weight (0–1). |
+| `public PassengerBodyPart limb` | Limb reserved for this handle gesture. |
+| `public AvatarMask mask` | Edit-mode Avatar Mask for the reach layer. |
+| `public string reachedEvent` | Clip Animation Event string routed to the reached gesture phase. |
+| `public float returnBlend` | Seconds used to blend back to the home pose. |
+| `public PassengerSeat seat` | Seat whose occupant supplies the animated limb. |
+| `public string startedEvent` | Clip Animation Event string routed to the started gesture phase. |
+| `public SteeringWheelAnimator steeringSource` | Optional steering source: feeds Displayed Angle / Visual Full Lock to Value Parameter. |
+| `public float timeout` | Seconds before an unfinished gesture is cancelled. |
+| `public string trigger` | Trigger and layer for a full authored reach in Animator mode. |
+| `public string valueLayer` | Optional continuous overlay, such as a steering blend tree. Empty leaves layer weights alone. |
+| `public float valueLayerWeight` | Target weight of the continuous value overlay (0–1). |
+| `public AvatarMask valueMask` | Edit-mode mask applied to Value Layer with the Inspector button. |
+| `public float valueMultiplier` | Scale applied before Value Offset. |
+| `public float valueOffset` | Offset added to the scaled control value. |
+| `public string valueParameter` | Animator float receiving the remapped continuous control value. |
+| `public MonoBehaviour valueSource` | Optional IInteriorValueSource. When empty, uses the handle's Interaction Value X. |
 
 ## HandleContactContext
 
@@ -231,8 +311,8 @@ Per-vehicle handle registry and exclusive limb scheduler. The vehicle advances i
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public void CancelHandle(VehicleHandle handle)` | Cancel active uses targeting or returning to the specified handle. | — |
 | `public void CancelAll()` | Immediately cancel every active token, blocking reentrant acquisition from cancellation callbacks. | — |
+| `public void CancelHandle(VehicleHandle handle)` | Cancel active uses targeting or returning to the specified handle. | — |
 | `public void CancelSeat(PassengerSeat seat)` | Immediately cancel tokens for one seat. Blocks reentrant acquisition during cleanup. | — |
 | `public VehicleHandle Current(PassengerSeat seat, PassengerBodyPart limb)` | Returns the requested destination while a token owns the limb; otherwise its configured handle. May be null for direct anchors. | — |
 | `public VehicleHandle Get(string id)` | Exact ID lookup; null for missing or duplicate IDs. Disabled registered handles remain discoverable. | — |
@@ -240,14 +320,27 @@ Per-vehicle handle registry and exclusive limb scheduler. The vehicle advances i
 | `public void Refresh()` | Cancel active work and rebuild handle discovery, IDs, subscriptions and priority order. Call after adding/removing handles or editing IDs/priorities. | — |
 | `public HandleUse TryAcquire(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)` | Admit persistent application-driven target ownership; returns null on refusal. Cancel the returned token to restore the home binding. | — |
 | `public HandleUse TryAcquire(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK)` | Persistent ownership with an optional temporary IK override. Can force IK on the existing home handle. | `forceIK` borrows IK for this limb until the token ends. |
-| `public HandleUse TryReachAndHold(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK)` | Timed reach and hold with an optional temporary IK override. | Return or cancel the token to release ownership. |
-| `public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK, Action onArrival = null)` | Out-and-back reach with an optional temporary IK override. | Invokes the callback on arrival; restores the binding on return. |
 | `public HandleUse TryAcquireAnimator(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)` | Admit persistent ownership with Animator mode. Cancel restores mode only if it is still Animator. | — |
 | `public bool TryGet(string id, out VehicleHandle handle)` | Exact case-sensitive ID lookup. Returns false for missing, blank/unregistered or duplicate IDs. | — |
 | `public HandleUse TryReachAndHold(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target)` | Reach using outbound timing, then retain ownership until Return or Cancel. Returns null if unavailable. | — |
+| `public HandleUse TryReachAndHold(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK)` | Timed reach and hold with an optional temporary IK override. | Return or cancel the token to release ownership. |
 | `public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, string id, Action onArrival = null)` | Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival. | — |
 | `public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, Action onArrival = null)` | Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival. | — |
+| `public HandleUse TryUse(PassengerSeat seat, PassengerBodyPart limb, VehicleHandle target, bool forceIK, Action onArrival = null)` | Out-and-back reach with an optional temporary IK override. | Invokes the callback on arrival; restores the binding on return. |
 | `public HandleUse TryUse(PassengerSeat seat, VehicleHandle target, Action onArrival = null)` | Admit an out-and-back reach or return null. Explicit-limb overloads require that limb; the target-only overload uses preferred/fallback settings. Callback runs once on arrival. | — |
+
+## HandleControlMode
+
+**Runtime/World/Passengers/IK/Handle/Core/HandleAnimatorController.cs**
+
+`IK`, `AnimatorIK` (Inspector: Animator + IK), `Animator`, `Custom`. This selects the handle's limb/animation ownership independently of the passenger controller. See [configuration tutorial](../HandleAnimation.md#tutorial-handle-owned-animator).
+
+| Value | Meaning |
+| --- | --- |
+| IK | `IK` — Inspector display label for this mode. |
+| AnimatorIK | `[InspectorName("Animator + IK")] AnimatorIK` — Inspector display label for this mode. |
+| Animator | `Animator` — Inspector display label for this mode. |
+| Custom | `Custom` — Application-owned movement through callbacks or a custom driver. |
 
 ## HandleCurlAxis
 
@@ -538,33 +631,20 @@ See [custom animation and IK](../HandleAnimation.md) for setup, event timing and
 
 ## IHandle
 
-**Runtime/World/Passengers/IK/Handle/VehicleHandle.cs**
+**Runtime/Contracts/Handles/IHandle.cs**
 
 Common contact, preparation, binding and input contract.
-
-| Control API | Meaning |
-| --- | --- |
-| `HandleControlMode ControlMode { get; set; }` / `SetControlMode(HandleControlMode mode)` | Select ownership for this handle; cancels its active requests on a change. |
-| `bool UsesIK`, `bool UsesAnimator` | Whether the selected mode enables each built-in path. |
-| `HandleAnimatorController animatorController` | Handle-owned Animator configuration and gesture events. |
-| `bool IsAnimationBusy` | Whether this handle's gesture still owns an active request, including its return. |
-| `bool TryBeginInteraction()` / `void BeginInteraction()` | Start the configured gesture; the bool method reports admission failure. Custom mode leaves startup to your code. |
-| `void CancelInteraction()` | Cancel the handle-owned gesture. |
-| `void ReceiveAnimationEvent(string signal)` | Direct named-signal entry point, also called by the relay. |
-| `void ApplyAnimatorController()` | Apply live mode/Animator settings; normally called by the handle's Update. |
-| `event Action<HandleControlMode> ControlModeChanged` | Notification after the handle mode changes. |
-
 
 ### Methods
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `void BindBodyPart(PassengerBodyPart part, HumanoidIK ik, Animator animator)` | Prepares the selected limb for this handle, including supported adaptive finger binding and palm frames. | `part` — Selected body-part enum or part configuration, as declared. `ik` — Mapped humanoid limb/frame helper for this character. `animator` — Character Animator providing mapped bones/animation context. |
-| `Transform GetAnchor(PassengerBodyPart part)` | Returns the stable contact transform for a supported body part, or `null` when unavailable/unsupported. | `part` — Selected body-part enum or part configuration, as declared. **Returns:** Stable contact `Transform`, or `null` under the availability conditions described here. |
-| `float HandContact(bool left)` | Returns contact participation for the selected hand; guidance can remain enabled while surface contact is released. | `left` — `true` selects the left hand; `false` selects the right. **Returns:** Normalized fraction in 0–1. |
-| `bool HandDriven(bool left)` | Reports whether the selected hand should receive physical target guidance. | `left` — `true` selects the left hand; `false` selects the right. **Returns:** Predicate/result flag described by this operation; it is not a completion notification unless explicitly stated. |
-| `bool HandSteering(bool left)` | Reports whether the selected hand participates in steering support. | `left` — `true` selects the left hand; `false` selects the right. **Returns:** Predicate/result flag described by this operation; it is not a completion notification unless explicitly stated. |
-| `void Prepare()` | Prepares reusable contact geometry or handle initialization without entering a seat. | No arguments; no returned value. |
+| `void BindBodyPart(PassengerBodyPart part, HumanoidIK ik, Animator animator)` | Prepares the selected limb for this handle, including supported adaptive finger binding and palm frames. | — |
+| `Transform GetAnchor(PassengerBodyPart part)` | Returns the stable contact transform for a supported body part, or `null` when unavailable/unsupported. | — |
+| `float HandContact(bool left)` | Returns contact participation for the selected hand; guidance can remain enabled while surface contact is released. | — |
+| `bool HandDriven(bool left)` | Reports whether the selected hand should receive physical target guidance. | — |
+| `bool HandSteering(bool left)` | Reports whether the selected hand participates in steering support. | — |
+| `void Prepare()` | Prepares reusable contact geometry or handle initialization without entering a seat. | — |
 | `void SetInput(Command command, float deltaTime)` | IK-only input hook for application-owned contact targets, such as an aiming hand. Instrument motion belongs to a separate animator. | — |
 
 ## JoystickHandle
@@ -651,6 +731,17 @@ IK palm contact for a rotary knob or hand lever. Inherits ControlHandle. Set its
 
 **Inherits / implements:** `ControlHandle`.
 
+## SteeringRegripMode
+
+**Runtime/World/Passengers/IK/Handle/SteeringWheelHandle.cs**
+
+Selects the automatic steering-hand policy when `allowHandRegrip` is enabled.
+
+### Values
+
+- `ContinuousLeadingHand = 0` — Default. The leading palm stays on the same wheel material through full revolutions; the loose guide yields when it passes.
+- `ReleaseAndRegrasp = 1` — The leading palm releases at its safe sector limit and returns to a fresh rim contact.
+
 ## SteeringWheelHandle
 
 **Runtime/World/Passengers/IK/Handle/SteeringWheelHandle.cs**
@@ -675,6 +766,8 @@ Describes steering contacts, surface geometry and hand participation.
 | `public int pinchHandPosition` | Index of the thumb/index pinch configuration. |
 | `public int pressureHandPosition` | Index of the palm-pressure configuration. |
 | `public SteeringHandRegripSettings regrip` | Configuration for regrip. Expand this field; its settings are described under SteeringHandRegripSettings. Initial value: `new SteeringHandRegripSettings()`. |
+| `public SteeringRegripMode regripMode` | Automatic hand policy; defaults to `SteeringRegripMode.ContinuousLeadingHand`. Used when `allowHandRegrip` is enabled. |
+| `public virtual SteeringRegripMode RegripMode { get; set; }` | Gets the selected policy; setting it calls `SetRegripMode` with the same validation and transition behavior. |
 | `public bool reverseApproach` | The wheel-local direction away from the driver is +Z. Reverse for a backwards pivot. |
 | `public float rightAngle` | Right angle in degrees, relative to the owning mechanism's reference frame. |
 | `public Transform rightTarget` | Assign the right target reference used by SteeringWheelHandle. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
@@ -712,6 +805,7 @@ Describes steering contacts, surface geometry and hand participation.
 | `public virtual void SetHandPinch(bool left, bool value)` | Enables/disables the selected hand's pinch gesture. | `left` — `true` selects the left hand; `false` selects the right. `value` — Requested bool state for this operation. |
 | `public virtual void SetHandPinch(bool left, float amount)` | Sets a clamped 0–1 Pinch-to-Wrapped blend. Zero uses normal grip/pressure selection; one uses the saved Pinch pose. | `left` selects the hand; `amount` is the pinch weight. |
 | `public virtual void SetPalmPressure(bool left, float value)` | Sets the blend towards the authored pressure hand position; the calibrated palm contact stays unchanged. | `left` — `true` selects the left hand; `false` selects the right. `value` — Normalized value clamped to 0–1 by this control. |
+| `public virtual void SetRegripMode(SteeringRegripMode mode)` | Changes the automatic hand policy at runtime without rebinding hands or resetting ownership. An active catch finishes before continuous leading takes over. Does not enable `allowHandRegrip`. | `mode` — `ContinuousLeadingHand` or `ReleaseAndRegrasp`. Invalid values throw `ArgumentOutOfRangeException` and preserve the previous mode. No returned value. |
 | `public virtual float SignedDistance(Vector3 worldPoint)` | Returns signed world-space distance to the steering tube surface; positive means outside. | `worldPoint` — World-space target/sample point. **Returns:** Surface distance/radius in the unit and frame described by this operation. |
 | `public virtual float SignedDistanceLocal(Vector3 point)` | Evaluates a wheel-local point against the steering tube and returns scaled surface distance. | `point` — Geometry point in the declared coordinate frame. **Returns:** Surface distance/radius in the unit and frame described by this operation. |
 | `public SteeringWheelHandle()` | Declared defaults for this handle; explicit prefab settings take precedence. | — |
@@ -760,54 +854,11 @@ IK-only contact for a throttle grip. Inherits ControlHandle; all geometry and va
 
 **Inherits / implements:** `ControlHandle`.
 
-## HandleControlMode
-
-`IK`, `AnimatorIK` (Inspector: Animator + IK), `Animator`, `Custom`. This selects the handle's limb/animation ownership independently of the passenger controller. See [configuration tutorial](../HandleAnimation.md#tutorial-handle-owned-animator).
-
-## HandleAnimatorController
-
-Configure through **[Handle] > Animator controller**. The seat supplies the current passenger and active seated Animator unless an explicit Animator is assigned. `controller`, `valueMask`, `mask` and `contactMask` are Edit Mode authoring inputs for the mask Apply button. Runtime layer ownership uses names and valid indices; changing controller or disabling the owner restores a previously owned weight when it has not been changed externally.
-
-| Member | Meaning |
-| --- | --- |
-| `seat`, `limb`, `animator` | Occupant, selected hand/foot and optional explicit character Animator. |
-| `steeringSource`, `valueSource` | Optional normalized wheel angle or `IInteriorValueSource`; otherwise reads Interaction Value X. |
-| `valueParameter`, `valueMultiplier`, `valueOffset` | Animator float output and linear remapping. |
-| `changingParameter`, `contactParameter` | Optional Animator bool outputs. |
-| `valueLayer`, `valueLayerWeight`, `valueMask` | Continuous overlay settings. |
-| `trigger`, `layer`, `mask`, `layerWeight` | Full gesture trigger and overlay. |
-| `contactTrigger`, `contactLayer`, `contactMask` | Contact/finger clip after an IK reach. |
-| `animateInIKMode` | Enables an authored contact/gesture clip for an IK handle. |
-| `enterBlend`, `returnBlend` | Gesture overlay blend durations in seconds. |
-| `animationEvents`, `commitTime`, `duration`, `timeout` | Clip-event or elapsed-time completion, and cancellation timeout. |
-| `startedEvent`, `inMoveEvent`, `reachedEvent`, `completedEvent`, `cancelledEvent` | Exact string arguments accepted from the clip relay. |
-| `Started`, `InMove`, `Reached`, `Completed`, `Cancelled` | C# `Action` events for the current gesture. Started fires once on admission; Reached commits once; Completed follows successful return. |
-| `onStarted`, `onInMove`, `onReached`, `onCompleted`, `onCancelled` | Matching Inspector UnityEvents; C# event fires before its Inspector counterpart. |
-
-## HandleAnimationEvents
-
-Place on the character Animator's GameObject. `HandleAnimationEvent(string signal)` routes a configured name to active handle gestures. The optional `handles` array declares fixed receivers. Active requests register automatically, so no per-request Inspector rewiring is required. Physical passengers forward events from their seated animation source. Receivers ignore signals while no gesture is active; use distinct event names for gestures that can run concurrently.
-
 ## VehicleHandle
 
 **Runtime/World/Passengers/IK/Handle/VehicleHandle.cs**
 
 Common contact, preparation, binding and input contract.
-
-| Control API | Meaning |
-| --- | --- |
-| `HandleControlMode ControlMode { get; set; }` / `SetControlMode(HandleControlMode mode)` | Select ownership for this handle; cancels its active requests on a change. |
-| `bool UsesIK`, `bool UsesAnimator` | Whether the selected mode enables each built-in path. |
-| `HandleAnimatorController animatorController` | Handle-owned Animator configuration and gesture events. |
-| `bool IsAnimationBusy` | Whether this handle's gesture still owns an active request, including its return. |
-| `bool TryBeginInteraction()` / `void BeginInteraction()` | Start the configured gesture; the bool method reports admission failure. Custom mode leaves startup to your code. |
-| `void CancelInteraction()` | Cancel the handle-owned gesture. |
-| `void ReceiveAnimationEvent(string signal)` | Direct named-signal entry point, also called by the relay. |
-| `void ApplyAnimatorController()` | Apply live mode/Animator settings; normally called by the handle's Update. |
-| `event Action<HandleControlMode> ControlModeChanged` | Notification after the handle mode changes. |
-
-
-**Inherits / implements:** `MonoBehaviour`, `IHandle`.
 
 ### Events and Inspector callbacks
 
@@ -816,15 +867,16 @@ Common contact, preparation, binding and input contract.
 | `public event Action<HandleContactContext> ContactEnded` | Once when contact is lost or released (including exit/disable/rebinding). Payload retains the original occupant identity. |
 | `public event Action<HandleContactContext> ContactStarted` | Once on a not-touching to touching transition; C# event runs before the matching UnityEvent. |
 | `public event Action<HandleContactContext> ContactUpdated` | Once per contact sample while touching, including its start sample. Payload identifies handle, seat, occupant, part and target. |
+| `public event Action<HandleControlMode> ControlModeChanged` | Notification after the handle mode changes. |
+| `public event Action<HandleValueContext> ValueChangeStarted` | Once when a significant value change or explicit BeginValueChange starts activity. |
+| `public event Action<HandleValueContext> ValueChangeStopped` | Once when the value settles for valueStopDelay, explicit EndValueChange runs or the handle is disabled/destroyed. |
+| `public event Action<HandleValueContext> ValueChanging` | Each active changed/manual sample; does not imply contact or commit a gameplay action. |
 | `public UnityEvent<HandleContactContext> onContactEnded` | Inspector-configurable counterpart of ContactEnded. Runs after the C# event for the same phase. |
 | `public UnityEvent<HandleContactContext> onContactStarted` | Inspector-configurable counterpart of ContactStarted. Runs after the C# event for the same phase. |
 | `public UnityEvent<HandleContactContext> onContactUpdated` | Inspector-configurable counterpart of ContactUpdated. Runs after the C# event for the same phase. |
 | `public UnityEvent<HandleValueContext> onValueChangeStarted` | Inspector-configurable counterpart of ValueChangeStarted. Runs after the C# event for the same phase. |
 | `public UnityEvent<HandleValueContext> onValueChangeStopped` | Inspector-configurable counterpart of ValueChangeStopped. Runs after the C# event for the same phase. |
 | `public UnityEvent<HandleValueContext> onValueChanging` | Inspector-configurable counterpart of ValueChanging. Runs after the C# event for the same phase. |
-| `public event Action<HandleValueContext> ValueChangeStarted` | Once when a significant value change or explicit BeginValueChange starts activity. |
-| `public event Action<HandleValueContext> ValueChangeStopped` | Once when the value settles for valueStopDelay, explicit EndValueChange runs or the handle is disabled/destroyed. |
-| `public event Action<HandleValueContext> ValueChanging` | Each active changed/manual sample; does not imply contact or commit a gameplay action. |
 
 
 ### State and configuration
@@ -836,6 +888,8 @@ Common contact, preparation, binding and input contract.
 | `public float angularDamper` | Damping for angular damper. Higher values oppose relative motion more strongly. Initial value: `20`. |
 | `public float angularSpring` | Restoring stiffness for angular spring. Higher values resist displacement more strongly. Initial value: `500`. |
 | `public Vector3 animationValue` | Vector signal writable by animation/Timeline/application code. Its meaning and units belong to the application. |
+| `public HandleAnimatorController animatorController` | Handle-owned Animator configuration and gesture events. |
+| `public HandleControlMode ControlMode { get; set; }` | Selects limb pose ownership for this handle; changing it cancels active requests. |
 | `public int defaultHandPosition` | Index of the normal grip configuration. |
 | `public float fingerBlendDuration` | Seconds to blend displayed finger rotations from the previous handle to this handle after rebind. Default 0.12; zero opts out. Controller travel retains the current pose. Initial seating and editor previews apply immediately. |
 | `public float gripDiameter` | Grip diameter in metres in the palm anchor's local space. The cylinder runs along anchor X, with its centre towards +Y from the palm contact. |
@@ -845,6 +899,7 @@ Common contact, preparation, binding and input contract.
 | `public string id` | Unique, case-sensitive ID used by EngineAudio's runtime API. |
 | `public virtual int InputOrder { get; }` | Input-consumption priority among handles; higher values consume after dependencies. |
 | `public Vector3 InteractionValue { get; }` | Displayed control values exposed to the paired contact for generic value events; does not command vehicle mechanics. |
+| `public bool IsAnimationBusy { get; }` | Whether this handle's gesture still owns an active request, including its return. |
 | `public bool IsValueChanging { get; }` | Whether generic value activity is currently running. |
 | `public HandlePoseSettings leftFootPose` | Independent left-foot pose, target and contact settings. Finger weight is unused for feet. |
 | `public HandlePoseSettings leftHandPose` | Independent left-hand pose, target and contact settings. Weights default to one. |
@@ -860,6 +915,8 @@ Common contact, preparation, binding and input contract.
 | `public bool showGizmos` | Shows this component’s scene guides and editing handles. Enabled by default; Inspector: **Gizmos > Show gizmos**. Does not change gameplay or physics. |
 | `public HandleUseSettings use` | Automatic action policy and explicit/automatic transfer timing for this destination. |
 | `public bool useAnimationValue` | Observe animationValue instead of the built-in/transform value source; default false. |
+| `public bool UsesAnimator { get; }` | True for Animator and Animator + IK modes. |
+| `public bool UsesIK { get; }` | True for IK and Animator + IK modes. |
 | `public float valueChangeThreshold` | Euclidean change threshold in source-value units, default 0.0001. Small changes accumulate against the last significant sample. |
 | `public float valueStopDelay` | Seconds without significant change before automatic Stop; default 0.08. Explicit manual activity ends through EndValueChange. |
 | `public Transform valueTransform` | Optional externally animated transform to observe when useAnimationValue is false; otherwise use the concrete handle source. |
@@ -869,8 +926,11 @@ Common contact, preparation, binding and input contract.
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
+| `public void ApplyAnimatorController()` | Apply live mode/Animator settings; normally called by the handle's Update. | — |
+| `public void BeginInteraction()` | UnityEvent-compatible entry point for the configured gesture; use TryBeginInteraction to check admission. | — |
 | `public void BeginValueChange()` | Starts explicit value activity, emitting Started only when idle. Constant-value samples still emit progress until EndValueChange. | — |
 | `public virtual void BindBodyPart(PassengerBodyPart part, HumanoidIK ik, Animator animator)` | Prepares the selected limb for this handle, including supported adaptive finger binding and palm frames. | — |
+| `public void CancelInteraction()` | Cancel the handle-owned gesture. | — |
 | `public void ClearHandPositionOverride(HandleHandSide side)` | Restores normal selection and wheel pressure/pinch blending for that hand. | — |
 | `public void EndValueChange()` | Ends manual/automatic activity and emits Stopped once if active. Safe when idle. | — |
 | `public void EnsureHandPositions()` | Initializes missing configurations with the defaults for the handle type; existing local or shared poses remain unchanged. | — |
@@ -888,6 +948,7 @@ Common contact, preparation, binding and input contract.
 | `public virtual bool HandSteering(bool left)` | Reports whether the selected hand participates in steering support. | — |
 | `public HandleHandPosition MakeHandPositionLocal(int index)` | Replaces the entry with a deep local copy of its resolved values, detaching any shared asset. | — |
 | `public virtual void Prepare()` | Initializes the contact or synchronizes its initial state without requesting a limb. | — |
+| `public void ReceiveAnimationEvent(string signal)` | Direct named-signal entry point, also called by the relay. | — |
 | `public void ReleaseContact(PassengerSeat seat, PassengerBodyPart part)` | Releases one tracked pair and emits Ended once if touching. Safe when untracked. | — |
 | `public bool ReportContact(PassengerSeat seat, PassengerBodyPart part, bool touching)` | Records touching/not-touching for the current occupant. Select Manual contactSource to use the report; events are emitted when SampleContact runs. No geometric contact required in Manual mode. | — |
 | `public virtual void ResetHandle()` | Resets local handle state through the common extensible handle contract. | — |
@@ -897,6 +958,7 @@ Common contact, preparation, binding and input contract.
 | `public void SampleInteraction(float deltaTime)` | Samples the current source and advances generic activity using finite nonnegative seconds. The first sample establishes a silent baseline. Built-in handles call it in LateUpdate. | — |
 | `public void SetAnimationValue(float value)` | Selects the explicit animation signal and stores a finite scalar X/vector. Invalid values are ignored. Sampling emits events; no mechanical action is performed. | — |
 | `public void SetAnimationValue(Vector3 value)` | Selects the explicit animation signal and stores a finite scalar X/vector. Invalid values are ignored. Sampling emits events; no mechanical action is performed. | — |
+| `public void SetControlMode(HandleControlMode mode)` | Validates the control policy and cancels incompatible runtime interaction ownership. | — |
 | `public void SetDefaultHandPosition(int index)` | Sets the normal grip index with strict index validation. | — |
 | `public void SetFingerPosition(int positionIndex, HandleHandSide side, HandleFinger finger, HandleFingerPosition position)` | Replaces one finger in the resolved hand; rejects null. | — |
 | `public void SetHandPose(int positionIndex, HandleHandSide side, HandleHandPose pose)` | Replaces resolved hand data, including the shared asset when linked; rejects null. | — |
@@ -906,6 +968,7 @@ Common contact, preparation, binding and input contract.
 | `public void SetPoseWeights(PassengerBodyPart part, float position, float rotation, float fingers)` | Sets position, rotation and finger weights independently. Values clamp to 0–1; non-finite values become zero. No re-entry/rebind required. | — |
 | `public virtual bool Supports(PassengerBodyPart part)` | Whether Allowed limbs and any specialized geometry policy permit this limb. | — |
 | `public bool TrackContact(PassengerSeat seat, PassengerBodyPart part, Transform contact)` | Registers a contact transform for the current occupant and limb. Returns false for inactive/transitioning/empty seats or a limb bound to another handle. Built-in humanoids register their mapped bones/palm contacts automatically. | — |
+| `public bool TryBeginInteraction()` | Starts the configured handle gesture and reports whether it was accepted. | — |
 | `public bool TryGetContactState(PassengerSeat seat, PassengerBodyPart part, out HandleContactContext state)` | Returns the last sampled snapshot for the current occupant, or false/default when unavailable; false-contact snapshots remain valid while tracked. | — |
 | `public bool TryGetHandPosition(string name, out HandleHandPosition position)` | Finds the first exact, case-sensitive position name. Returns false and null for missing/empty names. | — |
 

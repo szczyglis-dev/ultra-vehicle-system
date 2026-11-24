@@ -10,9 +10,7 @@ Read :doc:`the system explanation </Scripting/Aircraft>` for composition, setup 
 Types
 -----
 
--  :ref:`AerobaticAirplaneProfile <uvs-api-aircraft--aerobaticairplaneprofile>`
 -  :ref:`AircraftAerodynamics <uvs-api-aircraft--aircraftaerodynamics>`
--  :ref:`AircraftControlMode <uvs-api-aircraft--aircraftcontrolmode>`
 -  :ref:`AircraftControlMotion <uvs-api-aircraft--aircraftcontrolmotion>`
 -  :ref:`AircraftControlMotionMode <uvs-api-aircraft--aircraftcontrolmotionmode>`
 -  :ref:`AircraftControlSurface <uvs-api-aircraft--aircraftcontrolsurface>`
@@ -20,10 +18,10 @@ Types
 -  :ref:`AircraftSurfaceType <uvs-api-aircraft--aircraftsurfacetype>`
 -  :ref:`AirplaneGroundContact <uvs-api-aircraft--airplanegroundcontact>`
 -  :ref:`AirplaneProfile <uvs-api-aircraft--airplaneprofile>`
+-  :ref:`AirplaneWaterLandingSettings <uvs-api-aircraft--airplanewaterlandingsettings>`
 -  :ref:`HelicopterProfile <uvs-api-aircraft--helicopterprofile>`
 -  :ref:`HoverVisuals <uvs-api-aircraft--hovervisuals>`
 -  :ref:`HoverVisuals.TiltMount <uvs-api-aircraft--hovervisualstiltmount>`
--  :ref:`JetProfile <uvs-api-aircraft--jetprofile>`
 -  :ref:`LandingGear <uvs-api-aircraft--landinggear>`
 -  :ref:`LandingGearPart <uvs-api-aircraft--landinggearpart>`
 -  :ref:`LandingGearPartType <uvs-api-aircraft--landinggearparttype>`
@@ -32,35 +30,6 @@ Types
 -  :ref:`LandingGearSuspensionPart <uvs-api-aircraft--landinggearsuspensionpart>`
 -  :ref:`Propulsion <uvs-api-aircraft--propulsion>`
 -  :ref:`Propulsion.Propeller <uvs-api-aircraft--propulsionpropeller>`
-
-.. _uvs-api-aircraft--aerobaticairplaneprofile:
-
-AerobaticAirplaneProfile
-------------------------
-
-**Runtime/Drive/Profiles/AerobaticAirplaneProfile.cs**
-
-Initial parameter preset for unrestricted body-rate controls.
-
-**Inherits / implements:** :ref:`AirplaneProfile <uvs-api-aircraft--airplaneprofile>`.
-
-.. _uvs-api-aircraft--methods:
-
-Methods
-~~~~~~~
-
-All runtime behavior and editable fields are inherited from :ref:`AirplaneProfile <uvs-api-aircraft--airplaneprofile>`. This class only supplies initial parameter values.
-
-.. _uvs-api-aircraft--methods-1:
-
-Methods
-~~~~~~~
-
-+---------------------------------------+--------------------------------------------------------------------------+--------------------------------------------------------------------+
-| Signature                             | Role and behavior                                                        | Arguments and result                                               |
-+=======================================+==========================================================================+====================================================================+
-| ``public AerobaticAirplaneProfile()`` | Constructs ``AerobaticAirplaneProfile`` with the supplied initial state. | **Returns:** New instance initialized from the supplied arguments. |
-+---------------------------------------+--------------------------------------------------------------------------+--------------------------------------------------------------------+
 
 .. _uvs-api-aircraft--aircraftaerodynamics:
 
@@ -76,21 +45,6 @@ Values
 
 -  ``Simplified = 0``: Simplified lift, drag and flight-path alignment.
 -  ``RelativeAirflow = 1``: Relative-airflow normal forces and parasite, induced and pressure drag.
-
-.. _uvs-api-aircraft--aircraftcontrolmode:
-
-AircraftControlMode
--------------------
-
-**Runtime/Drive/Profiles/AirplaneProfile.cs**
-
-.. _uvs-api-aircraft--values-1:
-
-Values
-~~~~~~
-
--  ``AssistedAttitude = 0``: Pitch/bank target control.
--  ``BodyRates = 1``: Unrestricted body angular-rate control.
 
 .. _uvs-api-aircraft--aircraftcontrolmotion:
 
@@ -123,27 +77,39 @@ State and configuration
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform movingPart``                        | Assign the moving part reference used by AircraftControlMotion. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public PartMotionPlayback playback``                 | Animation/custom binding and lifecycle callbacks for this moving part.                                                                                             |
++--------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool reverse``                                | Mirror motion around the neutral pose without changing input or travel limits.                                                                                     |
++--------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool showGizmos``                             | Shows this component’s scene guides and editing handles. Enabled by default; Inspector: **Gizmos > Show gizmos**. Does not change gameplay or physics.             |
++--------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public PartMotionSignals Signals { get; }``          | Notifications for requests, progress and operation termination.                                                                                                    |
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual float Value { get; protected set; }`` | Current value in this control's domain; use the declaring control's detailed value contract.                                                                       |
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-2:
+.. _uvs-api-aircraft--methods:
 
 Methods
 ~~~~~~~
 
-+----------------------------------------------------+------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------+
-| Signature                                          | Role and behavior                                                                        | Arguments and result                                                          |
-+====================================================+==========================================================================================+===============================================================================+
-| ``public virtual void SetValue(float normalized)`` | Applies normalized aircraft-control travel to its authored rotation/translation mapping. | ``normalized`` — Normalized value; the owner maps it to its configured range. |
-+----------------------------------------------------+------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------+
-
-+-------------------------+--------------------------------------------------------------------------------+
-| Declaration             | Usage                                                                          |
-+=========================+================================================================================+
-| ``public bool reverse`` | Mirror motion around the neutral pose without changing input or travel limits. |
-+-------------------------+--------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
+| Signature                                                                                           | Role and behavior                                                                                                       | Arguments and result |
++=====================================================================================================+=========================================================================================================================+======================+
+| ``public virtual void Cancel()``                                                                    | Cancels active movement and releases its operation ownership.                                                           | —                    |
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void CompleteCustomMotion()``                                                      | Completes the current custom movement operation successfully.                                                           | —                    |
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void ReportProgress(float value)``                                                 | Reports actual normalized progress from a custom pose owner.                                                            | —                    |
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void SetValue(float normalized)``                                                  | Applies normalized aircraft-control travel to its authored rotation/translation mapping.                                | —                    |
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void StartMotion(float target)``                                                   | Requests movement to a normalized destination using the selected motion mode.                                           | —                    |
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void Stop()``                                                                      | Stops the current movement operation without reporting successful completion.                                           | —                    |
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual bool TryGetPose(float normalized, out Vector3 position, out Quaternion rotation)`` | Returns the prospective procedural pose for normalized progress; returns false when an external mode owns the geometry. | —                    |
++-----------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+----------------------+
 
 .. _uvs-api-aircraft--aircraftcontrolmotionmode:
 
@@ -154,13 +120,17 @@ AircraftControlMotionMode
 
 Defines the allowed aircraft control motion mode choices used by this topic.
 
-.. _uvs-api-aircraft--values-2:
-
-Values
-~~~~~~
-
--  ``Rotation``
--  ``Translation``
++-------------+-------------------------------------------------------------------------------+
+| Value       | Meaning                                                                       |
++=============+===============================================================================+
+| Rotation    | ``Rotation`` — Inspector display label for this mode.                         |
++-------------+-------------------------------------------------------------------------------+
+| Translation | ``Translation`` — Inspector display label for this mode.                      |
++-------------+-------------------------------------------------------------------------------+
+| Animation   | ``Animation`` — Clip-sampled movement.                                        |
++-------------+-------------------------------------------------------------------------------+
+| Custom      | ``Custom`` — Application-owned movement through callbacks or a custom driver. |
++-------------+-------------------------------------------------------------------------------+
 
 .. _uvs-api-aircraft--aircraftcontrolsurface:
 
@@ -188,7 +158,7 @@ State and configuration
 | ``public AircraftSurfaceType type`` | Selects the mechanism/visual variant used by this configuration. Options: ``Rudder``, ``LeftAileron``, ``RightAileron``, ``Elevator``, ``LeftElevator``, ``RightElevator``, ``Flap``, ``Airbrake``, ``Custom``. |
 +-------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-3:
+.. _uvs-api-aircraft--methods-1:
 
 Methods
 ~~~~~~~
@@ -250,7 +220,7 @@ State and configuration
 | ``public AircraftControlSurface[] surfaces``      | Ordered surfaces configuration entries. Expand each item; see AircraftControlSurface for its individual settings. Initial value: ``Array.Empty<AircraftControlSurface>()``. |
 +---------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-4:
+.. _uvs-api-aircraft--methods-2:
 
 Methods
 ~~~~~~~
@@ -278,7 +248,7 @@ AircraftSurfaceType
 
 Defines the allowed aircraft surface type choices used by this topic.
 
-.. _uvs-api-aircraft--values-3:
+.. _uvs-api-aircraft--values-1:
 
 Values
 ~~~~~~
@@ -323,7 +293,7 @@ State and configuration
 | ``public override ExecutionPhase Phase { get; }``                 | Cross-category execution barrier used by the module pipeline.                            |
 +-------------------------------------------------------------------+------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-5:
+.. _uvs-api-aircraft--methods-3:
 
 Methods
 ~~~~~~~
@@ -354,187 +324,187 @@ Owns the configurable fixed-wing flight pipeline, including assisted attitude, b
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                                                 | Meaning                                                                                                                                                                                                                   |
-+========================================================+===========================================================================================================================================================================================================================+
-| ``public AircraftAerodynamics aerodynamics``           | Simplified lift/alignment or relative-airflow forces.                                                                                                                                                                     |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool airspeedControlAuthorityEnabled``        | Scale control torque with airspeed/attached flow. Disable to retain full commanded control authority at low speed. Default: enabled.                                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool allowGroundReverse``                     | Permit reverse propulsion on supported landing gear with positive ground reverse limits. Default: ``false``; never authorizes airborne reverse.                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool angularDampingEnabled``                  | Apply angular velocity damping inside profile attitude/rate control; disabling retains commanded control torque. Default: enabled.                                                                                        |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool attitudeControlEnabled``                 | Master switch for profile pitch/roll/yaw control torque; leaves aerodynamic forces active. Default: enabled.                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float attitudeDamping``                       | Attitude damping. Initial value: ``6f``.                                                                                                                                                                                  |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool attitudeSpringEnabled``                  | AssistedAttitude mode: angle-to-target restoring torque, including pitch/roll input response. BodyRates uses rate control instead. Default: enabled.                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float attitudeStrength``                      | Attitude strength. Initial value: ``14f``.                                                                                                                                                                                |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool bankCompensationEnabled``                | Simplified aerodynamics: increase lift to compensate for bank. Disabled by the Aerobatic/Jet preset constructors. Default: enabled.                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public AircraftControlMode controlMode``             | Assisted attitude targets or unrestricted body-rate control.                                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float coordinatedTurn``                       | Coordinated turn. Initial value: ``1.8f``.                                                                                                                                                                                |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float coordinatedTurnAssist``                 | Coordinated turn assist. Initial value: ``0.8f``.                                                                                                                                                                         |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool coordinatedTurnEnabled``                 | Add bank-derived automatic turn demand. BodyRates also requires Rate Coordinated Turn Enabled. Default: enabled.                                                                                                          |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool dragEnabled``                            | Apply profile air resistance. In RelativeAirflow mode this also gates parasite, induced and pressure drag. Default: enabled.                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float engineIdleRpm``                         | Engine idle rpm. Initial value: ``700f``.                                                                                                                                                                                 |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float engineMaximumRpm``                      | Engine maximum rpm. Initial value: ``2700f``.                                                                                                                                                                             |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float enginePowerKw``                         | Engine power kw. Initial value: ``180f``.                                                                                                                                                                                 |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumThrustNewtons``                  | Static thrust at full spool in N. Positive values replace ground/flight acceleration-based thrust; zero preserves it. Throttle, spool, speed envelope and optional power limit still apply. Default 0; Jet default 90000. |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool enginePowerLimitEnabled``                | Limit thrust acceleration by engine power, speed and mass. Disabling retains throttle and spool response. Default: enabled.                                                                                               |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool flightAlignmentEnabled``                 | Apply flight-path alignment toward the airframe. In RelativeAirflow mode gates pitch/yaw crossflow correction, independently of lift trim. Default: enabled.                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float flightPathResponse``                    | Flight path response. Initial value: ``2f``.                                                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float flightTransitionTime``                  | Flight transition time. Initial value: ``0.35f``.                                                                                                                                                                         |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool gLimiterEnabled``                        | Apply G-derived pitch-rate and aerodynamic normal-force limits. Disabled in the base preset; enabled by Jet.                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundAcceleration``                    | Ground acceleration. Initial value: ``6f``.                                                                                                                                                                               |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundFriction``                        | Hull-contact friction for wheel-free aircraft only. Gear tires use the shared Friction module.                                                                                                                            |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundHandlingAssistance``              | Shared steering yaw and lateral grip assistance, only while tires touch the ground.                                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundLateralResponse``                 | Ground lateral response. Initial value: ``5f``.                                                                                                                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundReverseAcceleration``             | Ground reverse acceleration. Initial value: ``2f``.                                                                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundReverseSpeed``                    | Ground-only reverse speed in m/s. Zero disables reverse thrust.                                                                                                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundRotationAuthority``               | Ground rotation authority. Initial value: ``0.7f``.                                                                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool groundRotationEnabled``                  | Allow pitch control for rotation while still grounded. Airborne pitch control remains independent. Default: enabled.                                                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundSteeringAngle``                   | Ground steering angle. Initial value: ``35f``.                                                                                                                                                                            |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundSteeringRate``                    | Ground steering rate. Initial value: ``75f``.                                                                                                                                                                             |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float groundYawResponse``                     | Ground yaw response. Initial value: ``4f``.                                                                                                                                                                               |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float inducedDrag``                           | Induced drag acceleration at one G; grows with aerodynamic load squared.                                                                                                                                                  |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool inducedDragEnabled``                     | Allow aerodynamic-load induced drag when the inherited Drag Enabled master is on. Default: enabled.                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float landingTransitionTime``                 | Landing transition time. Initial value: ``0.08f``.                                                                                                                                                                        |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool liftEnabled``                            | Apply aerodynamic lift. Disabling does not remove gravity, drag or attitude control. Default: enabled.                                                                                                                    |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float liftMultiplier``                        | Lift multiplier. Initial value: ``1.12f``.                                                                                                                                                                                |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float liftSpeed``                             | Minimum forward airspeed for ground rotation/takeoff, in m/s.                                                                                                                                                             |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumAlignmentAcceleration``          | Maximum alignment acceleration. Initial value: ``18f``.                                                                                                                                                                   |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumBank``                           | Maximum bank. Initial value: ``45f``.                                                                                                                                                                                     |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumControlAcceleration``            | Maximum control acceleration. Initial value: ``20f``.                                                                                                                                                                     |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumG``                              | Maximum g. Initial value: ``4.5f``.                                                                                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumGroundLateralAcceleration``      | Maximum ground lateral acceleration. Initial value: ``5f``.                                                                                                                                                               |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumLiftAcceleration``               | Maximum lift acceleration. Initial value: ``35f``.                                                                                                                                                                        |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumPitch``                          | Pitch attitude limit in AssistedAttitude mode. BodyRates uses angular rates instead.                                                                                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumSpeed``                          | Forward airspeed limit in m/s. Thrust fades out near this speed.                                                                                                                                                          |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumTurnRate``                       | Maximum turn rate. Initial value: ``70f``.                                                                                                                                                                                |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float minimumAirControlAuthority``            | Low-speed control assistance. Base default: zero; Aerobatic: 0.2; Jet: 0.05.                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float minimumGroundTurnRadius``               | Minimum ground turn radius. Initial value: ``6f``.                                                                                                                                                                        |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float parasiteDrag``                          | Forward parasite drag acceleration / speed squared, in 1/metres.                                                                                                                                                          |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool parasiteDragEnabled``                    | Allow forward-speed parasite drag when the inherited Drag Enabled master is on. Default: enabled.                                                                                                                         |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float parkingBrakeTorque``                    | Parking brake torque. Initial value: ``5000f``.                                                                                                                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool pitchControlEnabled``                    | Allow profile control torque around the local pitch axis. Does not suppress aerodynamic torque from other systems. Default: enabled.                                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float pitchPathResponse``                     | Pitch path response. Initial value: ``5f``.                                                                                                                                                                               |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float pitchRate``                             | Pitch rate. Initial value: ``110f``.                                                                                                                                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool pressureDragEnabled``                    | Allow crossflow pressure drag when the inherited Drag Enabled master is on. Default: enabled.                                                                                                                             |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool progressiveThrustEnvelope``              | Progressive fourth-power thrust fade instead of linear fade.                                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool propulsionEnabled``                      | Apply engine/propeller thrust, including supported ground reverse. Engine and propeller presentation remain independent. Default: enabled.                                                                                |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool rateCoordinatedTurnEnabled``             | Enable bank-derived turn assistance for body-rate control when coordinatedTurnEnabled is on.                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float rateResponse``                          | Rate response. Initial value: ``6f``.                                                                                                                                                                                     |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float referenceAirspeed``                     | Reference airspeed. Initial value: ``100f``.                                                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override bool RequiresWheels { get; }``       | Whether this profile requires valid wheel definitions during configuration.                                                                                                                                               |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool rollControlEnabled``                     | Allow profile control torque around the local roll axis. Default: enabled.                                                                                                                                                |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float rollRate``                              | Roll rate. Initial value: ``200f``.                                                                                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool rudderEnabled``                          | Allow commanded yaw/rudder input in profile attitude control. Default: enabled.                                                                                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float rudderRate``                            | Rudder rate. Initial value: ``35f``.                                                                                                                                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float serviceBrakeTorque``                    | Service brake torque. Initial value: ``3000f``.                                                                                                                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool sideForceEnabled``                       | Allow sideways aerodynamic normal force; inherited Lift Enabled controls the lift-axis force. Default: enabled.                                                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float sidePressureDrag``                      | Side pressure drag. Initial value: ``0.008f``.                                                                                                                                                                            |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool speedLimiterEnabled``                    | Fade thrust near configured forward/reverse speed limits; does not directly clamp Rigidbody velocity. Default: enabled.                                                                                                   |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float stallAngle``                            | Stall angle. Initial value: ``35f``.                                                                                                                                                                                      |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool stallEnabled``                           | Reduce lift/support near low airspeed; RelativeAirflow mode also reduces attached flow at excessive angle of attack. Disable for full aerodynamic support. Default: enabled.                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float stallSpeedRatio``                       | Stall speed ratio. Initial value: ``0.55f``.                                                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float suspensionDamper``                      | Suspension damper. Initial value: ``1785f``.                                                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float suspensionSpring``                      | Suspension spring. Initial value: ``24000f``.                                                                                                                                                                             |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float suspensionTravel``                      | Suspension travel. Initial value: ``0.18f``.                                                                                                                                                                              |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float takeoffContactGrace``                   | Seconds without tire contact before entering flight. Touchdown is detected on the first tire contact.                                                                                                                     |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float tireGrip``                              | Tire grip. Initial value: ``1.3f``.                                                                                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool useLandingGear``                         | Keep native tires active in flight to detect touchdown without rebuilding wheel actors. Disable only for a wheel-free aircraft.                                                                                           |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override bool UsesWheelPropulsion { get; }``  | True for wheel/track drive; false for native thrust profiles, including aircraft with support wheels.                                                                                                                     |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float wingPressureDrag``                      | Additional quadratic pressure drag for airflow across the wings / across the fuselage.                                                                                                                                    |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool yawControlEnabled``                      | Allow profile control torque around the local yaw axis. Default: enabled.                                                                                                                                                 |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool yawLimiterEnabled``                      | Limit body-rate yaw demand by airspeed and gravity.                                                                                                                                                                       |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float yawPathResponse``                       | Yaw path response. Initial value: ``4f``.                                                                                                                                                                                 |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float yawRate``                               | Yaw rate. Initial value: ``45f``.                                                                                                                                                                                         |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public Vector3 ResolveAngularRates(float speedKph)`` | Returns speed-scaled pitch/yaw/roll rates in degrees/s.                                                                                                                                                                   |
-+--------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                | Meaning                                                                                                                                                                                                    |
++=======================================================+============================================================================================================================================================================================================+
+| ``public AircraftAerodynamics aerodynamics``          | Simplified lift/alignment or relative-airflow forces.                                                                                                                                                      |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool airspeedControlAuthorityEnabled``       | Scale control torque with airspeed/attached flow. Disable to retain full commanded control authority at low speed. Default: enabled.                                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool allowGroundReverse``                    | Permit reverse propulsion on supported landing gear with positive ground reverse limits. Default: enabled; never authorizes airborne reverse.                                                              |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool angularDampingEnabled``                 | Apply angular velocity damping inside profile attitude/rate control; disabling retains commanded control torque. Default: enabled.                                                                         |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool attitudeControlEnabled``                | Master switch for profile pitch/roll/yaw control torque; leaves aerodynamic forces active. Default: enabled.                                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float attitudeDamping``                      | Attitude damping. Initial value: ``6f``.                                                                                                                                                                   |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool attitudeSpringEnabled``                 | AssistedAttitude mode: angle-to-target restoring torque, including pitch/roll input response. BodyRates uses rate control instead. Default: enabled.                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float attitudeStrength``                     | Attitude strength. Initial value: ``14f``.                                                                                                                                                                 |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool bankCompensationEnabled``               | Simplified aerodynamics: increase lift to compensate for bank. Default: disabled.                                                                                                                          |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float coordinatedTurn``                      | Coordinated turn. Initial value: ``1.8f``.                                                                                                                                                                 |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float coordinatedTurnAssist``                | Coordinated turn assist. Initial value: ``0.8f``.                                                                                                                                                          |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool coordinatedTurnEnabled``                | Add bank-derived automatic turn demand. BodyRates also requires Rate Coordinated Turn Enabled. Default: enabled.                                                                                           |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool dragEnabled``                           | Apply profile air resistance. In RelativeAirflow mode this also gates parasite, induced and pressure drag. Default: enabled.                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float engineIdleRpm``                        | Engine idle rpm. Initial value: ``1800f``.                                                                                                                                                                 |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float engineMaximumRpm``                     | Engine maximum rpm. Initial value: ``12000f``.                                                                                                                                                             |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float enginePowerKw``                        | Engine power kw. Initial value: ``12000f``.                                                                                                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool enginePowerLimitEnabled``               | Limit thrust acceleration by engine power, speed and mass. Disabling retains throttle and spool response. Default: enabled.                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool flightAlignmentEnabled``                | Apply flight-path alignment toward the airframe. In RelativeAirflow mode gates pitch/yaw crossflow correction, independently of lift trim. Default: enabled.                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float flightPathResponse``                   | Flight path response. Initial value: ``3f``.                                                                                                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float flightTransitionTime``                 | Flight transition time. Initial value: ``0.35f``.                                                                                                                                                          |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool gLimiterEnabled``                       | Apply G-derived pitch-rate and aerodynamic normal-force limits. Enabled by default in the Jet-based preset.                                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundAcceleration``                   | Ground acceleration. Initial value: ``5f``.                                                                                                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundFriction``                       | Hull-contact friction for wheel-free aircraft only. Gear tires use the shared Friction module.                                                                                                             |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundHandlingAssistance``             | Shared steering yaw and lateral grip assistance, only while tires touch the ground.                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundLateralResponse``                | Ground lateral response. Initial value: ``5f``.                                                                                                                                                            |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundReverseAcceleration``            | Ground reverse acceleration. Initial value: ``2f``.                                                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundReverseSpeed``                   | Ground-only reverse speed in m/s. Zero disables reverse thrust.                                                                                                                                            |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundRotationAuthority``              | Ground rotation authority. Initial value: ``0.7f``.                                                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool groundRotationEnabled``                 | Allow pitch control for rotation while still grounded. Airborne pitch control remains independent. Default: enabled.                                                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundSteeringAngle``                  | Ground steering angle. Initial value: ``30f``.                                                                                                                                                             |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundSteeringRate``                   | Ground steering rate. Initial value: ``60f``.                                                                                                                                                              |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float groundYawResponse``                    | Ground yaw response. Initial value: ``4f``.                                                                                                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float inducedDrag``                          | Induced drag acceleration at one G; grows with aerodynamic load squared.                                                                                                                                   |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool inducedDragEnabled``                    | Allow aerodynamic-load induced drag when the inherited Drag Enabled master is on. Default: enabled.                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float landingTransitionTime``                | Landing transition time. Initial value: ``0.08f``.                                                                                                                                                         |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool liftEnabled``                           | Apply aerodynamic lift. Disabling does not remove gravity, drag or attitude control. Default: enabled.                                                                                                     |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float liftMultiplier``                       | Lift multiplier. Initial value: ``1.18f``.                                                                                                                                                                 |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float liftSpeed``                            | Minimum forward airspeed for ground rotation/takeoff, in m/s.                                                                                                                                              |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumAlignmentAcceleration``         | Maximum alignment acceleration. Initial value: ``55f``.                                                                                                                                                    |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumBank``                          | Maximum bank. Initial value: ``45f``.                                                                                                                                                                      |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumControlAcceleration``           | Maximum control acceleration. Initial value: ``8f``.                                                                                                                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumG``                             | Maximum g. Initial value: ``4.5f``.                                                                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumGroundLateralAcceleration``     | Maximum ground lateral acceleration. Initial value: ``6f``.                                                                                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumLiftAcceleration``              | Maximum lift acceleration. Initial value: ``70f``.                                                                                                                                                         |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumPitch``                         | Pitch attitude limit in AssistedAttitude mode. BodyRates uses angular rates instead.                                                                                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumSpeed``                         | Forward airspeed limit in m/s. Thrust fades out near this speed.                                                                                                                                           |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumThrustNewtons``                 | Static thrust at full spool in N. Positive values replace ground/flight acceleration-based thrust; zero preserves it. Throttle, spool, speed envelope and optional power limit still apply. Default 90000. |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumTurnRate``                      | Maximum turn rate. Initial value: ``70f``.                                                                                                                                                                 |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumAirControlAuthority``           | Low-speed control assistance. Default: 0.05.                                                                                                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumGroundTurnRadius``              | Minimum ground turn radius. Initial value: ``12f``.                                                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float parasiteDrag``                         | Forward parasite drag acceleration / speed squared, in 1/metres.                                                                                                                                           |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool parasiteDragEnabled``                   | Allow forward-speed parasite drag when the inherited Drag Enabled master is on. Default: enabled.                                                                                                          |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float parkingBrakeTorque``                   | Parking brake torque. Initial value: ``45000f``.                                                                                                                                                           |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool pitchControlEnabled``                   | Allow profile control torque around the local pitch axis. Does not suppress aerodynamic torque from other systems. Default: enabled.                                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float pitchPathResponse``                    | Pitch path response. Initial value: ``5f``.                                                                                                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float pitchRate``                            | Pitch rate. Initial value: ``30f``.                                                                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool pressureDragEnabled``                   | Allow crossflow pressure drag when the inherited Drag Enabled master is on. Default: enabled.                                                                                                              |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool progressiveThrustEnvelope``             | Progressive fourth-power thrust fade instead of linear fade.                                                                                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool propulsionEnabled``                     | Apply engine/propeller thrust, including supported ground reverse. Engine and propeller presentation remain independent. Default: enabled.                                                                 |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool rateCoordinatedTurnEnabled``            | Coordinate body-rate turns when coordinatedTurnEnabled is on: follow airflow in Relative Airflow, or use bank-derived heading assistance in Simplified.                                                    |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float rateResponse``                         | Rate response. Initial value: ``6f``.                                                                                                                                                                      |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float referenceAirspeed``                    | Reference airspeed. Initial value: ``100f``.                                                                                                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override bool RequiresWheels { get; }``      | Whether this profile requires valid wheel definitions during configuration.                                                                                                                                |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool rollControlEnabled``                    | Allow profile control torque around the local roll axis. Default: enabled.                                                                                                                                 |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float rollRate``                             | Roll rate. Initial value: ``75f``.                                                                                                                                                                         |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool rudderEnabled``                         | Allow commanded yaw/rudder input in profile attitude control. Default: enabled.                                                                                                                            |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float rudderRate``                           | Rudder rate. Initial value: ``35f``.                                                                                                                                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float serviceBrakeTorque``                   | Service brake torque. Initial value: ``25000f``.                                                                                                                                                           |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool sideForceEnabled``                      | Allow sideways aerodynamic normal force; inherited Lift Enabled controls the lift-axis force. Default: enabled.                                                                                            |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float sidePressureDrag``                     | Side pressure drag. Initial value: ``0.008f``.                                                                                                                                                             |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool simpleSteering``                        | Assisted pitch/bank targets when true; unrestricted body-rate controls when false. Default: disabled.                                                                                                      |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool speedLimiterEnabled``                   | Fade thrust near configured forward/reverse speed limits; does not directly clamp Rigidbody velocity. Default: enabled.                                                                                    |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float stallAngle``                           | Stall angle. Initial value: ``35f``.                                                                                                                                                                       |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool stallEnabled``                          | Reduce lift/support near low airspeed; RelativeAirflow mode also reduces attached flow at excessive angle of attack. Disable for full aerodynamic support. Default: enabled.                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float stallSpeedRatio``                      | Stall speed ratio. Initial value: ``0.65f``.                                                                                                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float suspensionDamper``                     | Suspension damper. Initial value: ``28050f``.                                                                                                                                                              |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float suspensionSpring``                     | Suspension spring. Initial value: ``375000f``.                                                                                                                                                             |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float suspensionTravel``                     | Suspension travel. Initial value: ``0.28f``.                                                                                                                                                               |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float takeoffContactGrace``                  | Seconds without tire contact before entering flight. Touchdown is detected on the first tire contact.                                                                                                      |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float tireGrip``                             | Tire grip. Initial value: ``1.6f``.                                                                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool useLandingGear``                        | Keep native tires active in flight to detect touchdown without rebuilding wheel actors. Disable only for a wheel-free aircraft.                                                                            |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public override bool UsesWheelPropulsion { get; }`` | True for wheel/track drive; false for native thrust profiles, including aircraft with support wheels.                                                                                                      |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public AirplaneWaterLandingSettings waterLanding``  | Optional floats, boat control and automatic water/flight handover. Disabled by default.                                                                                                                    |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float wingPressureDrag``                     | Additional quadratic pressure drag for airflow across the wings / across the fuselage.                                                                                                                     |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool yawControlEnabled``                     | Allow profile control torque around the local yaw axis. Default: enabled.                                                                                                                                  |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool yawLimiterEnabled``                     | Limit body-rate yaw demand by airspeed and gravity.                                                                                                                                                        |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float yawPathResponse``                      | Yaw path response. Initial value: ``4f``.                                                                                                                                                                  |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float yawRate``                              | Yaw rate. Initial value: ``20f``.                                                                                                                                                                          |
++-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-6:
+.. _uvs-api-aircraft--methods-4:
 
 Methods
 ~~~~~~~
@@ -550,6 +520,8 @@ Methods
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual Vector3 PressureDragAcceleration(Transform frame, Vector3 velocity)``     | Evaluates jet pressure-drag acceleration from the supplied speed/state.                                                             | ``frame`` — Frame, interpreted by this operation in the declared type. ``velocity`` — World velocity in m/s. **Returns:** Returned Vector3; ownership remains as specified by the creating/lookup operation.               |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Vector3 ResolveAngularRates(float speedKph)``                                     | Returns speed-scaled pitch/yaw/roll rates in degrees/s.                                                                             | —                                                                                                                                                                                                                          |
++--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override float ResolveBoostDemand(VehicleController vehicle, Command command)``   | Returns finite normalized propulsion/collective intent for boost admission; each profile selects relevant axes.                     | Uses the supplied vehicle and command context; returns the profile-specific admission result.                                                                                                                              |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override float ResolveDriveDemand(VehicleController vehicle, Command command)``   | Maps the command and strategy state to propulsion demand for surrounding mechanics.                                                 | ``vehicle`` — Vehicle context/owner receiving the operation. ``command`` — Command sampled for this tick; use its channel metadata as well as axes. **Returns:** Computed float in the operation's documented unit/domain. |
@@ -558,6 +530,40 @@ Methods
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override void Step(VehicleController vehicle, Command command, float deltaTime)`` | Runs the shared fixed-wing physics pipeline using the selected control/aerodynamic parameters and ground-contact authority.         | ``vehicle`` — Vehicle context/owner receiving the operation. ``command`` — Command sampled for this tick; use its channel metadata as well as axes. ``deltaTime`` — Elapsed time in seconds supplied by the owning loop.   |
 +--------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-aircraft--airplanewaterlandingsettings:
+
+AirplaneWaterLandingSettings
+----------------------------
+
+**Runtime/Drive/Water/AirplaneWaterLandingSettings.cs**
+
+Optional water support and a separate boat force controller. Transient state belongs to Drive, not the serialized settings.
+
+.. _uvs-api-aircraft--state-and-configuration-5:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                              | Meaning                                                                                                                                                       |
++=====================================+===============================================================================================================================================================+
+| ``public BoatProfile boat``         | Independent depth, damping, drag, waves, rocking and water steering/thrust settings. Never applies vehicle settings or reconfigures the aircraft engine/gear. |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool boatControls``        | Permits automatic boat thrust/rudder control while waterborne. Default true. Off retains aircraft controls with passive hull forces.                          |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool enabled``             | Enables water sampling, flotation and water control. Default false.                                                                                           |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Vector3 floatOffset``      | Float waterline reference in body-local axes relative to centre of mass. Default ``(0, -.65, 0)``.                                                            |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float landingSpeedRatio``  | Below this fraction of Lift Speed, water contact can select boat control. Default .8.                                                                         |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumControlHold`` | Minimum time between control changes, seconds. Default .25. Loss of water forces immediate aircraft control.                                                  |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float takeoffPitch``       | Minimum magnitude of negative Pitch for takeoff handover. Default .05.                                                                                        |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float takeoffSpeedRatio``  | Required fraction of Lift Speed for a nose-up takeoff request to select flight control. Default 1.                                                            |
++-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-api-aircraft--helicopterprofile:
 
@@ -570,7 +576,7 @@ Configuration/implementation type for helicopter profile within flight and landi
 
 **Inherits / implements:** :ref:`AirProfile <uvs-api-driveprofiles--airprofile>`.
 
-.. _uvs-api-aircraft--state-and-configuration-5:
+.. _uvs-api-aircraft--state-and-configuration-6:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -605,7 +611,7 @@ State and configuration
 | ``public bool yawControlEnabled``           | Apply commanded yaw torque independently of horizontal thrust. Default: enabled.                                                                                                                                                        |
 +---------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-7:
+.. _uvs-api-aircraft--methods-5:
 
 Methods
 ~~~~~~~
@@ -635,7 +641,7 @@ Configuration/implementation type for hover visuals within flight and landing ge
 
 **Inherits / implements:** :ref:`ExteriorModule <uvs-api-modules--exteriormodule>`.
 
-.. _uvs-api-aircraft--state-and-configuration-6:
+.. _uvs-api-aircraft--state-and-configuration-7:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -646,7 +652,7 @@ State and configuration
 | ``public TiltMount[] tiltMounts`` | Optional hover engine mounts. Uses folded-wheel thrust, turn and strafe tilt without the wheel-fold rotation. |
 +-----------------------------------+---------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-8:
+.. _uvs-api-aircraft--methods-6:
 
 Methods
 ~~~~~~~
@@ -668,7 +674,7 @@ HoverVisuals.TiltMount
 
 Configuration/implementation type for tilt mount within flight and landing gear.
 
-.. _uvs-api-aircraft--state-and-configuration-7:
+.. _uvs-api-aircraft--state-and-configuration-8:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -680,35 +686,6 @@ State and configuration
 +------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform transform``     | Assign the transform reference used by HoverVisuals.TiltMount. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
 +------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-.. _uvs-api-aircraft--jetprofile:
-
-JetProfile
-----------
-
-**Runtime/Drive/Profiles/JetProfile.cs**
-
-Initial parameter preset for relative-airflow fighter response and limits.
-
-**Inherits / implements:** :ref:`AerobaticAirplaneProfile <uvs-api-aircraft--aerobaticairplaneprofile>`.
-
-.. _uvs-api-aircraft--methods-9:
-
-Methods
-~~~~~~~
-
-All runtime behavior and editable fields are inherited from :ref:`AirplaneProfile <uvs-api-aircraft--airplaneprofile>`. This class only supplies initial parameter values.
-
-.. _uvs-api-aircraft--methods-10:
-
-Methods
-~~~~~~~
-
-+-------------------------+------------------------------------------------------------+--------------------------------------------------------------------+
-| Signature               | Role and behavior                                          | Arguments and result                                               |
-+=========================+============================================================+====================================================================+
-| ``public JetProfile()`` | Constructs ``JetProfile`` with the supplied initial state. | **Returns:** New instance initialized from the supplied arguments. |
-+-------------------------+------------------------------------------------------------+--------------------------------------------------------------------+
 
 .. _uvs-api-aircraft--landinggear:
 
@@ -732,7 +709,7 @@ Events and Inspector callbacks
 | ``public event Action<LandingGearState> StateChanged`` | When deployment sequencing changes ``LandingGearState``. Payload: actual sequence state; use this rather than treating request acceptance as arrival. |
 +--------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--state-and-configuration-8:
+.. _uvs-api-aircraft--state-and-configuration-9:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -765,7 +742,7 @@ State and configuration
 | ``public WheelCollider[] wheels``                                 | Assign the wheels references used by LandingGear. Entries are processed in list order. Initial value: ``Array.Empty<WheelCollider>()``.                    |
 +-------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-11:
+.. _uvs-api-aircraft--methods-7:
 
 Methods
 ~~~~~~~
@@ -795,7 +772,7 @@ Maps deployment progress to a door/strut pose.
 
 **Inherits / implements:** :ref:`AircraftControlMotion <uvs-api-aircraft--aircraftcontrolmotion>`.
 
-.. _uvs-api-aircraft--state-and-configuration-9:
+.. _uvs-api-aircraft--state-and-configuration-10:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -816,24 +793,26 @@ State and configuration
 | ``public LandingGearPartType type``                               | Selects the mechanism/visual variant used by this configuration. Options: ``Strut``, ``Door``, ``Link``, ``Custom``. |
 +-------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-12:
+.. _uvs-api-aircraft--methods-8:
 
 Methods
 ~~~~~~~
 
-+--------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Signature                                                                      | Role and behavior                                                                                                                            | Arguments and result                                                                                                                                                                              |
-+================================================================================+==============================================================================================================================================+===================================================================================================================================================================================================+
-| ``public virtual void Animate(bool deployed, float elapsed, float deltaTime)`` | Applies gear-part deployment animation using its authored motion mapping.                                                                    | ``deployed`` — ``true`` requests deployment; ``false`` requests retraction. ``elapsed`` — Elapsed operation time in seconds. ``deltaTime`` — Elapsed time in seconds supplied by the owning loop. |
-+--------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void CaptureDeployedPose()``                                  | Captures the current gear-part pose as the fully deployed baseline.                                                                          | No arguments; no returned value.                                                                                                                                                                  |
-+--------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SetImmediate(bool deployed)``                            | Synchronizes this part immediately to the requested deployed/retracted pose through its gear-part mapping.                                   | ``deployed`` — ``true`` requests deployment; ``false`` requests retraction.                                                                                                                       |
-+--------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SetRetraction(float amount)``                            | Applies landing-gear travel with zero deployed and one retracted.                                                                            | ``amount`` — Requested damage/repair amount in the mechanic's damage units.                                                                                                                       |
-+--------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public override void SetValue(float normalized)``                            | Applies deployed fraction: 1 fully deployed, 0 fully retracted, retaining the captured deployed mesh offset and current suspension rotation. | ``normalized`` — Normalized value; the owner maps it to its configured range.                                                                                                                     |
-+--------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| Signature                                                                                            | Role and behavior                                                                                                                            | Arguments and result |
++======================================================================================================+==============================================================================================================================================+======================+
+| ``public virtual void Animate(bool deployed, float elapsed, float deltaTime)``                       | Applies gear-part deployment animation using its authored motion mapping.                                                                    | —                    |
++------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void CaptureDeployedPose()``                                                        | Captures the current gear-part pose as the fully deployed baseline.                                                                          | —                    |
++------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void SetImmediate(bool deployed)``                                                  | Synchronizes this part immediately to the requested deployed/retracted pose through its gear-part mapping.                                   | —                    |
++------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual void SetRetraction(float amount)``                                                  | Applies landing-gear travel with zero deployed and one retracted.                                                                            | —                    |
++------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public override void SetValue(float normalized)``                                                  | Applies deployed fraction: 1 fully deployed, 0 fully retracted, retaining the captured deployed mesh offset and current suspension rotation. | —                    |
++------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public override bool TryGetPose(float normalized, out Vector3 position, out Quaternion rotation)`` | Returns the gear pose for normalized progress, respecting its deployment geometry.                                                           | —                    |
++------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
 
 .. _uvs-api-aircraft--landinggearparttype:
 
@@ -844,7 +823,7 @@ LandingGearPartType
 
 Defines the allowed landing gear part type choices used by this topic.
 
-.. _uvs-api-aircraft--values-4:
+.. _uvs-api-aircraft--values-2:
 
 Values
 ~~~~~~
@@ -863,7 +842,7 @@ LandingGearState
 
 Defines the allowed landing gear state choices used by this topic.
 
-.. _uvs-api-aircraft--values-5:
+.. _uvs-api-aircraft--values-3:
 
 Values
 ~~~~~~
@@ -884,7 +863,7 @@ Configuration/implementation type for landing gear suspension within flight and 
 
 **Inherits / implements:** :ref:`ExteriorModule <uvs-api-modules--exteriormodule>`.
 
-.. _uvs-api-aircraft--state-and-configuration-10:
+.. _uvs-api-aircraft--state-and-configuration-11:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -901,7 +880,7 @@ State and configuration
 | ``public override ExecutionPhase Phase { get; }`` | Cross-category execution barrier used by the module pipeline.                                                                                                                  |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-13:
+.. _uvs-api-aircraft--methods-9:
 
 Methods
 ~~~~~~~
@@ -927,38 +906,38 @@ Describes load-driven hinge response for a gear part.
 
 **Inherits / implements:** ``MonoBehaviour``.
 
-.. _uvs-api-aircraft--state-and-configuration-11:
+.. _uvs-api-aircraft--state-and-configuration-12:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                              | Meaning                                                                                                                                                                                           |
-+=====================================+===================================================================================================================================================================================================+
-| ``public float angularInertia``     | Effective angular inertia used when converting the suspension response into hinge motion. Initial value: ``500``.                                                                                 |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float authoredAngle``      | Angle already present in the authored deployed mesh, in degrees.                                                                                                                                  |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float dampingTorque``      | Force/torque budget for damping torque; this limits or scales how strongly the mechanism changes physical motion. See the owning system guide for its application frame. Initial value: ``3500``. |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public LandingGearPart gearPart`` | Assign the gear part LandingGearPart component/asset used by LandingGearSuspensionPart.                                                                                                           |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public Vector3 localAxis``        | Local axis around which the configured motion or operation takes place. Initial value: ``Vector3.forward``.                                                                                       |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float maximumAngle``       | Upper rotation angle in degrees for the configured motion. Initial value: ``28``.                                                                                                                 |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool showGizmos``          | Shows this component’s scene guides and editing handles. Enabled by default; Inspector: **Gizmos > Show gizmos**. Does not change gameplay or physics.                                            |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float springTorque``       | Rotational spring response is integrated by ``LandingGearSuspension``; ``authoredAngle`` describes the existing deployed geometry and must not be captured from a compressed animated pose.       |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public WheelCollider wheel``      | Assign the wheel reference used by LandingGearSuspensionPart. Leave unassigned only when this feature is optional or the component can resolve it automatically.                                  |
-+-------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-+-------------------------+--------------------------------------------------------------------------------+
-| Declaration             | Usage                                                                          |
-+=========================+================================================================================+
-| ``public bool reverse`` | Mirror motion around the neutral pose without changing input or travel limits. |
-+-------------------------+--------------------------------------------------------------------------------+
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                     | Meaning                                                                                                                                                                                           |
++============================================+===================================================================================================================================================================================================+
+| ``public Transform anchor``                | Optional independent suspension hinge and local axis frame. Empty uses the gear part's anchor.                                                                                                    |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float angularInertia``            | Effective angular inertia used when converting the suspension response into hinge motion. Initial value: ``500``.                                                                                 |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float authoredAngle``             | Angle already present in the authored deployed mesh, in degrees.                                                                                                                                  |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float dampingTorque``             | Force/torque budget for damping torque; this limits or scales how strongly the mechanism changes physical motion. See the owning system guide for its application frame. Initial value: ``3500``. |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public LandingGearPart gearPart``        | Assign the gear part LandingGearPart component/asset used by LandingGearSuspensionPart.                                                                                                           |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Vector3 localAxis``               | Local axis around which the configured motion or operation takes place. Initial value: ``Vector3.forward``.                                                                                       |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumAngle``              | Upper rotation angle in degrees for the configured motion. Initial value: ``28``.                                                                                                                 |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Transform MotionAnchor { get; }`` | Transform used as the origin and axis frame for movement; the component supplies its fallback when unassigned.                                                                                    |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool reverse``                    | Mirror motion around the neutral pose without changing input or travel limits.                                                                                                                    |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool showGizmos``                 | Shows this component’s scene guides and editing handles. Enabled by default; Inspector: **Gizmos > Show gizmos**. Does not change gameplay or physics.                                            |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float springTorque``              | Rotational spring response is integrated by ``LandingGearSuspension``; ``authoredAngle`` describes the existing deployed geometry and must not be captured from a compressed animated pose.       |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public WheelCollider wheel``             | Assign the wheel reference used by LandingGearSuspensionPart. Leave unassigned only when this feature is optional or the component can resolve it automatically.                                  |
++--------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-api-aircraft--propulsion:
 
@@ -982,7 +961,7 @@ Events and Inspector callbacks
 | ``public event Action<float> SpeedChanged`` | When resolved propulsion presentation speed changes. Payload: the component's current speed value; it does not set engine power. |
 +---------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--state-and-configuration-12:
+.. _uvs-api-aircraft--state-and-configuration-13:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1003,7 +982,7 @@ State and configuration
 | ``public float spinUpSeconds``                                   | Time in seconds used for spin up seconds. Larger values make this phase/wait last longer. Initial value: ``1.8f``.                                             |
 +------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-aircraft--methods-14:
+.. _uvs-api-aircraft--methods-10:
 
 Methods
 ~~~~~~~
@@ -1025,7 +1004,7 @@ Propulsion.Propeller
 
 Configuration/implementation type for propeller within flight and landing gear.
 
-.. _uvs-api-aircraft--state-and-configuration-13:
+.. _uvs-api-aircraft--state-and-configuration-14:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1033,6 +1012,8 @@ State and configuration
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Member                                | Meaning                                                                                                                                                         |
 +=======================================+=================================================================================================================================================================+
+| ``public Transform anchor``           | Optional independent rotor pivot and local axis frame. Keep it outside the rotating mesh.                                                                       |
++---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float degreesPerSecond``     | Visible propeller/rotor spin speed at full requested output, in degrees per second. Initial value: ``900``.                                                     |
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool instantThrustResponse`` | Bypass smoothing of control-driven shaft demand to match immediate thrust forces. Engine-only rotation keeps its engine spool.                                  |
@@ -1044,6 +1025,10 @@ State and configuration
 | ``public bool onlyInWater``           | Require an enabled water provider/fallback and at least partial hull immersion. A dry hull stops shaft rotation.                                                |
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool onlyWithThrust``        | Scale rotation by throttle and enabled maneuver demands. No demand stops the shaft. Works with fixed speed or engine RPM.                                       |
++---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool physicsRotation``       | Advance collidable blades on the physics clock.                                                                                                                 |
++---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool reverse``               | Reverse the visible shaft rotation.                                                                                                                             |
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool reverseWithThrust``     | Reverse rotation for negative throttle. Independent of Only With Thrust and Use Engine Rpm.                                                                     |
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -1057,13 +1042,5 @@ State and configuration
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform transform``        | Assign the transform reference used by Propulsion.Propeller. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool physicsRotation``       | Advance collidable blades on the physics clock.                                                                                                                 |
-+---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool useEngineRpm``          | Derive rotor speed from engine RPM instead of fixed degrees per second.                                                                                         |
 +---------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-======================= ===================================
-Declaration             Usage
-======================= ===================================
-``public bool reverse`` Reverse the visible shaft rotation.
-======================= ===================================

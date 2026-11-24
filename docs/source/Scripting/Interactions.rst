@@ -156,37 +156,37 @@ ControlInteraction
 +----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
 | Method                                                         | Role                                                                                                                                             |
 +================================================================+==================================================================================================================================================+
-| ``public virtual bool TryBegin(Action onCommit = null)``       | Requests a control interaction; ``true`` means admitted, not necessarily committed or completed.                                                 |
-+----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual bool TrySetAnimationLayer(string layerName)`` | Select the next gesture layer by name while idle; empty clears the weight override.                                                              |
-+----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual bool TrySetAnimationLayer(int layerIndex)``   | Select by current Animator layer index; -1 clears the override. Invalid layers or busy interactions return false.                                |
-+----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void Begin()``                                | ``UnityEvent``-friendly wrapper around ``TryBegin``; it discards the bool result. Use ``TryBegin`` when the caller must handle refusal.          |
-+----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void CommitAnimation()``                      | Commits the current interaction from an Animation Event entry point.                                                                             |
-+----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void CompleteAnimation()``                    | Completes the current interaction from an Animation Event entry point.                                                                           |
-+----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual bool Commit()``                               | Commits gameplay at most once for the addressed interaction request.                                                                             |
-+----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual bool Complete()``                             | Completes an active request, committing first if necessary; after commit rechecks request identity before cleanup/completion notification.       |
 +----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void Cancel()``                               | Cancels the active interaction, stops owned driver/transfer/animation state and invokes ``onCancelled``. Already committed gameplay is retained. |
 +----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool Commit()``                               | Commits gameplay at most once for the addressed interaction request.                                                                             |
++----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void CommitAnimation()``                      | Commits the current interaction from an Animation Event entry point.                                                                             |
++----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool Complete()``                             | Completes an active request, committing first if necessary; after commit rechecks request identity before cleanup/completion notification.       |
++----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void CompleteAnimation()``                    | Completes the current interaction from an Animation Event entry point.                                                                           |
++----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void Tick(float deltaTime)``                  | Advances the declaring presentation/state machine by elapsed seconds; avoid a second call when its built-in owner already ticks it.              |
++----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool TryBegin(Action onCommit = null)``       | Requests a control interaction; ``true`` means admitted, not necessarily committed or completed.                                                 |
++----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool TrySetAnimationLayer(int layerIndex)``   | Select by current Animator layer index; -1 clears the override. Invalid layers or busy interactions return false.                                |
++----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual bool TrySetAnimationLayer(string layerName)`` | Select the next gesture layer by name while idle; empty clears the weight override.                                                              |
 +----------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
 
 +-----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------+
 | Event / callback                  | Role                                                                                                                                    |
 +===================================+=========================================================================================================================================+
-| ``public UnityEvent onStarted``   | After an interaction is admitted and its request is established. No payload; a handler can cancel immediately.                          |
+| ``public UnityEvent onCancelled`` | After an active interaction is cancelled. No payload; committed gameplay is not rolled back.                                            |
 +-----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public UnityEvent onCommit``    | After the request's gameplay callback commits, at most once. No payload; do not duplicate the same mechanical action in both callbacks. |
 +-----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public UnityEvent onCompleted`` | After the interaction completes. No payload; completion commits first if still needed.                                                  |
 +-----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------+
-| ``public UnityEvent onCancelled`` | After an active interaction is cancelled. No payload; committed gameplay is not rolled back.                                            |
+| ``public UnityEvent onStarted``   | After an interaction is admitted and its request is established. No payload; a handler can cancel immediately.                          |
 +-----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-interactions--controlinteractionanimationevents:
@@ -199,11 +199,11 @@ ControlInteractionAnimationEvents
 +---------------------------------------------+------------------------------------------------------------------------------+
 | Method                                      | Role                                                                         |
 +=============================================+==============================================================================+
+| ``public virtual void CancelInteraction()`` | Relays an Animator cancellation event to the configured control interaction. |
++---------------------------------------------+------------------------------------------------------------------------------+
 | ``public virtual void CommitAnimation()``   | Commits the current interaction from an Animation Event entry point.         |
 +---------------------------------------------+------------------------------------------------------------------------------+
 | ``public virtual void CompleteAnimation()`` | Completes the current interaction from an Animation Event entry point.       |
-+---------------------------------------------+------------------------------------------------------------------------------+
-| ``public virtual void CancelInteraction()`` | Relays an Animator cancellation event to the configured control interaction. |
 +---------------------------------------------+------------------------------------------------------------------------------+
 
 .. _uvs-scripting-interactions--controlinteractionrequest:
@@ -216,11 +216,11 @@ ControlInteractionRequest
 +----------------------------+----------------------------------------------------------------------------------------------------------------------------+
 | Method                     | Role                                                                                                                       |
 +============================+============================================================================================================================+
+| ``public void Cancel()``   | Cancels only if this exact request remains active; it cannot cancel a newer request.                                       |
++----------------------------+----------------------------------------------------------------------------------------------------------------------------+
 | ``public bool Commit()``   | Commits only while this request is still the owner's ``ActiveRequest``. A stale request cannot commit a newer interaction. |
 +----------------------------+----------------------------------------------------------------------------------------------------------------------------+
 | ``public bool Complete()`` | Completes only this still-active request; stale callbacks return ``false``.                                                |
-+----------------------------+----------------------------------------------------------------------------------------------------------------------------+
-| ``public void Cancel()``   | Cancels only if this exact request remains active; it cannot cancel a newer request.                                       |
 +----------------------------+----------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-interactions--icontrolinteractiondriver:

@@ -34,7 +34,7 @@ Save as ``RollingStartGate.cs``.
        {
            // A short excursion below the threshold resets the continuous-speed requirement.
            public VehicleController vehicle;
-           public UnityEvent passed = new UnityEvent();
+           public UnityEvent onPassed = new UnityEvent();
            float held;
            bool done;
            void OnEnable() { held = 0; done = false; if (vehicle) vehicle.AfterPhysicsStep += Sample; }
@@ -44,7 +44,7 @@ Save as ``RollingStartGate.cs``.
                if (done) return;
                held = t.SpeedKph > 40 ? held + t.DeltaTime : 0;
                if (held < 2) return;
-               done = true; passed.Invoke();
+               done = true; onPassed.Invoke();
            }
        }
    }
@@ -116,7 +116,7 @@ Save as ``AirborneChallenge.cs``.
        {
            // Rearm only after contact returns; award once per airborne interval.
            public VehicleController vehicle;
-           public UnityEvent completed = new UnityEvent();
+           public UnityEvent onCompleted = new UnityEvent();
            float airborne;
            bool awarded;
            void OnEnable() { if (vehicle) vehicle.AfterPhysicsStep += Sample; }
@@ -126,7 +126,7 @@ Save as ``AirborneChallenge.cs``.
                if (t.WheelCount == 0 || t.GroundedWheels > 0) { airborne = 0; awarded = false; return; }
                airborne += t.DeltaTime;
                if (airborne < .4f || awarded) return;
-               awarded = true; completed.Invoke();
+               awarded = true; onCompleted.Invoke();
            }
        }
    }
@@ -158,7 +158,7 @@ Save as ``ReverseDistanceTask.cs``.
        {
            // Forward travel never subtracts from or advances this reversing-only counter.
            public VehicleController vehicle;
-           public UnityEvent completed = new UnityEvent();
+           public UnityEvent onCompleted = new UnityEvent();
            float distance;
            bool active;
            public void Begin() { distance = 0; active = true; }
@@ -169,7 +169,7 @@ Save as ``ReverseDistanceTask.cs``.
                if (!active) return;
                distance += Mathf.Max(0, -t.ForwardSpeed) * t.DeltaTime;
                if (distance < 5) return;
-               active = false; completed.Invoke();
+               active = false; onCompleted.Invoke();
            }
        }
    }
@@ -201,7 +201,7 @@ Save as ``ParkingDwellTask.cs``.
        {
            // The external zone decides containment; this component decides the stopping dwell.
            public VehicleController vehicle;
-           public UnityEvent completed = new UnityEvent();
+           public UnityEvent onCompleted = new UnityEvent();
            bool inZone, done;
            float held;
            public void BeginZone() { inZone = true; done = false; held = 0; }
@@ -213,7 +213,7 @@ Save as ``ParkingDwellTask.cs``.
                if (!inZone || done) return;
                held = t.SpeedKph < .5f && t.Handbrake ? held + t.DeltaTime : 0;
                if (held < 2) return;
-               done = true; completed.Invoke();
+               done = true; onCompleted.Invoke();
            }
        }
    }
@@ -248,7 +248,7 @@ Save as ``LoadingBayDelivery.cs``.
            public VehicleBodyPart cargoDoor;
            public bool cargoPresent = true;
            [Min(.1f)] public float unloadSeconds = 3;
-           public UnityEvent delivered = new UnityEvent();
+           public UnityEvent onDelivered = new UnityEvent();
            float elapsed;
            bool active;
            public void BeginDelivery() { elapsed = 0; active = true; }
@@ -262,7 +262,7 @@ Save as ``LoadingBayDelivery.cs``.
                    cargoDoor.IsOpen && !cargoDoor.IsOpening && !cargoDoor.IsReleased;
                elapsed = ready ? elapsed + Time.deltaTime : 0;
                if (elapsed < unloadSeconds) return;
-               active = false; cargoPresent = false; delivered.Invoke();
+               active = false; cargoPresent = false; onDelivered.Invoke();
            }
            void OnDisable() { active = false; elapsed = 0; }
        }
@@ -339,7 +339,7 @@ Save as ``SpeedZoneTicket.cs``.
            [Min(0)] public float toleranceKph = 3, fine = 50;
            [Min(.1f)] public float graceSeconds = 2;
            public float TotalPenalty { get; private set; }
-           public UnityEvent ticketed = new UnityEvent();
+           public UnityEvent onTicketed = new UnityEvent();
            float limit, elapsed;
            bool inside, issued;
            public void EnterZone(float limitKph)
@@ -352,7 +352,7 @@ Save as ``SpeedZoneTicket.cs``.
                if (!inside || issued) return;
                elapsed = t.SpeedKph > limit + toleranceKph ? elapsed + t.DeltaTime : 0;
                if (elapsed < graceSeconds) return;
-               issued = true; TotalPenalty += Mathf.Max(0, fine); ticketed.Invoke();
+               issued = true; TotalPenalty += Mathf.Max(0, fine); onTicketed.Invoke();
            }
        }
    }
@@ -386,7 +386,7 @@ Save as ``OrderedCheckpointRun.cs``.
            [Min(1)] public int checkpointCount = 5;
            public int NextCheckpoint { get; private set; }
            public float FinishSeconds { get; private set; }
-           public UnityEvent finished = new UnityEvent();
+           public UnityEvent onFinished = new UnityEvent();
            bool running;
            float started;
            public void BeginRun() { NextCheckpoint = 0; FinishSeconds = 0; started = Time.time; running = true; }
@@ -395,7 +395,7 @@ Save as ``OrderedCheckpointRun.cs``.
                if (!running || entrant != vehicle || !vehicle || index != NextCheckpoint) return;
                NextCheckpoint++;
                if (NextCheckpoint < Mathf.Max(1, checkpointCount)) return;
-               running = false; FinishSeconds = Time.time - started; finished.Invoke();
+               running = false; FinishSeconds = Time.time - started; onFinished.Invoke();
            }
            void OnEnable() { if (vehicle) vehicle.Teleported += Abort; }
            void OnDisable() { if (vehicle) vehicle.Teleported -= Abort; running = false; }
@@ -431,7 +431,7 @@ Save as ``FragileCargoMonitor.cs``.
            public VehicleController vehicle;
            [Min(0)] public float toleratedImpulse = 500, damagePerNewtonSecond = .01f;
            public float Integrity { get; private set; }
-           public UnityEvent cargoLost = new UnityEvent();
+           public UnityEvent onCargoLost = new UnityEvent();
            bool loaded;
            public void LoadCargo() { Integrity = 100; loaded = true; }
            void OnEnable() { if (vehicle) vehicle.Impacted += Hit; }
@@ -443,7 +443,7 @@ Save as ``FragileCargoMonitor.cs``.
                float excess = Mathf.Max(0, impact.Impulse.magnitude - toleratedImpulse);
                Integrity = Mathf.Max(0, Integrity - excess * Mathf.Max(0, damagePerNewtonSecond));
                if (Integrity > 0) return;
-               loaded = false; cargoLost.Invoke();
+               loaded = false; onCargoLost.Invoke();
            }
        }
    }

@@ -96,10 +96,10 @@ namespace VehicleDocumentationExamples.Cookbook
         public VehicleController vehicle;
         public MovingPart hood;
         public float closedAngle, openAngle = 55;
-        public UnityEvent blocked = new UnityEvent();
+        public UnityEvent onBlocked = new UnityEvent();
         public void Open()
         {
-            if (!vehicle || !hood || vehicle.SpeedKph > .5f) { blocked.Invoke(); return; }
+            if (!vehicle || !hood || vehicle.SpeedKph > .5f) { onBlocked.Invoke(); return; }
             hood.SetTargetAngle(openAngle);
         }
         public void Close() { if (hood) hood.SetTargetAngle(closedAngle); }
@@ -292,7 +292,7 @@ namespace VehicleDocumentationExamples.Cookbook
     {
         public Wipers wipers;
         [Min(.1f)] public float washSeconds = 3;
-        public UnityEvent washerStarted = new UnityEvent();
+        public UnityEvent onWasherStarted = new UnityEvent();
         bool washing, previousRunning;
         float remaining;
         public void Wash()
@@ -300,7 +300,7 @@ namespace VehicleDocumentationExamples.Cookbook
             if (!wipers || !isActiveAndEnabled) return;
             if (!washing) previousRunning = wipers.IsRunning;
             washing = true; remaining = Mathf.Max(.1f, washSeconds);
-            wipers.SetRunning(true); washerStarted.Invoke();
+            wipers.SetRunning(true); onWasherStarted.Invoke();
         }
         void Update()
         {

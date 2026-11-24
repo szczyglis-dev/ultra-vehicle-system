@@ -23,7 +23,7 @@ A control has two separate components: the **handle** supplies passenger contact
 +======================================+======================================================================================================================================+
 | Handle identity                      | [Handle component] > ID (use PascalCase, e.g. SteeringWheel or DashboardSwitch1)                                                     |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| Steering palm targets                | Steering Wheel Handle > Left Target / Right Target, immediately after ID                                                             |
+| Steering palm targets                | Steering Wheel Handle > Left Target / Right Target                                                                                   |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | Steering ownership and support count | Steering Wheel Handle > Grip Mode / Minimum Attachments                                                                              |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
@@ -35,7 +35,7 @@ A control has two separate components: the **handle** supplies passenger contact
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | Steering surface and fingers         | Steering Wheel Handle > Behaviour > Adaptive Grip / Finger Blend Duration / [geometry]                                               |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| Custom steering surface              | Steering Wheel Handle > Behaviour > Custom Rim (above Regrip)                                                                        |
+| Custom steering surface              | Steering Wheel Handle > Behaviour > Custom Rim                                                                                       |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | Regrip policy                        | Steering Wheel Handle > Behaviour > Regrip > [option]                                                                                |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
@@ -43,16 +43,16 @@ A control has two separate components: the **handle** supplies passenger contact
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | Saved finger positions and preview   | [Handle component] > Hands / Hand position preview > [option]                                                                        |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| Handle callbacks/value tracking      | [Handle component] > Signals and callbacks > [option or event], immediately above Gizmos                                             |
+| Handle callbacks/value tracking      | [Handle component] > Signals and callbacks > [option or event]                                                                       |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | Animator contact synchronization     | [Control animator] > IK contact > Handle / Wait For Handle / Fake Sync Handle Motion                                                 |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| Control model pivot/axis             | [Control animator] > Motion > [option], immediately above Signals and callbacks                                                      |
+| Control model pivot/axis             | [Control animator] > Motion > [option]                                                                                               |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 | Control-specific events              | [Control animator] > Signals and callbacks > [event]                                                                                 |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 
-**Actions** contains the handle's ``use`` settings. Behaviour follows Actions without an extra blank row. Geometry and behavior differ by handle type: use the actual named handle component in place of the table's placeholder. Binding/select-animator buttons are near the bottom, before Signals and callbacks/Gizmos. Collider release belongs to the seat's individual limb configuration, not the handle; see :ref:`seat collider setup <uvs-seats--contact-exclusions>`.
+**Actions** contains the handle's ``use`` settings. Geometry and behavior differ by handle type: use the actual named handle component in place of the table's placeholder. Collider release belongs to the seat's individual limb configuration, not the handle; see :ref:`seat collider setup <uvs-seats--contact-exclusions>`.
 
 .. _uvs-handles--tutorial-steering-wheel-with-independent-hand-ownership:
 
@@ -72,7 +72,7 @@ Tutorial: steering wheel with independent hand ownership
 Tutorial: temporary switch, throttle or pedal
 ---------------------------------------------
 
-1. Create and preview the matching control animator. Set ordinary settings first; expand **[Animator] > Motion** at the bottom for pivot/axis/geometry.
+1. Create and preview the matching control animator. Set ordinary settings first; expand **[Animator] > Motion** for pivot/axis/geometry.
 2. Add the matching handle and assign **[Handle] > Animator / Contact Anchor** where exposed. Keep the contact under the moving control. Set **ID**, **Minimum Attachments** and **Allowed limbs**.
 3. Keep the seat's ordinary handle (wheel, yoke, stick, accelerator) in **Passenger Seat > Hands, feet and head > [limb] > Handle**. Do not replace it for every gesture.
 4. Expand the temporary handle's **Actions**. Set its action source, preferred limb, seat, travel/return timing and **Control Mode > IK** or **Animator + IK** when the handle should solve the limb. Use **Minimum Attachments = 0** for a control allowed to become unsupported; retain adequate support on the home wheel/yoke.
@@ -86,7 +86,7 @@ Tutorial: temporary switch, throttle or pedal
 Vehicle handle management
 -------------------------
 
-Each vehicle owns ``vehicle.handles``, the registry and scheduler for all its handles. Put a unique **ID** at the top of each handle Inspector, then select **Allowed limbs** using the four checkboxes. IDs are case-sensitive and scoped to the nearest vehicle; duplicates are reported and cannot be resolved by ID.
+Each vehicle owns ``vehicle.handles``, the registry and scheduler for all its handles. Set a unique **ID** for each handle, then select **Allowed limbs** using the four checkboxes. IDs are case-sensitive and scoped to the nearest vehicle; duplicates are reported and cannot be resolved by ID.
 
 The seat's assigned handles are the home destinations. Configure temporary requests under **[Handle component] > Actions**: seat, limb, priority and travel/return timing. **Minimum Attachments** keeps required support on the original control. **Interrupt Lower Priority** allows interruption of lower-priority timed requests; **Allow Unsupported Departure** permits borrowing the last supporting limb. Persistent and Animator ownership remain protected. Use the same :ref:`public API <uvs-scripting-handles--runtime-handover>` for custom requests.
 

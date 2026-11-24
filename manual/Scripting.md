@@ -62,21 +62,34 @@ In these examples, `vehicle` is an assigned `UltraVehicleSystem.VehicleControlle
 
 The optional `parts` and `passengers` shortcuts resolve through the module registry on each access. They include a registered disabled module, do not create a missing component and do not retain a stale cached reference after removal. A disabled module's own action methods still determine whether an operation can run. Cache the resolved reference within an operation when making several calls; resolve again when you need to observe runtime registration changes. For multiple implementations/providers, use `GetModules<T>` instead of assuming a shortcut selects all of them.
 
+<!-- example: DocumentationScripting5Example.cs -->
 ```csharp
-// vehicle is an assigned VehicleController.
-var bodyParts = vehicle.parts;
-if (bodyParts)
-{
-    bodyParts.Open("LeftDoor");             // VehicleBodyPart > Part Id.
-    var door = bodyParts.GetPart("LeftDoor");
-}
+using UnityEngine;
+using UltraVehicleSystem;
 
-var handle = vehicle.handles.Get("DashboardSwitch1"); // VehicleHandle > ID.
-var passengers = vehicle.passengers;
-if (passengers)
+public sealed class DocumentationScripting5Example : MonoBehaviour
 {
-    var seatSnapshot = passengers.Seats;    // One array copy here, not each frame.
-    // Use the selected PassengerSeat with passengers.TryEnter(body, seat).
+    public VehicleController vehicle;
+
+    public void RunExample()
+    {
+        if (!vehicle) return;
+        // vehicle is an assigned VehicleController.
+        var bodyParts = vehicle.parts;
+        if (bodyParts)
+        {
+            bodyParts.Open("LeftDoor");             // VehicleBodyPart > Part Id.
+            var door = bodyParts.GetPart("LeftDoor");
+        }
+
+        var handle = vehicle.handles.Get("DashboardSwitch1"); // VehicleHandle > ID.
+        var passengers = vehicle.passengers;
+        if (passengers)
+        {
+            var seatSnapshot = passengers.Seats;    // One array copy here, not each frame.
+            // Use the selected PassengerSeat with passengers.TryEnter(body, seat).
+        }
+    }
 }
 ```
 
@@ -87,20 +100,33 @@ For setup and complete interaction/boarding examples, see [Body-part actions](Mo
 | Entry point | Meaning |
 | --- | --- |
 | `vehicle.Telemetry` | Latest completed physics-step snapshot (`Telemetry` value type): for example `SpeedKph`, `Rpm`, `Gear`, position, motion and enabled diagnostic sections. Reading it does not calculate another snapshot. |
-| `vehicle.telemetry` | `TelemetrySettings` configuration, not the measured results. Flags: `controls`, `motion`, `body`, `powertrain`, `fuel`, `ground`, `wheelDetails`. Inspector: **Vehicle Controller > Setup > Telemetry**, below **Configuration**. Wheel details are off by default; the other optional groups are on by default. |
+| `vehicle.telemetry` | `TelemetrySettings` configuration, not the measured results. Flags: `controls`, `motion`, `body`, `powertrain`, `fuel`, `ground`, `wheelDetails`. Inspector: **Vehicle Controller > Setup > Telemetry**. Wheel details are off by default; the other optional groups are on by default. |
 | `vehicle.Telemetry.HasSection(section)` | Checks whether an optional diagnostic section is present. Disabled sections contain default/empty data; do not interpret their zero values as a physical measurement. |
 | `vehicle.AfterPhysicsStep` | Event delivering the completed snapshot after the mechanics pipeline. Prefer it when a consumer needs each finalized physics result. Subscribe/unsubscribe with the observer's lifecycle; see [Events and telemetry](Scripting/Events.md). |
 
+<!-- example: DocumentationScripting6Example.cs -->
 ```csharp
-var snapshot = vehicle.Telemetry;
-float speedKph = snapshot.SpeedKph;
-if (snapshot.HasSection(TelemetrySections.Powertrain))
-{
-    float rpm = snapshot.Rpm;
-}
+using UnityEngine;
+using UltraVehicleSystem;
 
-// Optional diagnostic configuration; it does not enable/disable wheel mechanics.
-vehicle.telemetry.wheelDetails = false;
+public sealed class DocumentationScripting6Example : MonoBehaviour
+{
+    public VehicleController vehicle;
+
+    public void RunExample()
+    {
+        if (!vehicle) return;
+        var snapshot = vehicle.Telemetry;
+        float speedKph = snapshot.SpeedKph;
+        if (snapshot.HasSection(TelemetrySections.Powertrain))
+        {
+            float rpm = snapshot.Rpm;
+        }
+
+        // Optional diagnostic configuration; it does not enable/disable wheel mechanics.
+        vehicle.telemetry.wheelDetails = false;
+    }
+}
 ```
 
 The controller creates and publishes snapshots during physics processing. Before the first completed step, readings may still have their initial values. Changing telemetry settings affects subsequent samples. Core world pose, velocity, speed and timestamps remain available independently of the optional sections.
@@ -122,9 +148,22 @@ The controller creates and publishes snapshots during physics processing. Before
 
 There are no universal `vehicle.engine`, `vehicle.audio` or `vehicle.seats` properties. Resolve installed modules and capability interfaces through `TryGetModule<T>(out module)`; pass `activeOnly: true` when the operation specifically requires an enabled provider. For repeated multi-provider queries, reuse a caller-owned `List<T>` with `GetModules<T>(list, activeOnly)`.
 
+<!-- example: DocumentationScripting7Example.cs -->
 ```csharp
-if (vehicle.TryGetModule<Engine>(out var engine, activeOnly: true))
-    engine.ToggleEngine();
+using UnityEngine;
+using UltraVehicleSystem;
+
+public sealed class DocumentationScripting7Example : MonoBehaviour
+{
+    public VehicleController vehicle;
+
+    public void RunExample()
+    {
+        if (!vehicle) return;
+        if (vehicle.TryGetModule<Engine>(out var engine, activeOnly: true))
+            engine.ToggleEngine();
+    }
+}
 ```
 
 The controller also exposes:

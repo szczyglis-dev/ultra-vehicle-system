@@ -84,9 +84,13 @@ Where automatic hand regrip is needed, use the handle Inspector's **Add automati
 
 A hand can temporarily belong to an interaction or rest. Do not fight that ownership with a second script continually reassigning the original grip. Use the [interaction guide](ControlInteractions.md) for temporary transfers and the [handle contract](Scripting/Handles.md#runtime-handover) for deliberate handovers.
 
-With automatic regrip enabled, a hand returning from a switch or handbrake aims for its preferred side grip in the unturned wheel plane, adjusted for safe separation from the other hand. It does not resume the old wheel-material contact. The returning palm lands with a wrapped grip. The substitute retains steering leadership and pressure after the return by default. The private `switchLeadershipAfterControllerReturn` flag (default `false`) optionally restores steering roles after the returning palm has rebound to the wheel and regained support; a substitute still at its lower stop then resumes the supporting pinch.
+With automatic regrip enabled, the returning hand is assessed against the current steering turn. A guide returns to its lower column support while the leading hand retains its rim contact. A borrowed leader resumes its saved wheel-material contact before taking over from the substitute. That contact follows the wheel while the hand uses a control; if steering has changed the turn owner, the returning hand is assessed for the new role instead. Turning through a straight-wheel boundary while a hand uses a control can change the current turn owner; returning from the control alone does not. The same rules apply to either hand and every external control.
+
+An uninterrupted **Continuous Leading Hand** turn retains its leading palm through the lower part of the wheel, including long steering rotations. Straight-wheel boundaries are handled symmetrically for both directions; returning to neutral restores both ordinary side grips. Manually authored fixed anchors without **Use Anchor Start Position** retain their authored placement.
 
 Automatic gearbox paddle gestures do not borrow the leading steering hand while the visible wheel is turned at least 90 degrees. This prevents braking downshifts from unexpectedly swapping steering roles. Explicit paddle presses and command-requested shifts remain eligible; mechanical gear selection proceeds normally.
+
+With **Vary Grip With Steering** enabled, the sole available steering hand retains its pressure grip and upright wrist while the other hand uses a control, including unwinding and passing through neutral. Normal two-hand relaxation resumes after the other hand has rebound to the wheel.
 
 ## Physical tracking versus finger appearance
 
@@ -118,6 +122,6 @@ Tune contact geometry and the seated pose before increasing stiffness or solver 
 
 ### Repeated turns and hand reach sectors
 
-Automatic regrip keeps moving palms within their column-space reach sectors using **Left Rest Angle**, **Right Rest Angle** and **Minimum Hand Separation**. At a reach limit, the palm can slip relative to the rim instead of crossing into the other hand's sector. **Palm Return Time** controls the guide hand's return trajectory and its transition from Pinch to Wrapped.
+**Left Rest Angle**, **Right Rest Angle** and **Minimum Hand Separation** define the guide contacts and safe return sectors. **Continuous Leading Hand** preserves the leader's material contact; the guide clears its path when necessary. **Release and Regrasp** releases and catches a new contact when the leader reaches its sector limit. **Palm Return Time** controls the catch trajectory and its transition from Pinch to Wrapped.
 
-Temporary controls return the hand to its saved contact on the rotating rim, subject to reach and separation limits. See [smooth return to a wheel contact](Handles.md#smooth-return-to-a-wheel-contact) for return and finger-blend behavior. Fixed joystick targets use their authored contact policy.
+Temporary controls return the hand to its side grip in the steering-column frame, subject to reach and separation limits. See [smooth return to a wheel contact](Handles.md#smooth-return-to-a-wheel-contact) for return and finger-blend behavior. Fixed joystick targets use their authored contact policy.

@@ -343,7 +343,7 @@ Save as ``ParkingApproachDriver.cs``.
            public Transform target;
            [Min(1)] public float approachKph = 12;
            [Min(.2f)] public float stopRadius = 2;
-           public UnityEvent arrived = new UnityEvent();
+           public UnityEvent onArrived = new UnityEvent();
            bool driving;
            public void Begin() { driving = true; }
            void Update()
@@ -355,7 +355,7 @@ Save as ``ParkingApproachDriver.cs``.
                if (distance <= radius)
                {
                    input.SetAnalogAxes(0, 0, 1);
-                   if (vehicle.SpeedKph < .5f) { driving = false; arrived.Invoke(); }
+                   if (vehicle.SpeedKph < .5f) { driving = false; onArrived.Invoke(); }
                    return;
                }
                // Brake if the target is behind; a route planner must choose a new approach.
@@ -396,13 +396,13 @@ Save as ``ParkedControlHandover.cs``.
        {
            public VehicleController vehicle;
            public InputBuffer player, ai;
-           public UnityEvent rejected = new UnityEvent();
+           public UnityEvent onRejected = new UnityEvent();
            public void GiveToAI() { Select(ai); }
            public void GiveToPlayer() { Select(player); }
            void Select(InputBuffer next)
            {
                if (!vehicle || !next || !next.isActiveAndEnabled || vehicle.IsMoving())
-               { rejected.Invoke(); return; }
+               { onRejected.Invoke(); return; }
                if (player) player.ClearControls();
                if (ai) ai.ClearControls();
                vehicle.SetInputSource(next);

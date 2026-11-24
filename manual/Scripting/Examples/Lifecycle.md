@@ -130,13 +130,13 @@ namespace VehicleDocumentationExamples.Cookbook
     public sealed class WheelAvailabilityPanel : MonoBehaviour
     {
         public VehicleController vehicle;
-        public UnityEvent refreshRequested = new UnityEvent();
-        void OnEnable() { if (vehicle) vehicle.WheelAvailabilityChanged += Changed; refreshRequested.Invoke(); }
+        public UnityEvent onRefreshRequested = new UnityEvent();
+        void OnEnable() { if (vehicle) vehicle.WheelAvailabilityChanged += Changed; onRefreshRequested.Invoke(); }
         void OnDisable() { if (vehicle) vehicle.WheelAvailabilityChanged -= Changed; }
         void Changed(int index, bool available)
         {
             Debug.Log($"Wheel {index}: available={available}", this);
-            refreshRequested.Invoke(); // Re-read this vehicle's wheel configuration.
+            onRefreshRequested.Invoke(); // Re-read this vehicle's wheel configuration.
         }
     }
 }
@@ -161,12 +161,12 @@ namespace VehicleDocumentationExamples.Cookbook
     public sealed class RepairAtRest : MonoBehaviour
     {
         public VehicleController vehicle;
-        public UnityEvent rejected = new UnityEvent(), completed = new UnityEvent();
+        public UnityEvent onRejected = new UnityEvent(), onCompleted = new UnityEvent();
         public void RequestRepair()
         {
-            if (!vehicle || vehicle.SpeedKph > .5f) { rejected.Invoke(); return; }
+            if (!vehicle || vehicle.SpeedKph > .5f) { onRejected.Invoke(); return; }
             vehicle.RepairAll();
-            completed.Invoke();
+            onCompleted.Invoke();
             // Currency or inventory checks belong before RepairAll in your game.
         }
     }
@@ -269,12 +269,12 @@ namespace VehicleDocumentationExamples.Cookbook
         public TractionControl traction;
         public DrivingAssists assists;
         public string preferenceKey = "vehicle.traction.enabled";
-        public UnityEvent rejected = new UnityEvent();
+        public UnityEvent onRejected = new UnityEvent();
         public void RestoreSaved() { Apply(PlayerPrefs.GetInt(preferenceKey, 1) != 0); }
         public void Apply(bool enabled)
         {
             if (!vehicle || vehicle.IsMoving() || (!assists && !traction))
-            { rejected.Invoke(); return; }
+            { onRejected.Invoke(); return; }
             if (assists) assists.SetTractionControl(enabled);
             else traction.SetTractionControlEnabled(enabled);
             PlayerPrefs.SetInt(preferenceKey, enabled ? 1 : 0);
@@ -305,18 +305,18 @@ namespace VehicleDocumentationExamples.Cookbook
         public VehicleController vehicle;
         public InputBuffer controls;
         public Transform depot;
-        public UnityEvent returned = new UnityEvent(), rejected = new UnityEvent();
+        public UnityEvent onReturned = new UnityEvent(), onRejected = new UnityEvent();
         public void ReturnToDepot()
         {
-            if (!vehicle || !depot) { rejected.Invoke(); return; }
+            if (!vehicle || !depot) { onRejected.Invoke(); return; }
             foreach (var seat in vehicle.GetComponentsInChildren<PassengerSeat>(true))
                 if (seat.GetComponentInParent<VehicleController>(true) == vehicle && seat.Occupant)
-                { rejected.Invoke(); return; }
+                { onRejected.Invoke(); return; }
             if (controls) controls.ClearControls();
             vehicle.SetInputSource(null);
             if (vehicle.TryGetModule<Engine>(out var engine)) engine.StopEngine();
             vehicle.ResetVehicle(depot.position, depot.rotation);
-            returned.Invoke();
+            onReturned.Invoke();
         }
     }
 }
@@ -343,13 +343,13 @@ namespace VehicleDocumentationExamples.Cookbook
         public VehicleController vehicle;
         public WheelPart wheelPart;
         [Min(0)] public int kits = 1;
-        public UnityEvent repaired = new UnityEvent(), rejected = new UnityEvent();
+        public UnityEvent onRepaired = new UnityEvent(), onRejected = new UnityEvent();
         public void UseKit()
         {
             if (!vehicle || !wheelPart || kits <= 0 || vehicle.IsMoving() ||
                 !wheelPart.IsDetached || !vehicle.RepairPart(wheelPart.partId))
-            { rejected.Invoke(); return; }
-            kits--; repaired.Invoke();
+            { onRejected.Invoke(); return; }
+            kits--; onRepaired.Invoke();
         }
     }
 }

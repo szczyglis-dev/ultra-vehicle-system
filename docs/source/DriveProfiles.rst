@@ -12,31 +12,27 @@ Choose a drive mode
 
 Select the vehicle root and open **VehicleController > Setup > Drive mode**. Choose the movement family, then configure its settings, wheel roles and supporting modules. Selecting a different mode initializes its settings; subsequent configuration and entering Play Mode preserve your tuning unless a particular profile explicitly owns a module setting.
 
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Drive mode         | Intended use                                                                                            | Continue with                                                             |
-+====================+=========================================================================================================+===========================================================================+
-| Wheeled            | Cars, buses, trucks, tractors, monster trucks, quads/ATVs and other conventional wheeled vehicles       | This page, then gearbox and suspension                                    |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Motorcycle         | Motorcycles, motorbikes, bicycles and kick/electric scooters with rider lean and balance assistance     | :doc:`Vehicle tuning </VehicleTuning>`                                    |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Tracked            | Tanks, tracked carriers, bulldozers and other vehicles steered by their left/right tracks               | :doc:`Tracked vehicles </Tracked>`                                        |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Hover              | Multirotor drones, quadcopters, hovercraft and flying cars with assisted hovering and sideways movement | :doc:`Combined vehicles </CombinedVehicles>`, :doc:`Aircraft </Aircraft>` |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Helicopter         | Helicopters and other rotorcraft with collective lift, forward flight and optional altitude hold        | :doc:`Aircraft </Aircraft>`                                               |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Airplane           | Conventional fixed-wing aircraft, such as light planes, trainers and propeller aircraft                 | :doc:`Aircraft </Aircraft>`                                               |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Aerobatic Airplane | Aerobatic and stunt planes intended for loops, rolls and inverted flight                                | :doc:`Aircraft </Aircraft>`                                               |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Jet                | Jet aircraft, such as fighters and fast jets, with thrust-driven flight and body-rate controls          | :doc:`Aircraft </Aircraft>`                                               |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Boat               | Motorboats, speedboats, patrol boats, ships and other powered surface vessels                           | :doc:`Boat </Boat>`                                                       |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Spaceship          | Six-axis gravity-free spacecraft                                                                        | :doc:`Aircraft </Aircraft>`                                               |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
-| Submarine          | Submarines and powered underwater vehicles with depth and trim control                                  | :doc:`Submarine </Submarine>`                                             |
-+--------------------+---------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Drive mode | Intended use                                                                                                                     | Continue with                                                             |
++============+==================================================================================================================================+===========================================================================+
+| Wheeled    | Cars, buses, trucks, tractors, monster trucks, quads/ATVs and other conventional wheeled vehicles                                | This page, then gearbox and suspension                                    |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Motorcycle | Motorcycles, motorbikes, bicycles and kick/electric scooters with rider lean and balance assistance                              | :doc:`Vehicle tuning </VehicleTuning>`                                    |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Tracked    | Tanks, tracked carriers, bulldozers and other vehicles steered by their left/right tracks                                        | :doc:`Tracked vehicles </Tracked>`                                        |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Hover      | Multirotor drones, quadcopters, hovercraft and flying cars with assisted hovering and sideways movement                          | :doc:`Combined vehicles </CombinedVehicles>`, :doc:`Aircraft </Aircraft>` |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Helicopter | Helicopters and other rotorcraft with collective lift, forward flight and optional altitude hold                                 | :doc:`Aircraft </Aircraft>`                                               |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Airplane   | All fixed-wing aircraft, including light planes, aerobatic planes and jets; Simple Steering optionally enables assisted attitude | :doc:`Aircraft </Aircraft>`                                               |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Boat       | Motorboats, speedboats, patrol boats, ships and other powered surface vessels                                                    | :doc:`Boat </Boat>`                                                       |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Spaceship  | Six-axis gravity-free spacecraft                                                                                                 | :doc:`Aircraft </Aircraft>`                                               |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
+| Submarine  | Submarines and powered underwater vehicles with depth and trim control                                                           | :doc:`Submarine </Submarine>`                                             |
++------------+----------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------+
 
 Use Wheeled for different road models rather than looking for a separate physics mode for each body style. Their mass, wheelbase, torque, gearing and grip create the handling differences. A trailer is an independent unpowered vehicle configured through :doc:`Towing </Towing>`, not another powered drive strategy.
 

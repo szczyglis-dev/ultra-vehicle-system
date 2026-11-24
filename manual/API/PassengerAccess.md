@@ -60,12 +60,13 @@ Stores animation states, references and timing configuration.
 | `public string exitState` | Text identifier/name for exit state. Keep it consistent with the referenced animation, profile or application setting. Initial value: `"Base Layer.Enter Out"`. |
 | `public string exitTrigger` | Text identifier/name for exit trigger. Keep it consistent with the referenced animation, profile or application setting. Initial value: `"EnterOut"`. |
 | `public float footBlendSeconds` | Time in seconds used for foot blend seconds. Larger values make this phase/wait last longer. Initial value: `.16f`. |
-| `public float handoverBlendSeconds` | Seconds for the final seated blend on entry and positional support fade on exit. Exit keeps Animator rotation. Default: 0.2; zero disables this additional blend. |
+| `public float handoverBlendSeconds` | Seconds for the final seated blend on entry and positional support fade on exit. Exit keeps Animator rotation. Default: .2; zero disables this additional blend. |
 | `public virtual bool HasBindings { get; }` | Current has bindings predicate; read it instead of maintaining a second application flag. |
 | `public bool holdFeetWhileIdle` | Disable when an application locomotion / ground IK system owns standing feet. |
 | `public float horizontalScale` | Multiplier/fraction controlling horizontal scale. Increasing it increases this contribution relative to the unscaled value. Initial value: `1`. |
 | `public int layer` | Animator layer index used to play and inspect boarding/exit states. |
 | `public bool manualFootContacts` | Use foot-contact curves instead of automatic height/speed classification. |
+| `public float physicsBlendSeconds` | Seconds to fade the whole visible skeleton from the last entry animation pose into the live ragdoll. Physics runs immediately. Zero disables this visual blend. |
 | `public float plantHeight` | Plant height in metres in the owning system's space. Initial value: `.06f`. |
 | `public float plantSpeed` | Foot-speed threshold used by planted-foot detection during access motion. Initial value: `.3f`. |
 | `public float playbackSpeed` | Playback speed multiplier for the boarding and exit motion. Initial value: `1`. |
@@ -80,12 +81,6 @@ Stores animation states, references and timing configuration.
 | `public float transitionAllowance` | Extra time allowance in seconds for Animator state transitions during access. Initial value: `.2f`. |
 | `public bool useAnimatorRootMotion` | Extract translation/turning from Animator root motion; enable for unbaked Root Transform tracks. Disable for movement baked into pose. |
 | `public bool useFootIK` | Stabilize grounded feet during access; disable to use the uncorrected animation. |
-
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public float physicsBlendSeconds` | Seconds to fade the whole visible skeleton from the last entry animation pose into the live ragdoll. Physics runs immediately. Zero disables this visual blend. |
 
 ## AccessMotion
 
@@ -161,7 +156,7 @@ Built-in Animator-based humanoid access implementation.
 | `public virtual bool LeftFootPlanted { get; }` | Read-only/resolved left foot planted for `HumanoidAccessMotion`. |
 | `public virtual Vector3 RightFootLock { get; }` | Current right planted-foot support point in world space. |
 | `public virtual bool RightFootPlanted { get; }` | Read-only/resolved right foot planted for `HumanoidAccessMotion`. |
-| `public RuntimeAnimatorController seatedPoseController` | Optional controller sampled for the actual seated destination and restored after entry for Animator/Animator + IK passengers. Use the same controller as seated playback; default null retains the IK/reference target. |
+| `public RuntimeAnimatorController seatedPoseController` | Optional controller sampled for the seated destination and restored before attachment, including Animator-owned limbs on Ragdoll passengers. Use the same controller as seated playback; default null retains the IK/reference target. |
 | `public override bool UsesAnimationDoorEvents { get; }` | Whether door requests must come from animation markers instead of timed fallback control. |
 
 
@@ -195,8 +190,6 @@ Owns the entry/exit state machine, reservation and cancellation.
 | `public event Action<PassengerSeatContext> BeforeEnter` | Before collision preparation, door requests and entry motion, after reservation succeeds. Payload: immutable PassengerSeatContext. |
 | `public event Action<PassengerSeatContext> BeforeExit` | Before collision preparation, door requests and exit motion, while occupancy is retained. Payload: immutable PassengerSeatContext. |
 | `public event Action<PassengerSeatContext> Cancelled` | After a started/prepared sequence is cancelled and the reservation/Target are cleared; context retains the original seat/passenger. Payload: immutable PassengerSeatContext. |
-| `public UnityEvent cancelled` | Inspector callback when access is cancelled; no payload. |
-| `public UnityEvent completed` | Inspector callback when access succeeds; no payload. |
 | `public event Action<PassengerSeatContext> EnterBegin` | Once an admitted entry starts in Opening, after Before checks; seat reservation is held. |
 | `public event Action<PassengerSeatContext> EnterCancelled` | After a reserved entry is cancelled or fails and cleanup finishes; an immediately rejected request emits nothing. |
 | `public event Action<PassengerSeatContext> EnterFinished` | Only after the entire entry succeeds, including the required door state and reservation/Target cleanup. |
@@ -206,6 +199,9 @@ Owns the entry/exit state machine, reservation and cancellation.
 | `public event Action<PassengerSeatContext> ExitFinished` | Only after the entire exit succeeds, including the required door state and reservation/Target cleanup. |
 | `public event Action<PassengerAccessProgress> ExitInProgress` | After each exit motion sample in Moving, starting at zero; progress one is not whole-sequence completion. |
 | `public event Action<PassengerAccess, bool> Finished` | When an access attempt ends. Payload: `PassengerAccess` and success bool; inspect actual occupancy after cancellation/handover. |
+| `public event Action<PassengerAccess, AccessState> StateChanged` | When access sequencing changes. Payload: `PassengerAccess` and `AccessState`; seat occupancy may commit at a different boundary. |
+| `public UnityEvent onCancelled` | Inspector callback when access is cancelled; no payload. |
+| `public UnityEvent onCompleted` | Inspector callback when access succeeds; no payload. |
 | `public UnityEvent onEnterBegin` | Inspector counterpart of `EnterBegin`; no payload. |
 | `public UnityEvent onEnterCancelled` | Inspector counterpart of `EnterCancelled`; no payload. |
 | `public UnityEvent onEnterFinish` | Inspector counterpart of `EnterFinished`; no payload. |
@@ -214,8 +210,7 @@ Owns the entry/exit state machine, reservation and cancellation.
 | `public UnityEvent onExitCancelled` | Inspector counterpart of `ExitCancelled`; no payload. |
 | `public UnityEvent onExitFinish` | Inspector counterpart of `ExitFinished`; no payload. |
 | `public UnityEvent<float> onExitInProgress` | Inspector counterpart of `ExitInProgress`; receives normalized motion time (0..1). |
-| `public UnityEvent started` | Inspector callback when access sequencing starts; no payload. |
-| `public event Action<PassengerAccess, AccessState> StateChanged` | When access sequencing changes. Payload: `PassengerAccess` and `AccessState`; seat occupancy may commit at a different boundary. |
+| `public UnityEvent onStarted` | Inspector callback when access sequencing starts; no payload. |
 
 
 ### State and configuration
@@ -237,7 +232,7 @@ Owns the entry/exit state machine, reservation and cancellation.
 | `public virtual void AnimationDoor(bool open)` | Routes an animation door request into the current passenger access sequence. | `open` — Requested open state. |
 | `public virtual void Cancel()` | Unwinds this access attempt's motion/reservation and performs its state-specific occupancy cleanup. Already committed occupancy need not be undone. | No arguments; no returned value. |
 | `public virtual bool TryEnter(SeatAccess access)` | Admits an asynchronous entry and reserves the endpoint/seat. True means started, not occupied/completed; observe Finished and actual seat occupancy. | `access` — Access, interpreted by this operation in the declared type. **Returns:** `true` when admitted; synchronous begin-listener cancellation returns `false`. Observe directional events for the eventual outcome. |
-| `public virtual bool TryExit()` | Admits asynchronous departure. Seat release and motion completion occur at different boundaries; observe Finished for sequence outcome. | **Returns:** `true` when admitted; synchronous begin-listener cancellation returns `false`. Observe directional events for the eventual outcome. |
+| `public virtual bool TryExit()` | Admits asynchronous departure, including an active FPP variant. Applies seat presentation policy before reservation; restoration forwards the request to the original body's configured access adapter. Seat release and motion completion occur at different boundaries; observe Finished on the departing adapter for sequence outcome. | **Returns:** `true` when admitted; synchronous begin-listener cancellation returns `false`. Observe directional events for the eventual outcome. |
 
 ## PassengerAccessProgress
 
@@ -269,6 +264,20 @@ Immutable value snapshot sent by the directional motion-progress events. No per-
 Describes the seat endpoint, outside marker, door and admission settings.
 
 **Inherits / implements:** `MonoBehaviour`.
+
+### Events and Inspector callbacks
+
+| Member | Meaning |
+| --- | --- |
+| `public UnityEvent onEnterBegin` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+| `public UnityEvent onEnterCancelled` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+| `public UnityEvent onEnterFinish` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+| `public UnityEvent<float> onEnterInProgress` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+| `public UnityEvent onExitBegin` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+| `public UnityEvent onExitCancelled` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+| `public UnityEvent onExitFinish` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+| `public UnityEvent<float> onExitInProgress` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
+
 
 ### State and configuration
 
@@ -315,15 +324,3 @@ Describes the seat endpoint, outside marker, door and admission settings.
 | `public virtual bool DoorReady(bool open)` | Checks whether the configured door has reached the required access state. | `open` — Requested open state. **Returns:** Predicate/result flag described by this operation; it is not a completion notification unless explicitly stated. |
 | `public virtual bool IsExitClear(PassengerBody passenger)` | Checks the configured outside endpoint capsule for exit clearance; it does not plan a route. | `passenger` — Character body receiving motion/attachment. **Returns:** `true` when the described condition holds; `false` otherwise. |
 | `public virtual void RequestDoor(bool open)` | Requests the configured access door's required state for the current operation. | `open` — Requested open state. |
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public UnityEvent onEnterBegin` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
-| `public UnityEvent<float> onEnterInProgress` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
-| `public UnityEvent onEnterFinish` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
-| `public UnityEvent onEnterCancelled` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
-| `public UnityEvent onExitBegin` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
-| `public UnityEvent<float> onExitInProgress` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
-| `public UnityEvent onExitFinish` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |
-| `public UnityEvent onExitCancelled` | Inspector callback under Signals and callbacks; see the lifecycle guide for payload and ordering. |

@@ -10,38 +10,36 @@ The package includes built-in controls and physics for multiple types of flying 
 Choose a flight profile
 -----------------------
 
-+--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
-| Profile            | Suitable vehicles                                              | Movement and control                                                                   |
-+====================+================================================================+========================================================================================+
-| Airplane           | Light aircraft and other assisted fixed-wing vehicles          | Assisted flight with pitch/bank limits, takeoff handling and ground/air blending.      |
-+--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
-| Aerobatic Airplane | Aerobatic and freely maneuvering fixed-wing aircraft           | Pitch, roll and yaw rate control, including inverted flight.                           |
-+--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
-| Jet                | Fighter jets and other fast fixed-wing aircraft                | Aerodynamic drag/lift, body-rate controls and G-limited response.                      |
-+--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
-| Helicopter         | Helicopters and rotorcraft controlled by tilting the body      | Rotor-powered lift, pitch/roll movement, yaw and optional altitude hold.               |
-+--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
-| Hover              | Drones, hovering platforms, flying cars and UFO-style vehicles | Direct forward/reverse movement, sideways thrust, vertical lift and assisted leveling. |
-+--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
-| Spaceship          | Gravity-free spacecraft                                        | Local-axis thrust and rotation, with optional flight-path alignment and bank drift.    |
-+--------------------+----------------------------------------------------------------+----------------------------------------------------------------------------------------+
++------------+----------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
+| Profile    | Suitable vehicles                                              | Movement and control                                                                                                                           |
++============+================================================================+================================================================================================================================================+
+| Airplane   | Light planes, aerobatic aircraft and jets                      | One configurable fixed-wing profile: Simple Steering selects assisted attitude; otherwise body-rate controls permit rolls and inverted flight. |
++------------+----------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
+| Helicopter | Helicopters and rotorcraft controlled by tilting the body      | Rotor-powered lift, pitch/roll movement, yaw and optional altitude hold.                                                                       |
++------------+----------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
+| Hover      | Drones, hovering platforms, flying cars and UFO-style vehicles | Direct forward/reverse movement, sideways thrust, vertical lift and assisted leveling.                                                         |
++------------+----------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
+| Spaceship  | Gravity-free spacecraft                                        | Local-axis thrust and rotation, with optional flight-path alignment and bank-turn assistance.                                                  |
++------------+----------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
 
 A drone is a vehicle configuration rather than a separate profile. Use **Hover** for direct movement and strafing, or **Helicopter** when horizontal movement should come from body tilt. The number and placement of visible rotors are configured separately from the movement profile.
 
-**Spaceship** can hover without thrust. **Align Flight Path** redirects travel toward the nose, **Rotation Release Duration** smooths spin braking after release, and optional **Bank Drift** offsets the path with bank; downward drift is disabled by default. See the :ref:`profile settings <uvs-inspectorreference-drive--spaceshipprofile>` for adjustment and :ref:`Input <uvs-input--keyboard-bindings>` for thrust and braking controls.
+**Spaceship** keeps orientation independent of translation while coasting. With forward/backward thrust, **Align Flight Path** uses powered correction to remove sideways and opposing momentum, so travel converges smoothly along the selected nose/reverse axis. It does not turn the hull; opposing motion is braked through zero rather than steered through a sideways U-turn. Explicit strafe/lift controls take priority over this correction. Alignment is enabled in new profiles and the demo; **Bank Turn Assistance**, which can curve travel and coordinate nose rotation with bank, remains disabled by default. **Rotation Release Duration** controls how smoothly spin stops after release. See the :ref:`profile settings <uvs-inspectorreference-drive--spaceshipprofile>` and :ref:`Input <uvs-input--keyboard-bindings>`.
 
 .. _uvs-aircraft--one-configurable-fixed-wing-model:
 
 One configurable fixed-wing model
 ---------------------------------
 
-All fixed-wing physics lives in ``AirplaneProfile``. **Airplane**, **Aerobatic Airplane** and **Jet** are initial parameter presets; the latter two only set constructor defaults and inherit the same implementation. Existing preset type names remain available for saved profiles.
+All fixed-wing physics and tuning live in ``AirplaneProfile``. Airplane, aerobatic aircraft and jets use this same profile; there are no separate Jet or Aerobatic profile classes. Newly created fixed-wing vehicles use the demo Jet tuning. The supplied light Airplane prefab retains its own explicitly authored simple-steering settings.
 
-In the Inspector, **Control Mode** selects assisted pitch/bank targets or unrestricted body rates. **Aerodynamics** independently selects simplified lift/alignment or relative-airflow forces. **Progressive Thrust Envelope**, bank compensation, minimum air control authority, rate coordinated turn assistance and G/yaw limiters are editable on every preset. The remaining engine, landing-gear, lift, drag and response parameters are shared too.
+In the Inspector, **Simple Steering** enables assisted pitch/bank targets; leaving it off selects unrestricted body rates. **Aerodynamics** independently selects simplified lift/alignment or relative-airflow forces. **Progressive Thrust Envelope**, bank compensation, minimum air control authority, rate coordinated turn assistance and G/yaw limiters are editable on every fixed-wing vehicle. The remaining engine, landing-gear, lift, drag and response parameters are shared too.
 
-To turn a Jet into an assisted light aircraft, select **Assisted Attitude** and **Simplified**, disable **Progressive Thrust Envelope**, enable **Bank Compensation Enabled**, set **Minimum Air Control Authority** to zero and tune engine power, acceleration, speed limits and gear settings for the airframe. To reproduce another preset exactly, copy all its settings: changing the two model selectors alone does not replace its tuning. Configure the vehicle again after changing engine, gear or rate settings.
+To turn a Jet into an assisted light aircraft, enable **Simple Steering** and select **Simplified** aerodynamics, disable **Progressive Thrust Envelope**, enable **Bank Compensation Enabled**, set **Minimum Air Control Authority** to zero and tune engine power, acceleration, speed limits and gear settings for the airframe. To reproduce another preset exactly, copy all its settings: changing the two model selectors alone does not replace its tuning. Configure the vehicle again after changing engine, gear or rate settings.
 
-The supplied Airplane and Jet prefabs explicitly store these settings in both the imported demo and ``Samples~``. The demo scenes inherit their aircraft configuration from those prefabs.
+In **Relative Airflow**, banked lift curves the flight path; **Rate Coordinated Turn Enabled** helps the nose follow it. Without additional elevator input, banking reduces vertical support. The demo Jet and newly created fixed-wing profiles use this coordination.
+
+The supplied Airplane and Jet prefabs explicitly store these settings under ``Demo/Prefabs``. The demo scenes inherit their aircraft configuration from those prefabs.
 
 .. _uvs-aircraft--create-an-aircraft:
 
@@ -49,7 +47,7 @@ Create an aircraft
 ------------------
 
 1. Prepare a unit-scale vehicle root facing +Z with a Rigidbody and a suitable hull collider.
-2. Select **Tools → UltraVehicleSystem → Add Vehicle**, then choose the desired flight preset. On an existing vehicle, choose the profile under **VehicleController → Setup → Drive mode** and configure its supporting modules.
+2. Select **Tools → UltraVehicleSystem → Add Vehicle**, then choose the desired flight family. On an existing vehicle, choose the profile under **VehicleController → Setup → Drive mode** and configure its supporting modules.
 3. Set mass and the profile's movement settings. Keep an enabled ``Drive`` module registered so the selected profile receives physics updates.
 4. Assign the input source. Use ``KeyboardFlightInput`` for the supplied keyboard controls, ``ActionInput`` for configured actions or ``ExternalController`` for commands from your application. See :doc:`Input </Input>`.
 5. Configure propulsion and, where required, engine ignition and fuel. Add landing-gear wheels only when the chosen setup needs them.
@@ -70,7 +68,7 @@ Configure suspension, tire grip, braking and ground steering, then apply vehicle
 
 The supplied keyboard input uses **Space** for wheel service brakes and **Left Alt** for the parking brake. Both lower retained keyboard throttle; parking commands also suppress aircraft thrust for external and analog inputs. Releasing the brake keeps the reduced throttle. A wheel-brake request remains active through takeoff/touchdown contact transitions; airborne wheels receive brake torque but cannot stop the airframe without ground contact.
 
-Enable **Allow Ground Reverse** in the airplane/jet profile (default off), with landing gear and positive **Ground Reverse Speed/Acceleration**. Hold **Ground Reverse Key** (default Z) to reverse on the ground.
+Enable **Allow Ground Reverse** in Airplane Profile (enabled in the Jet-based defaults), with landing gear and positive **Ground Reverse Speed/Acceleration**. Hold **Ground Reverse Key** (default Z) to reverse on the ground.
 
 The shared wheel modules handle runway contact, including native suspension and supported tire-tread contact. ``AirplaneGroundContact`` exposes ``IsAirborne`` and ``FlightBlend``; takeoff contact grace and transition times control blending between ground and flight handling. Tire smoke, marks and audio use the same contact feedback as ground vehicles.
 
@@ -81,7 +79,7 @@ Tune the flight envelope
 
 Start with mass, thrust, lift speed and maximum speed. Verify takeoff before changing attitude response. Use the drive profile's aircraft engine, gear-suspension, grip and ground-steering settings: Configure reapplies those values to the relevant modules.
 
-Airplane uses assisted attitude limits; Aerobatic Airplane and Jet use body-rate controls for rolls and inverted flight. Jet adds aerodynamic drag/lift and a G-limited response. Tune low-speed authority separately from high-speed response.
+With Simple Steering enabled, the profile uses assisted attitude limits. With it disabled, body-rate controls allow rolls and inverted flight. Relative Airflow and the independent G/yaw limiters shape aerodynamic response. Tune low-speed authority separately from high-speed response.
 
 Use Landing Gear requires configured wheels. For a wheel-free airframe disable it explicitly and check the hull contact/flight path. For retraction, keep wheel definitions authored and let LandingGear manage contact availability.
 
@@ -222,7 +220,7 @@ A repeatable flight tuning sequence
 | Landing/reset           | Contact blend, gear endpoint, clearances and transient-state reset                 |
 +-------------------------+------------------------------------------------------------------------------------+
 
-Change one group at a time. Airplane's assisted attitude response differs from the body-rate policy in Aerobatic Airplane/Jet, so do not copy every response gain across profiles expecting identical control feel.
+Change one group at a time. Assisted attitude response differs from body-rate control, so do not copy every response gain between configurations expecting identical control feel.
 
 Jet's parasite/wing/side pressure drag and induced drag affect energy loss, particularly under load. Its Maximum G, stall angle and path response constrain the assisted response; they are not structural damage or pilot-blackout rules. Those gameplay consequences require an application policy.
 
@@ -253,7 +251,7 @@ Diagnose aircraft behavior
 | G limiter does not cause damage            | Flight-response limit is separate from application damage rules                    |
 +--------------------------------------------+------------------------------------------------------------------------------------+
 
-For vehicles that change between road, hover and flight, configure :doc:`registered mode transitions </CombinedVehicles>`. For water contact, use a dedicated :doc:`Boat </Boat>`/:doc:`Submarine </Submarine>` strategy and :doc:`provider </Water>`, rather than treating a rendered ocean as an automatic amphibious mode.
+For vehicles that change between road, hover and flight, configure :doc:`registered mode transitions </CombinedVehicles>`. For a hydroplane, enable :ref:`Water Landing <uvs-scripting-aircraft--water-landing-taxi-and-takeoff>` and configure its float reference, nested boat tuning and sampled :doc:`water </Water>`. A rendered ocean alone does not enable flotation.
 
 .. _uvs-aircraft--independent-visual-motion-frames:
 
@@ -271,7 +269,7 @@ For spinning visuals, **Propulsion > Propellers > Element > Anchor** optionally 
 Animation and custom control/gear geometry
 ------------------------------------------
 
-AircraftControlMotion and LandingGearPart expose **Mode** = Rotation, Translation, Animation or Custom. **Animation > Animator/Clip** binds the clip root; **Custom Driver** accepts ``ICustomPartMotion``. Lifecycle callbacks appear in **Signals and callbacks** above **Gizmos**. LandingGearPart maps progress 0 to deployed and 1 to retracted; Custom waits for reported progress rather than automatically retracting/extending the transform. Existing controllers still issue deployment requests and apply sequence delays. See :ref:`motion configuration <uvs-movingparts--choose-how-the-part-moves>`.
+AircraftControlMotion and LandingGearPart expose **Mode** = Rotation, Translation, Animation or Custom. **Animation > Animator/Clip** binds the clip root; **Custom Driver** accepts ``ICustomPartMotion``. Lifecycle callbacks appear in **Signals and callbacks**. LandingGearPart maps progress 0 to deployed and 1 to retracted; Custom waits for reported progress rather than automatically retracting/extending the transform. Existing controllers still issue deployment requests and apply sequence delays. See :ref:`motion configuration <uvs-movingparts--choose-how-the-part-moves>`.
 
 .. _uvs-aircraft--collidable-rotors:
 
@@ -280,6 +278,6 @@ Collidable rotors
 
 Use separate solid colliders matching the individual blades, attached to the vehicle Rigidbody. Enable **Physics Rotation** for those entries in **Propulsion > Propellers** so their pose advances before simulation. A non-detaching metal ``DamagePart`` (``Detachment Multiplier = 0``) supplies metal contact responses; ``VehicleBodyPart`` in **Custom** motion leaves rotation to Propulsion. The demo helicopter includes this setup.
 
-Airplane, Aerobatic Airplane and Jet profiles also expose **Speed Sensitive Rotation** with separate **Pitch/Yaw/Roll Rate By Speed** curves. X is actual travel speed in km/h and Y multiplies the base rotation rate. The switch defaults off. In Body Rates mode curves scale commanded rates before the existing G/yaw limits; in Assisted Attitude they scale restoring response and rudder demand while preserving target angles, damping and automatic turn coordination. A missing or empty curve uses 1.
+AirplaneProfile also exposes **Speed Sensitive Rotation** with separate **Pitch/Yaw/Roll Rate By Speed** curves. X is actual travel speed in km/h and Y multiplies the base rotation rate. The switch defaults off. With Simple Steering disabled curves scale commanded rates before the existing G/yaw limits; with Simple Steering enabled they scale restoring response and rudder demand while preserving target angles, damping and automatic turn coordination. A missing or empty curve uses 1.
 
-**Rotation Release Duration** provides an optional soft release (seconds to approximately 95% settling). Zero preserves existing handling and is the default. In Body Rates mode it controls braking of released rotation axes; in Assisted Attitude it eases released pilot input to neutral while retaining automatic stabilization and damping. Control authority and acceleration limits can extend the actual settling time.
+**Rotation Release Duration** provides an optional soft release (seconds to approximately 95% settling). Zero preserves existing handling and is the default. With Simple Steering disabled it controls braking of released rotation axes; with Simple Steering enabled it eases released pilot input to neutral while retaining automatic stabilization and damping. Control authority and acceleration limits can extend the actual settling time.

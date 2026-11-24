@@ -15,8 +15,8 @@ Types
 -  :ref:`WaterInteraction <uvs-api-water--waterinteraction>`
 -  :ref:`WaterProvider <uvs-api-water--waterprovider>`
 -  :ref:`WaterSample <uvs-api-water--watersample>`
--  :ref:`WaterSurfaceProfile <uvs-api-water--watersurfaceprofile>`
 -  :ref:`WaterSurface <uvs-api-water--watersurface>`
+-  :ref:`WaterSurfaceProfile <uvs-api-water--watersurfaceprofile>`
 
 .. _uvs-api-water--submarineprofile:
 
@@ -179,7 +179,7 @@ State and configuration
 +-------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public override bool SupportsReleasedForces { get; }``    | Keeps passive maintenance/observation active during release; Drive and Engine suppress force output, and TireCollision keeps native solid proxies without supplemental tread forces. |
 +-------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool useProfileFallback``                          | Allow the Boat profile's flat water when no explicit provider is assigned.                                                                                                           |
+| ``public bool useProfileFallback``                          | Allow the configured boat or aircraft flotation profile's flat water when no explicit provider is assigned.                                                                          |
 +-------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool waterInteractionEnabled``                     | Master switch for water interaction: buoyancy, water audio and water particles.                                                                                                      |
 +-------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -264,61 +264,6 @@ Methods
 | ``public WaterSample(float height, Vector3 normal, Vector3 velocity)`` | Constructs ``WaterSample`` with the supplied initial state. | ``height`` — Height, interpreted by this operation in the declared type. ``normal`` — Contact/surface normal in the declared frame. ``velocity`` — World velocity in m/s. **Returns:** New instance initialized from the supplied arguments. |
 +------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-water--watersurfaceprofile:
-
-WaterSurfaceProfile
--------------------
-
-**Runtime/World/Water/WaterSurfaceProfile.cs**
-
-Configuration/implementation type for water style within water sampling and movement.
-
-**Inherits / implements:** ``ScriptableObject``.
-
-.. _uvs-api-water--state-and-configuration-4:
-
-State and configuration
-~~~~~~~~~~~~~~~~~~~~~~~
-
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                              | Meaning                                                                                                                                                                 |
-+=====================================+=========================================================================================================================================================================+
-| ``public Color deepColor``          | Color and alpha used to render deep color. Initial value: ``new Color(.025f, .15f, .34f, 1)``.                                                                          |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float depthAbsorption``    | Strength of depth-based water-color absorption. Initial value: ``.3f``.                                                                                                 |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public Color foamColor``          | Color and alpha used to render foam color. Initial value: ``new Color(.7f, .88f, .87f, 1)``.                                                                            |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float reflectionStrength`` | Multiplier for the water material's reflection contribution. Initial value: ``.8f``.                                                                                    |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float rippleScale``        | Multiplier/fraction controlling ripple scale. Increasing it increases this contribution relative to the unscaled value. Initial value: ``.055f``.                       |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float rippleStrength``     | Visible small-ripple contribution to the water surface. Initial value: ``.13f``.                                                                                        |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float roughness``          | Water-surface roughness used by its material; larger values soften the reflective appearance. Initial value: ``.34f``.                                                  |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public Color shallowColor``       | Color and alpha used to render shallow color. Initial value: ``new Color(.065f, .32f, .52f, 1)``.                                                                       |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float shorelineFoam``      | Amount of depth/shoreline foam produced by the water shader. Initial value: ``.55f``.                                                                                   |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public Vector4 waveA``            | Direction X/Z, wavelength in metres, amplitude in metres. Shared by CPU sampling and shader.                                                                            |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public Vector4 waveB``            | Second wave: X/Z direction in the first two components, wavelength in metres in Z, and amplitude in metres in W. Initial value: ``new Vector4(-.4f, .92f, 11, .045f)``. |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float waveSpeed``          | Multiplier for wave phase speed shared by CPU surface sampling and shader animation. Initial value: ``.65f``.                                                           |
-+-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-.. _uvs-api-water--methods-4:
-
-Methods
-~~~~~~~
-
-+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Signature                                                                                         | Role and behavior                                                                                                     | Arguments and result                                                                                                                                                                                                                                                                                                                                             |
-+===================================================================================================+=======================================================================================================================+==================================================================================================================================================================================================================================================================================================================================================================+
-| ``public virtual WaterSample Sample(Vector3 position, float time, float baseHeight, bool waves)`` | Evaluates the configured water-wave style at a world position/time using base height and optional wave participation. | ``position`` — Requested point or switch detent; see its declared type and owning operation. ``time`` — Explicit sample time in seconds. ``baseHeight`` — World water baseline height. ``waves`` — Whether wave displacement participates in the sample. **Returns:** Returned ``WaterSample``; ownership remains as specified by the creating/lookup operation. |
-+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
 .. _uvs-api-water--watersurface:
 
 WaterSurface
@@ -330,7 +275,7 @@ Built-in water-surface provider implementation.
 
 **Inherits / implements:** :ref:`WaterProvider <uvs-api-water--waterprovider>`.
 
-.. _uvs-api-water--state-and-configuration-5:
+.. _uvs-api-water--state-and-configuration-4:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -365,7 +310,7 @@ State and configuration
 | ``public bool waterEnabled``                    | Enables water behavior for this system. Initial value: ``true``.                                                                                               |
 +-------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-water--methods-5:
+.. _uvs-api-water--methods-4:
 
 Methods
 ~~~~~~~
@@ -379,3 +324,58 @@ Methods
 +-----------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool TrySampleAtTime(Vector3 position, float time, out WaterSample sample)`` | Queries the built-in water model at an explicit time for consistent wave evaluation. | ``position`` — Requested point or switch detent; see its declared type and owning operation. ``time`` — Explicit sample time in seconds. ``sample`` — Output water sample; read it only when sampling returns ``true``. **Returns:** ``true`` if admitted/applied; inspect the described completion boundary and any out values. |
 +-----------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-water--watersurfaceprofile:
+
+WaterSurfaceProfile
+-------------------
+
+**Runtime/World/Water/WaterSurfaceProfile.cs**
+
+Configuration/implementation type for water style within water sampling and movement.
+
+**Inherits / implements:** ``ScriptableObject``.
+
+.. _uvs-api-water--state-and-configuration-5:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                              | Meaning                                                                                                                                                                 |
++=====================================+=========================================================================================================================================================================+
+| ``public Color deepColor``          | Color and alpha used to render deep color. Initial value: ``new Color(.025f, .15f, .34f, 1)``.                                                                          |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float depthAbsorption``    | Strength of depth-based water-color absorption. Initial value: ``.3f``.                                                                                                 |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Color foamColor``          | Color and alpha used to render foam color. Initial value: ``new Color(.7f, .88f, .87f, 1)``.                                                                            |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float reflectionStrength`` | Multiplier for the water material's reflection contribution. Initial value: ``.8f``.                                                                                    |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float rippleScale``        | Multiplier/fraction controlling ripple scale. Increasing it increases this contribution relative to the unscaled value. Initial value: ``.055f``.                       |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float rippleStrength``     | Visible small-ripple contribution to the water surface. Initial value: ``.13f``.                                                                                        |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float roughness``          | Water-surface roughness used by its material; larger values soften the reflective appearance. Initial value: ``.34f``.                                                  |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Color shallowColor``       | Color and alpha used to render shallow color. Initial value: ``new Color(.065f, .32f, .52f, 1)``.                                                                       |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float shorelineFoam``      | Amount of depth/shoreline foam produced by the water shader. Initial value: ``.55f``.                                                                                   |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Vector4 waveA``            | Direction X/Z, wavelength in metres, amplitude in metres. Shared by CPU sampling and shader.                                                                            |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Vector4 waveB``            | Second wave: X/Z direction in the first two components, wavelength in metres in Z, and amplitude in metres in W. Initial value: ``new Vector4(-.4f, .92f, 11, .045f)``. |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float waveSpeed``          | Multiplier for wave phase speed shared by CPU surface sampling and shader animation. Initial value: ``.65f``.                                                           |
++-------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-water--methods-5:
+
+Methods
+~~~~~~~
+
++---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Signature                                                                                         | Role and behavior                                                                                                     | Arguments and result                                                                                                                                                                                                                                                                                                                                             |
++===================================================================================================+=======================================================================================================================+==================================================================================================================================================================================================================================================================================================================================================================+
+| ``public virtual WaterSample Sample(Vector3 position, float time, float baseHeight, bool waves)`` | Evaluates the configured water-wave style at a world position/time using base height and optional wave participation. | ``position`` — Requested point or switch detent; see its declared type and owning operation. ``time`` — Explicit sample time in seconds. ``baseHeight`` — World water baseline height. ``waves`` — Whether wave displacement participates in the sample. **Returns:** Returned ``WaterSample``; ownership remains as specified by the creating/lookup operation. |
++---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+

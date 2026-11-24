@@ -212,11 +212,11 @@ TireSurfaceProfile
 +-----------------------------------------------------------------+------------------------------------------------------------------------------------+
 | Method                                                          | Role                                                                               |
 +=================================================================+====================================================================================+
-| ``public virtual float Rolling(float speed)``                   | Evaluates this surface profile's rolling-presentation activity.                    |
+| ``public virtual float MarkActivity(WheelContact contact)``     | Evaluates skidmark activity using this surface profile's presentation multipliers. |
 +-----------------------------------------------------------------+------------------------------------------------------------------------------------+
 | ``public virtual float ParticleActivity(WheelContact contact)`` | Evaluates tire-particle activity from rolling/skid inputs and profile multipliers. |
 +-----------------------------------------------------------------+------------------------------------------------------------------------------------+
-| ``public virtual float MarkActivity(WheelContact contact)``     | Evaluates skidmark activity using this surface profile's presentation multipliers. |
+| ``public virtual float Rolling(float speed)``                   | Evaluates this surface profile's rolling-presentation activity.                    |
 +-----------------------------------------------------------------+------------------------------------------------------------------------------------+
 
 .. _uvs-scripting-surfacefeedback--vehiclemodule:
@@ -231,9 +231,9 @@ VehicleModule
 +===========================================================================================+========================================================================================================================================+
 | ``public virtual void Configure(VehicleController vehicle)``                              | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
-+-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SetEnabled(bool value)``                                            | Changes module enabled state and publishes an actual requested-flag change.                                                            |
++-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void Step(VehicleController vehicle, Command command, float deltaTime)`` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it.                         |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool SupportsProfile(DriveProfile profile)``                             | Checks movement-family compatibility; this is independent of the Unity enabled flag.                                                   |
 +-------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------+
@@ -241,9 +241,9 @@ VehicleModule
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | Event / callback                                                          | Role                                                                                                              |
 +===========================================================================+===================================================================================================================+
-| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
-+---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController> Configured``              | After controller-driven module configuration. Payload: the owning ``VehicleController``.                          |
++---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
+| ``public event System.Action<bool> EnabledChanged``                       | After ``SetEnabled`` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+
 | ``public event System.Action<VehicleController, Command, float> Stepped`` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds.                 |
 +---------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+

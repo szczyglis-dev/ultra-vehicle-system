@@ -9,15 +9,13 @@ Read [the system explanation](../Scripting/Events.md) for composition, setup and
 - [Impact](Events.md#impact)
 - [LandingEvent](Events.md#landingevent)
 - [Telemetry](Events.md#telemetry)
+- [TelemetrySections](Events.md#telemetrysections)
+- [TelemetrySettings](Events.md#telemetrysettings)
 - [TireFeedback](Events.md#tirefeedback)
 - [WheelContact](Events.md#wheelcontact)
 - [WheelTelemetry](Events.md#wheeltelemetry)
-
 - [WheelTelemetryCollection](Events.md#wheeltelemetrycollection)
 - [WheelTelemetryCollection.Enumerator](Events.md#wheeltelemetrycollectionenumerator)
-
-- [TelemetrySections](Events.md#telemetrysections)
-- [TelemetrySettings](Events.md#telemetrysettings)
 
 ## EffectEvent
 
@@ -169,6 +167,7 @@ Carries the cached vehicle readings used by displays and observers.
 | `public readonly float RollDegrees` | Read-only roll degrees stored by this snapshot/data object. |
 | `public readonly Quaternion Rotation` | World pose/velocity plus attitude relative to gravity. Pitch is nose-up positive; roll is right-bank positive; heading is clockwise from world +Z. World-space chassis orientation captured after the simulation pipeline. |
 | `public readonly float Rpm` | Read-only rpm stored by this snapshot/data object. |
+| `public readonly TelemetrySections Sections` | Groups actually captured in this immutable snapshot. Check availability rather than interpreting disabled zero/false readings as measurements. |
 | `public readonly Vector3 SpecificForce` | Accelerometer reading, excluding gravity: rest is 1 G, free fall is 0 G. |
 | `public readonly float SpeedKph` | Read-only speed kph stored by this snapshot/data object. |
 | `public float SpeedMph { get; }` | Unsigned speed of this captured snapshot in mph. |
@@ -187,12 +186,44 @@ Carries the cached vehicle readings used by displays and observers.
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
 | `public float GetSpeed(SpeedUnit unit)` | Returns the speed of this snapshot in the requested unit; does not read the live body. | — |
+| `public bool HasSection(TelemetrySections section)` | True when all requested section flags were captured. Core world pose, velocity, speed and timing do not require optional flags. | — |
 | `public Telemetry(float speed, float forward, float rpm, float throttle, float brake, float steer, int gear, string label, int grounded, int count, bool handbrake, Quaternion rotation, Vector3 position, Vector3 velocity, Vector3 acceleration, Vector3 gravity, float heightAboveGround, bool hasGroundBelow, string transmissionMode = "Direct")` | Constructs Telemetry with the supplied initial state. | `speed` — Speed, interpreted by this operation in the declared type. `forward` — Forward, interpreted by this operation in the declared type. `rpm` — Rpm, interpreted by this operation in the declared type. `throttle` — Normalized propulsion/throttle request. `brake` — Normalized brake request. `steer` — Steer, interpreted by this operation in the declared type. `gear` — Signed gear index: -1 reverse, 0 neutral, positive forward. `label` — Label, interpreted by this operation in the declared type. `grounded` — Grounded, interpreted by this operation in the declared type. `count` — Count, interpreted by this operation in the declared type. `handbrake` — Handbrake request. `rotation` — Requested/output orientation in the declared frame. `position` — Requested point or switch detent; see its declared type and owning operation. `velocity` — World velocity in m/s. `acceleration` — Acceleration, interpreted by this operation in the declared type. `gravity` — Gravity, interpreted by this operation in the declared type. `heightAboveGround` — Height above ground, interpreted by this operation in the declared type. `hasGroundBelow` — Has ground below, interpreted by this operation in the declared type. `transmissionMode` — Transmission mode, interpreted by this operation in the declared type. Default: `"Direct"`. **Returns:** New instance initialized from the supplied arguments. |
 
-| Declaration | Usage |
+## TelemetrySections
+
+**Runtime/Core/TelemetrySettings.cs**
+
+Availability flags captured with a published snapshot. A disabled group has no fresh readings; it does not disable the corresponding mechanic.
+
+### Values
+
+- `None = 0`
+- `Controls = 1`
+- `Motion = 2`
+- `Body = 4`
+- `Powertrain = 8`
+- `Fuel = 16`
+- `Ground = 32`
+- `Wheels = 64`
+- `All = Controls \| Motion \| Body \| Powertrain \| Fuel \| Ground \| Wheels`
+
+## TelemetrySettings
+
+**Runtime/Core/TelemetrySettings.cs**
+
+Capture options at Vehicle Controller > Setup > Telemetry. Core world pose, velocity, speed, wheel count and step timing remain available. Null configuration uses the defaults.
+
+### State and configuration
+
+| Member | Meaning |
 | --- | --- |
-| `public readonly TelemetrySections Sections` | Groups actually captured in this immutable snapshot. Check availability rather than interpreting disabled zero/false readings as measurements. |
-| `public bool HasSection(TelemetrySections section)` | True when all requested section flags were captured. Core world pose, velocity, speed and timing do not require optional flags. |
+| `public bool body` | Copy chassis mass and world centre of mass. Default true. |
+| `public bool controls` | Copy the input command and resolved throttle, brake, steering and handbrake. Input and mechanics continue when disabled. Default true. |
+| `public bool fuel` | Look up and copy tank presence, quantity, capacity and consumption. Fuel simulation continues when disabled. Default true. |
+| `public bool ground` | Probe chassis ground clearance and count grounded wheels. Disabling skips this diagnostic ray, not physical wheel support. Default true. |
+| `public bool motion` | Calculate local motion, acceleration, attitude, angular velocity, airspeed and G-force readings. Core pose/velocity/timing stay available. Default true. |
+| `public bool powertrain` | Copy RPM, engine state/torque, gearbox and clutch readings. Drivetrain simulation is independent. Default true. |
+| `public bool wheelDetails` | Copy full per-wheel snapshots, including names, poses, contacts, slip and torques. Disabled by default; Wheels is empty when disabled. |
 
 ## TireFeedback
 
@@ -300,10 +331,18 @@ Immutable per-wheel readings captured with the vehicle snapshot.
 
 Immutable value collection for copied wheel diagnostics. Up to four samples are inline; larger vehicles retain a private immutable tail array. Assigning to an interface boxes the value; direct indexing and foreach avoid boxing.
 
-| Declaration | Usage |
+### State and configuration
+
+| Member | Meaning |
 | --- | --- |
 | `public int Count { get; }` | Number of copied configured-wheel entries, zero for the default value. |
-| `public Enumerator GetEnumerator()` | Returns a value enumerator without allocating when used directly by foreach. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public Enumerator GetEnumerator()` | Returns a value enumerator without allocating when used directly by foreach. | — |
 
 ## WheelTelemetryCollection.Enumerator
 
@@ -311,43 +350,17 @@ Immutable value collection for copied wheel diagnostics. Up to four samples are 
 
 Value enumerator for copied wheel samples. Direct foreach requires no enumerator object; interface enumeration boxes the value.
 
-| Declaration | Usage |
+### State and configuration
+
+| Member | Meaning |
 | --- | --- |
 | `public WheelTelemetry Current { get; }` | Current captured wheel; access outside the valid enumeration range throws. |
-| `public bool MoveNext()` | Advances to the next captured wheel. |
-| `public void Reset()` | Restarts enumeration before the first entry. |
-| `public void Dispose()` | No resources are owned by the value enumerator. |
 
-## TelemetrySections
 
-**Runtime/Core/TelemetrySettings.cs**
+### Methods
 
-Availability flags captured with a published snapshot. A disabled group has no fresh readings; it does not disable the corresponding mechanic.
-
-### Values
-
-- `None = 0`
-- `Controls = 1`
-- `Motion = 2`
-- `Body = 4`
-- `Powertrain = 8`
-- `Fuel = 16`
-- `Ground = 32`
-- `Wheels = 64`
-- `All = Controls \| Motion \| Body \| Powertrain \| Fuel \| Ground \| Wheels`
-
-## TelemetrySettings
-
-**Runtime/Core/TelemetrySettings.cs**
-
-Capture options at Vehicle Controller > Setup > Telemetry. Core world pose, velocity, speed, wheel count and step timing remain available. Null configuration uses the defaults.
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool controls` | Copy the input command and resolved throttle, brake, steering and handbrake. Input and mechanics continue when disabled. Default true. |
-| `public bool motion` | Calculate local motion, acceleration, attitude, angular velocity, airspeed and G-force readings. Core pose/velocity/timing stay available. Default true. |
-| `public bool body` | Copy chassis mass and world centre of mass. Default true. |
-| `public bool powertrain` | Copy RPM, engine state/torque, gearbox and clutch readings. Drivetrain simulation is independent. Default true. |
-| `public bool fuel` | Look up and copy tank presence, quantity, capacity and consumption. Fuel simulation continues when disabled. Default true. |
-| `public bool ground` | Probe chassis ground clearance and count grounded wheels. Disabling skips this diagnostic ray, not physical wheel support. Default true. |
-| `public bool wheelDetails` | Copy full per-wheel snapshots, including names, poses, contacts, slip and torques. Disabled by default; Wheels is empty when disabled. |
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public void Dispose()` | No resources are owned by the value enumerator. | — |
+| `public bool MoveNext()` | Advances to the next captured wheel. | — |
+| `public void Reset()` | Restarts enumeration before the first entry. | — |

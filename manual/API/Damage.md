@@ -4,21 +4,21 @@ Read [the system explanation](../Scripting/Damage.md) for composition, setup and
 
 ## Types
 
-- [Body](#body)
-- [Damage](#damage)
-- [DamageCollisionRelay](#damagecollisionrelay)
-- [DamageHit](#damagehit)
-- [DamageImpactMetric](#damageimpactmetric)
-- [DamageImpactProfile](#damageimpactprofile)
-- [DamagePart](#damagepart)
-- [DamagePoolOverflow](#damagepooloverflow)
-- [ICollisionDamageResponse](#icollisiondamageresponse)
-- [IDamageImpactEffect](#idamageimpacteffect)
-- [PartMaterial](#partmaterial)
-- [PartType](#parttype)
-- [VehicleBodyPart](#vehiclebodypart)
-- [VehicleMeshDeformation](#vehiclemeshdeformation)
-- [WheelPart](#wheelpart)
+- [Body](Damage.md#body)
+- [Damage](Damage.md#damage)
+- [DamageCollisionRelay](Damage.md#damagecollisionrelay)
+- [DamageHit](Damage.md#damagehit)
+- [DamageImpactMetric](Damage.md#damageimpactmetric)
+- [DamageImpactProfile](Damage.md#damageimpactprofile)
+- [DamagePart](Damage.md#damagepart)
+- [DamagePoolOverflow](Damage.md#damagepooloverflow)
+- [ICollisionDamageResponse](Damage.md#icollisiondamageresponse)
+- [IDamageImpactEffect](Damage.md#idamageimpacteffect)
+- [PartMaterial](Damage.md#partmaterial)
+- [PartType](Damage.md#parttype)
+- [VehicleBodyPart](Damage.md#vehiclebodypart)
+- [VehicleMeshDeformation](Damage.md#vehiclemeshdeformation)
+- [WheelPart](Damage.md#wheelpart)
 
 ## Body
 
@@ -143,24 +143,32 @@ Values: `DamageAmount`, `ImpactSpeed`, `Impulse`, `Force`.
 
 Scripted impact matching, normalized metric evaluation, shared Sound bank and optional custom visual effect.
 
-| Declaration | Meaning |
+### State and configuration
+
+| Member | Meaning |
 | --- | --- |
-| `public bool responseEnabled` | Disable this response without removing its material mapping. |
+| `public bool alignToImpact` | Orient local +Z opposite the deformation direction. Rotation Offset is applied afterward. |
+| `public float cooldown` | Seconds between custom visual effects. The Sound bank owns its audio cooldown. |
+| `public float effectLifetime` | Maximum effect lease in seconds before returning to the pool. Include child/sub-emitter lifetime. |
+| `public int effectPoolSize` | Instances to prewarm for this profile, subject to Damage's total instance budget. Zero disables visuals. |
+| `public GameObject effectPrefab` | Pooled prefab, such as particles, a light burst or custom IDamageImpactEffect behavior. No prefab is instantiated per hit. |
+| `public Vector3 effectRotationOffset` | Additional prefab orientation in degrees relative to the impact frame. |
+| `public Vector2 effectScaleRange` | Uniform effect-scale endpoints mapped from normalized impact. Multiplies the prefab's original scale. |
+| `public bool ignoreAboveMaximum` | Reject inputs above Maximum Impact instead of clamping them. |
 | `public PartMaterial material` | Built-in part material matched when Material Id is empty. |
 | `public string materialId` | Optional case-sensitive custom material key, matched against DamagePart.materialId. Overrides enum matching. |
+| `public float maximumImpact` | Input mapped to full response. Higher inputs clamp unless Ignore Above Maximum is enabled. |
 | `public DamageImpactMetric metric` | Input units for thresholds: damage units, m/s, N s or N. Physical metrics require physical impact data. |
 | `public float minimumImpact` | Lowest accepted input in the selected metric's units. |
-| `public float maximumImpact` | Input mapped to full response. Higher inputs clamp unless Ignore Above Maximum is enabled. |
-| `public bool ignoreAboveMaximum` | Reject inputs above Maximum Impact instead of clamping them. |
-| `public float cooldown` | Seconds between custom visual effects. The Sound bank owns its audio cooldown. |
+| `public bool responseEnabled` | Disable this response without removing its material mapping. |
 | `public DamageSoundBank sound` | Shared Single/StrengthGroups audio response. Input strength comes from the normalized profile metric. |
-| `public GameObject effectPrefab` | Pooled prefab, such as particles, a light burst or custom IDamageImpactEffect behavior. No prefab is instantiated per hit. |
-| `public int effectPoolSize` | Instances to prewarm for this profile, subject to Damage's total instance budget. Zero disables visuals. |
-| `public float effectLifetime` | Maximum effect lease in seconds before returning to the pool. Include child/sub-emitter lifetime. |
-| `public Vector2 effectScaleRange` | Uniform effect-scale endpoints mapped from normalized impact. Multiplies the prefab's original scale. |
-| `public bool alignToImpact` | Orient local +Z opposite the deformation direction. Rotation Offset is applied afterward. |
-| `public Vector3 effectRotationOffset` | Additional prefab orientation in degrees relative to the impact frame. |
 | `public float surfaceOffset` | Move the effect outward from the hit point, opposite the deformation direction, in metres. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
 | `public virtual bool Matches(DamagePart part)` | Checks whether this enabled profile matches the part material or custom key. | — |
 | `public virtual bool TryEvaluate(DamageHit hit, out float intensity)` | Validates thresholds and available metadata; returns accepted status and normalized intensity. | — |
 
@@ -224,7 +232,6 @@ Scripted impact matching, normalized metric evaluation, shared Sound bank and op
 | `public virtual float Repair(float amount)` | Removes up to the requested nonnegative damage amount and returns the actual repaired amount. Does not reattach a detached part. | — |
 | `public virtual bool RepairFully()` | Fully repairs retained objects: restores the saved attachment pose when detached, clears damage/exclusions, restores original Rigidbody settings, resets owned VehicleBodyPart hinges and prepared part meshes. Returns false if a detached part lost its captured parent. Runtime debris Rigidbody removal is deferred and cancelled by another immediate detach. Does not clear independent child damage accumulators. | — |
 
-
 ## DamagePoolOverflow
 
 **Runtime/Effects/Damage/Profiles/DamageImpactProfile.cs**
@@ -235,7 +242,7 @@ Values: `Skip`, `ReplaceOldest`.
 
 ## ICollisionDamageResponse
 
-**Runtime/Physics/Damage/ICollisionDamageResponse.cs**
+**Runtime/Contracts/Damage/ICollisionDamageResponse.cs**
 
 Lets a target alter collision damage severity.
 
@@ -247,12 +254,14 @@ Lets a target alter collision damage severity.
 
 ## IDamageImpactEffect
 
-**Runtime/Effects/Damage/Profiles/DamageImpactProfile.cs**
+**Runtime/Contracts/Damage/IDamageImpactEffect.cs**
 
 See the [damage response setup](../DamageFeedback.md) for configuration and examples.
 
-| Declaration | Meaning |
-| --- | --- |
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
 | `void PlayImpact(DamageHit hit, float intensity)` | Initializes a leased effect using hit metadata and normalized intensity. | — |
 | `void StopImpact()` | Resets a pooled effect before return or replacement. | — |
 
@@ -303,11 +312,13 @@ Defines a named opening/moving body element.
 
 | Member | Meaning |
 | --- | --- |
+| `public Transform anchor` | Optional independent hinge transform. Its position replaces Hinge Anchor and its local axes define Hinge Axis, for both animated and physical motion. |
 | `public Transform AudioEmitter { get; }` | Transform used as the emitter for movement presentation. |
 | `public AnimationCurve closingMotionCurve` | Normalized elapsed time to closing progress, independently of opening. Speed determines average commanded degrees per second. Default: linear time-to-progress curve. |
 | `public float completionTolerance` | Actual hinge angle tolerance in degrees for completion, default 1. Applies to animated and physical VehicleBodyPart. |
 | `public virtual float CurrentAngle { get; }` | Read-only/resolved current angle for `VehicleBodyPart`. |
 | `public float damper` | Damping strength opposing motion; larger values reduce oscillation but can slow the response. Initial value: `50`. |
+| `public float EffectiveOpenAngle { get; }` | Resolved door-open target including the authored reverse direction. |
 | `public Vector3 hingeAnchor` | Hinge position in this transform's local mesh coordinates. Zero uses its origin. |
 | `public Vector3 hingeAxis` | Direction vector defining hinge axis in the local frame used by this mechanism; it is not an absolute world position. Initial value: `Vector3.up`. |
 | `public virtual bool IsClosing { get; }` | An accepted closing operation is pending; false after completion or cancellation. |
@@ -316,19 +327,28 @@ Defines a named opening/moving body element.
 | `public virtual bool IsOpening { get; }` | An accepted opening operation is pending; false after completion or cancellation. |
 | `public virtual bool IsReleased { get; protected set; }` | Current is released predicate; read it instead of maintaining a second application flag. |
 | `public virtual HingeJoint Joint { get; }` | Read-only/resolved joint for `VehicleBodyPart`. |
+| `public Vector3 localTranslationAxis` | Translation axis in Anchor axes when assigned, otherwise in the captured part frame. |
 | `public float mass` | Physical mass in kilograms. Increasing it increases the inertia and the load carried by connected supports. Initial value: `15`. |
 | `public float minimumUnlatchForce` | Minimum average impact force in N, computed from impulse / fixed timestep. Default 4000. |
 | `public float minimumUnlatchSpeed` | Minimum speed along the contact normal in m/s. Default 1. |
+| `public MovingPartMotion motion` | How accepted open/close requests move this part. Custom only dispatches callbacks and driver requests. |
 | `public PartMotionEvents motionEvents` | Inspector UnityEvent callbacks for the same four operation notifications; also accessible through GetEvent. |
+| `public float NormalizedPosition { get; }` | Current normalized open/retracted progress for the selected movement mode. |
 | `public float openAngle` | Open angle in degrees, relative to the owning mechanism's reference frame. Initial value: `70`. |
 | `public AnimationCurve openingMotionCurve` | Normalized elapsed time to opening progress. Linear gives constant commanded speed; flatten the end to slow before fully open. Physical hinges follow this spring target under load. Default: linear time-to-progress curve. |
 | `public string partId` | Text identifier/name for part id. Keep it consistent with the referenced animation, profile or application setting. |
 | `public PartType partType` | Selects the part type policy for this configuration. Options: `Door`, `Hood`, `Trunk`, `Tailgate`, `Other`. |
 | `public bool permanentImpactUnlatch` | Keep an impact-unlatched part loose until Close or SetOpen(false) is called. Default false. |
+| `public PartMotionPlayback playback` | Clip binding, optional external driver and lifecycle callbacks. |
 | `public float releasedCollisionDelay` | Minimum seconds to ignore former vehicle collisions after release. Overlapping pairs wait until separated. |
+| `public bool reverse` | Mirror motion around the neutral pose without changing input or travel limits. |
+| `public bool showGizmos` | Show this part's motion guides and range in the Scene view. |
+| `public PartMotionSignals Signals { get; }` | Notifications for requests, progress and operation termination. |
 | `public float speed` | Average commanded angular speed in degrees per second. Opening/closing curves shape travel; physical hinges follow the moving spring target under load. Initial value: `100`. |
 | `public float spring` | Spring stiffness. Larger values produce a stronger restoring force for the same displacement. Initial value: `300`. |
 | `public float temporaryUnlatchDelay` | Minimum time before temporary release can relatch near closed position. Default 0.25 s. |
+| `public float translationDistance` | Metres of translation at the fully open position. |
+| `public float translationDuration` | Seconds for a full translational opening or closing trip. |
 | `public float unlatchedDamperMultiplier` | Hinge damping scale while impact-unlatched; 0..1, default 1. |
 | `public float unlatchedSpringMultiplier` | Closing spring scale while impact-unlatched; 0..1, default 1. Zero permits free swinging. |
 | `public bool unlatchOnImpact` | Allow physical impacts to release the closed latch. Default true. Both thresholds must pass. |
@@ -339,22 +359,23 @@ Defines a named opening/moving body element.
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public virtual void Close()` | Requests closure of this part or the body part selected by ID. | No arguments; no returned value. |
-| `public virtual void Open()` | Requests opening of this part or the body part selected by ID. | No arguments; no returned value. |
-| `public virtual void RefreshIgnoredCollisions()` | Refreshes collision pairs for a body part after ownership/geometry changes. | No arguments; no returned value. |
-| `public virtual void Release()` | Releases this part or hand pose through its declaring type's ownership boundary. | No arguments; no returned value. |
+| `public virtual void Cancel()` | Cancels active movement and releases its operation ownership. | — |
+| `public virtual void Close()` | Requests closure of this part or the body part selected by ID. | — |
+| `public virtual void CompleteCustomMotion()` | Completes the current custom movement operation successfully. | — |
+| `public virtual void GetHingeFrame(out Vector3 position, out Vector3 axis)` | The inspector and physical hinge use the same independent axis/pivot. | — |
+| `public virtual void GetTranslationFrame(out Vector3 origin, out Vector3 direction)` | Returns the world-space origin and direction of the authored translation. | — |
+| `public virtual void Open()` | Requests opening of this part or the body part selected by ID. | — |
+| `public virtual void RefreshIgnoredCollisions()` | Refreshes collision pairs for a body part after ownership/geometry changes. | — |
+| `public virtual void Release()` | Releases this part or hand pose through its declaring type's ownership boundary. | — |
 | `public virtual void RepairFully()` | Closes the retained panel, clears release/unlatch/motion state, restores its captured closed pose and rebuilds the physical hinge if enabled. Does not recreate a destroyed panel or clear a separate DamagePart accumulator. | — |
-| `public virtual void SetOpen(bool value)` | Requests a body part's open/closed target. | `value` — Requested bool state for this operation. |
-| `public virtual void SetPhysics(bool value)` | Changes `usePhysics` for an unreleased part and emits `PhysicsChanged` only on an actual policy change; released parts ignore it. | `value` — Requested bool state for this operation. |
-| `public virtual void Toggle()` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. | No arguments; no returned value. |
-| `public virtual bool TryUnlatchFromImpact(float force, float speed)` | Apply the same configured latch policy from a custom impact system. Returns false for disabled, animated, already-open/released/unlatched parts or rejected thresholds. | `force` — finite average force in N. `speed` — finite normal impact speed in m/s. Returns true only for a newly released latch. |
-
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reverse` | Mirror motion around the neutral pose without changing input or travel limits. |
-| `public float EffectiveOpenAngle { get; }` | Resolved door-open target including the authored reverse direction. |
+| `public virtual void ReportProgress(float value)` | Reports actual normalized progress from a custom pose owner. | — |
+| `public virtual void SetOpen(bool value)` | Requests a body part's open/closed target. | — |
+| `public virtual void SetPhysics(bool value)` | Changes `usePhysics` for an unreleased part and emits `PhysicsChanged` only on an actual policy change; released parts ignore it. | — |
+| `public virtual void StartMotion(float value)` | Requests movement to a normalized destination using the selected motion mode. | — |
+| `public virtual void Stop()` | Stops the current movement operation without reporting successful completion. | — |
+| `public virtual void Tick(float deltaTime)` | Advances the active movement using elapsed seconds. | — |
+| `public virtual void Toggle()` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. | — |
+| `public virtual bool TryUnlatchFromImpact(float force, float speed)` | Apply the same configured latch policy from a custom impact system. Returns false for disabled, animated, already-open/released/unlatched parts or rejected thresholds. | — |
 
 ## VehicleMeshDeformation
 

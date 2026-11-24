@@ -106,3 +106,12 @@ Diagnose unwanted intervention
 +--------------------------------------------+--------------------------------------------------------------------------------+
 
 Use wheel diagnostics and the same road test before increasing engine power. Detailed contact-capacity calculations and a runtime control example are in :doc:`Drive dynamics </Scripting/DriveDynamics>` and :doc:`API </API/DriveDynamics>`.
+
+.. _uvs-tractioncontrol--abs:
+
+ABS
+---
+
+Add optional **Drive > Brakes > ABS** (``AntiLockBrakes``) to reduce service-brake pressure separately on a tire approaching lock-up, then rebuild it as the tire rolls again. **Target Slip**, **Recovery Slip** and the release/recovery times tune intervention; **Minimum Speed Kph** preserves normal stopping and holding. Mechanical handbrakes remain independent. New-vehicle setup leaves ABS optional; demo road vehicles include it disabled initially, and **Period (**``.``**)** toggles it.
+
+Use ``SetAbsEnabled(bool)`` at runtime; ``Active``, ``MaximumSlip``, ``MinimumPressureScale`` and ``GetPressureScale(Wheel)`` expose intervention. See :ref:`API <uvs-api-drivedynamics--antilockbrakes>` and :ref:`Inspector settings <uvs-inspectorreference-drive--antilockbrakes>`.

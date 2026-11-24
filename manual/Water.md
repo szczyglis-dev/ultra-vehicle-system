@@ -1,10 +1,10 @@
 # Water providers and effects
 
-Water sampling, visible rendering and hull presentation are separate layers. Configure them here, then tune surface-hull movement in [Boat](Boat.md) or underwater movement in [Submarine](Submarine.md). A water mesh alone does not make the physics recognize an ocean.
+Water sampling, visible rendering and hull presentation are separate layers. Configure them here, then tune surface-hull movement in [Boat](Boat.md) underwater movement in [Submarine](Submarine.md), or enable [aircraft water landing](Scripting/Aircraft.md#water-landing-taxi-and-takeoff) for a hydroplane. A water mesh alone does not make the physics recognize an ocean.
 
 ## Inspector quick start: connect a boat to water
 
-1. Configure a Boat/Submarine vehicle under **Vehicle Controller > Setup > Drive mode**. Select a separate scene water object and add **Water Surface** through Add Component.
+1. Configure a Boat/Submarine vehicle or enable Airplane Profile → Water Landing under **Vehicle Controller > Setup > Drive mode**. Select a separate scene water object and add **Water Surface** through Add Component.
 2. Set its position/Size and assign a Water Surface Profile asset created with **Create > UltraVehicleSystem > Water > Surface Profile**. Configure its optional renderer/material using the surface steps below; remove solid water-plane support when buoyancy should support the hull.
 3. Select the vehicle root and add/expand **Modules > World > Water Interaction**. Drag the scene WaterSurface into **Water Provider** and fit the hull dimensions/settings. Do not assign the visible water material as a provider.
 4. Apply/save and test flotation/immersion with small or zero waves. The same provider can serve several vehicles.
@@ -45,7 +45,7 @@ Without a style the surface samples flat water. With **Animate Waves** off, samp
 
 ### Flat fallback plane
 
-With no explicit provider, Boat/Submarine profile fields **Water Level**, **Water Center** and **Water Size** define a flat world-height plane and X/Z rectangle. Centre is world X/Z; positive size values are full extent. A nonpositive size component permits an unlimited fallback area.
+With no explicit provider, Boat/Submarine profile fields (or the aircraft Water Landing → Boat block) **Water Level**, **Water Center** and **Water Size** define a flat world-height plane and X/Z rectangle. Centre is world X/Z; positive size values are full extent. A nonpositive size component permits an unlimited fallback area.
 
 Keep **Use Profile Fallback** enabled on WaterInteraction if this is intended. Without a WaterInteraction component, compatible profiles can use their own fallback, but adding the explicit root component makes ownership/switches/effect hull dimensions easier to manage.
 
@@ -79,7 +79,7 @@ Use `WaterInteraction.TrySample` or the provider's `TrySample` in diagnostic too
 
 ## Add audio and particles
 
-Shared Boat water effects consume Boat contact. They do not automatically render underwater Submarine wakes or flight spray. Keep the enabled Boat profile and valid water contact in the first presentation test.
+Shared Boat water effects consume Boat contact, including the configured aircraft float support when Water Landing is enabled. They do not automatically render underwater Submarine wakes or dry-flight spray. Keep valid sampled water contact in the first presentation test.
 
 ### Water audio
 

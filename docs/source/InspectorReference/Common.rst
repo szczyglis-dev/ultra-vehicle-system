@@ -12,6 +12,8 @@ Common settings and base components
 +-----------------------------------------------------------------------------+------------------------+
 | :ref:`Settings <uvs-inspectorreference-common--settings>`                   | 10                     |
 +-----------------------------------------------------------------------------+------------------------+
+| :ref:`TelemetrySettings <uvs-inspectorreference-common--telemetrysettings>` | 7                      |
++-----------------------------------------------------------------------------+------------------------+
 | :ref:`VehicleModule <uvs-inspectorreference-common--vehiclemodule>`         | 2                      |
 +-----------------------------------------------------------------------------+------------------------+
 
@@ -20,45 +22,47 @@ Common settings and base components
 SceneGizmoOptions
 -----------------
 
-**Source:** ``Runtime/Core/SceneGizmoOptions.cs``. Serialized editor presentation settings shown by the custom Gizmos foldout. Only groups applicable to the selected component are displayed; these settings do not affect simulation. See :ref:`scene gizmo visibility <uvs-configuration--scene-gizmo-visibility>`.
+Serialized presentation state only; never read by the simulation pipeline.
 
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| Setting            | Type     | Description                                                                              | Declared default and constraints |
-+====================+==========+==========================================================================================+==================================+
-| ``anchors``        | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``axes``           | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``bones``          | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``centerOfMass``   | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``clearance``      | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``connections``    | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``editingHandles`` | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``exit``           | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``feet``           | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``geometry``       | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``hands``          | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``labels``         | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``pads``           | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``path``           | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``pelvis``         | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``ranges``         | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
-| ``wheels``         | ``bool`` | Show this guide group where supported by the owning component; editor presentation only. | ``true``                         |
-+--------------------+----------+------------------------------------------------------------------------------------------+----------------------------------+
+**Source:** ``Runtime/Core/SceneGizmoOptions.cs``. Nested configuration data; expand its owning field in the Inspector.
+
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| Setting            | Type     | Description                                                            | Declared default and constraints |
++====================+==========+========================================================================+==================================+
+| ``anchors``        | ``bool`` | Show configured attachment and pivot points.                           | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``axes``           | ``bool`` | Show local axes used by this component.                                | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``bones``          | ``bool`` | Show skeletal bone connections.                                        | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``centerOfMass``   | ``bool`` | Show the vehicle center-of-mass marker.                                | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``clearance``      | ``bool`` | Show the passenger/vehicle clearance envelope.                         | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``connections``    | ``bool`` | Draw lines joining the configured attachment points.                   | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``editingHandles`` | ``bool`` | Allow interactive Scene-view handles for the available setup controls. | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``exit``           | ``bool`` | Show the configured passenger exit point.                              | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``feet``           | ``bool`` | Show foot targets and contacts.                                        | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``geometry``       | ``bool`` | Show the component geometry outlines.                                  | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``hands``          | ``bool`` | Show hand targets and contacts.                                        | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``labels``         | ``bool`` | Show names and measurements beside the scene guides.                   | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``pads``           | ``bool`` | Show finger/contact pad guides.                                        | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``path``           | ``bool`` | Show the configured motion or link path.                               | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``pelvis``         | ``bool`` | Show the passenger pelvis attachment guide.                            | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``ranges``         | ``bool`` | Show configured motion/travel ranges.                                  | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
+| ``wheels``         | ``bool`` | Show registered wheel positions and contact guides.                    | ``true``                         |
++--------------------+----------+------------------------------------------------------------------------+----------------------------------+
 
 .. _uvs-inspectorreference-common--settings:
 
@@ -92,6 +96,33 @@ Serializable shared configuration read by vehicle mechanics; apply configuration
 +-------------------------------------+-------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------+
 | ``topSpeedKph``                     | ``float``   | Forward road-speed target/limit stored in km/h and displayed in the selected unit. The active driving system uses it to reduce propulsion near top speed; it is not a hard teleport-style velocity clamp.                          | ``300``; Speed field; stored in km/h, displayed in the selected speed unit |
 +-------------------------------------+-------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------+
+
+.. _uvs-inspectorreference-common--telemetrysettings:
+
+TelemetrySettings
+-----------------
+
+Capture options at Vehicle Controller > Setup > Telemetry. Core world pose, velocity, speed, wheel count and step timing remain available. Null configuration uses the defaults.
+
+**Source:** ``Runtime/Core/TelemetrySettings.cs``. Nested configuration data; expand its owning field in the Inspector.
+
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
+| Setting          | Type     | Description                                                                                                                                                        | Declared default and constraints |
++==================+==========+====================================================================================================================================================================+==================================+
+| ``body``         | ``bool`` | Copy chassis mass and world centre of mass.                                                                                                                        | ``true``                         |
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
+| ``controls``     | ``bool`` | Copy resolved controls and the input command. Does not disable input or mechanics.                                                                                 | ``true``                         |
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
+| ``fuel``         | ``bool`` | Look up fuel amount, capacity and consumption for telemetry. Does not disable Fuel Tank.                                                                           | ``true``                         |
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
+| ``ground``       | ``bool`` | Probe chassis ground clearance and count grounded wheels. Disabling skips the diagnostic height ray; wheel physics queries remain independent.                     | ``true``                         |
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
+| ``motion``       | ``bool`` | Calculate acceleration, local motion, attitude, airspeed and G-force diagnostics. Core world pose, velocity, speed and timestamps remain available.                | ``true``                         |
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
+| ``powertrain``   | ``bool`` | Copy engine RPM/torque, gearbox state and clutch diagnostics. Does not affect drivetrain simulation.                                                               | ``true``                         |
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
+| ``wheelDetails`` | ``bool`` | Copy detailed telemetry for every wheel, including names, poses, slip, contact and torques. Disabled by default. Does not disable Tire Feedback or Tire Collision. | ``false``                        |
++------------------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------+
 
 .. _uvs-inspectorreference-common--vehiclemodule:
 

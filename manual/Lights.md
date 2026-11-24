@@ -9,7 +9,7 @@ Lamp appearance and output assignments are applied on configuration/state change
 1. Outside Play Mode, select the vehicle root and open **Vehicle Controller > Modules > Exterior**. Expand **Lights**, or use **Add module...** to add it. Work on this module rather than adding another Lights controller for each bulb.
 2. In the Hierarchy, create a Unity **Light** child at each headlight position. Choose a suitable light type (normally Spot for a forward beam), aim it down the road, and fit its range/spot angle. Keep these children with the corresponding bodywork if it moves.
 3. Back in **Lights**, expand **Headlights**. Expand its **Lights** array, press **+** twice, and drag the two Unity Light components into the slots. Enable the channel and set its **Color** and **Intensity**.
-4. If the lens should glow, expand **Lenses**, add the appropriate lens Renderers and set **Emission**. Enable emission in the assigned lens material/shader as required. A Renderer reference is the visible lens; a Light reference is the actual illumination source.
+4. For a glowing lens, expand **Lens Materials**, choose **Renderer / Material Index**, and assign your **On Material / Off Material**. Set emission, its texture mask and color directly on those materials. A Renderer is the visible surface; a Light illuminates the road.
 5. For a visible halo, open the **Lights** component menu and choose **Add lamp glows**. This creates and connects the saved **Lens glow** children. Adjust each child's **Vehicle Lamp Glow > Radius** and **Brightness**; its local Z axis points out of the lamp. The halo does not illuminate the road or need bloom.
 6. Configure **High Beams**, **Brake Lights**, **Reverse Lights** and the left/right indicator channels in the same way using their own outputs. Assign the vehicle's Engine for automatic reverse behavior where required; leave unused output lists empty.
 7. Press **Apply vehicle configuration** and save the scene/prefab. Enter Play Mode and use the lighting buttons in **Vehicle Controller > Live**, or the vehicle's configured light input, to test low beams, high beams and indicators. Brake/reverse channels should also respond to the actual mechanics.
@@ -32,11 +32,15 @@ A physical Light can illuminate the road without making the lens material glow. 
 
 ### Lens materials and shared output
 
-The channel writes `_EmissionColor` through a Renderer property block. Use a shader/material that reads that property and enable any emission feature/keyword required by that shader. Bloom/exposure is a render-pipeline setting, not another lighting channel.
+Use **Lens Materials** to select **Renderer / Material Index** and assign your **On Material** and **Off Material**. Author emission color, intensity and an optional emission texture mask directly on those materials, using the shader appropriate to Built-in, URP or HDRP. An empty material reference falls back to the renderer's original slot material. Other slots remain unchanged. The channel swaps existing references only: it creates no runtime materials and never edits your material assets. Disabling the component restores the original slot. The blue demo Car shows this setup for headlight, tail and brake surfaces.
 
-A property-block emission write applies to its assigned Renderer. Separate lenses when they need independent states. Assigning the same Light/Renderer to conflicting channels lets the last applied output win; it does not combine independent stop/tail signals automatically.
+The older **Lenses** array remains available for emission driven by channel Color/Emission through a Renderer property block. It writes `_EmissionColor` and `_EmissiveColor` for Built-in/URP and HDRP; emission must already be enabled on the authored material. Use one assignment style for a given surface. Property blocks can prevent SRP batching. Bloom is optional and belongs to the render pipeline. See [Unity's emission setup](https://docs.unity3d.com/6000.1/Documentation/Manual/StandardShaderMaterialParameterEmission.html).
+
+A legacy Lenses property-block emission write applies to its assigned Renderer. Separate lenses when they need independent states. Assigning the same Light/Renderer to conflicting channels lets the last applied output win; it does not combine independent stop/tail signals automatically.
 
 The module manages its assigned Light color/intensity/enabled state. Edit the channel settings rather than a live Light value that the next output refresh will replace. Fit each Light's beam geometry, range and shadow policy separately for the render pipeline/hardware.
+
+Call `Lights.RefreshLightingConfiguration()` after editing bindings from code. A standalone binding also exposes `Apply(bool lit)`, `RefreshConfiguration` and `Release`; release it when its owner stops using it.
 
 ## Control lighting
 

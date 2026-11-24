@@ -5,6 +5,7 @@ See [Wheel Lift](../DrivingActions.md#wheel-lift-wheelie) for setup, units, defa
 ## Types
 
 - [WheelLift](WheelLift.md#wheellift)
+- [WheelLiftPitchSupport](WheelLift.md#wheelliftpitchsupport)
 
 ## WheelLift
 
@@ -47,8 +48,9 @@ See [Wheel Lift](../DrivingActions.md#wheel-lift-wheelie) for defaults, units an
 | `public float maximumRoll` | Roll activation limit in degrees. |
 | `public float maximumSpeed` | Maximum absolute forward speed in m/s. |
 | `public float maximumSupportDampingAcceleration` | Maximum chassis acceleration from support rebound damping in m/s²; default 15. |
-| `public float minimumSpeed` | Minimum absolute forward speed in m/s. |
+| `public float minimumSpeed` | Minimum absolute forward speed in m/s to start or sustain wheel lift. Defaults to 2; slowing below it starts controlled lowering. |
 | `public override ExecutionPhase Phase { get; }` | Balance phase. |
+| `public WheelLiftPitchSupport pitchSupport` | Counter the nose-up moment of tire-driven acceleration before it produces a large wheelie-angle error. Initial value: `new WheelLiftPitchSupport()`. |
 | `public float releaseTime` | Force-request fade in seconds; necessary touchdown support can outlast it. |
 | `public bool Requested { get; private set; }` | API held request; combined with Command.WheelLift. |
 | `public bool requireGroundContact` | Require support to start lifting and apply upward force. |
@@ -74,3 +76,18 @@ See [Wheel Lift](../DrivingActions.md#wheel-lift-wheelie) for defaults, units an
 | `public void SetWheelLift(bool held)` | Hold/release the API request. | — |
 | `public override void Step(VehicleController vehicle, Command command, float dt)` | Resolve guards and ramp; apply bounded force at selected point. | — |
 | `public override bool SupportsProfile(DriveProfile profile)` | Wheel profiles only (also accepts null). | — |
+
+## WheelLiftPitchSupport
+
+**Runtime/Physics/Wheels/Control/WheelLiftPitchSupport.cs**
+
+Bounded pitch support that damps boost-induced wheelie oscillation without replacing native contact forces.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public float compensation` | Fraction of the pitch moment from measured tire acceleration to counter during supported wheel lift. Initial value: `1`. |
+| `public bool enabled` | Controls enabled for this mechanism. |
+| `public float maximumDriveAcceleration` | Maximum longitudinal acceleration used by pitch compensation, in m/s². Contact impulses beyond twice this value are rejected. Initial value: `20`. |
+| `public float responseTime` | Seconds to smooth measured acceleration. Filters contact and gear-change noise. Initial value: `.08f`. |

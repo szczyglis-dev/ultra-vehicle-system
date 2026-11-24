@@ -13,8 +13,8 @@ Read [the system explanation](../Scripting/Input.md) for composition, setup and 
 - [IDirectInput](Input.md#idirectinput)
 - [InputBuffer](Input.md#inputbuffer)
 - [InputChannels](Input.md#inputchannels)
-- [InputGate.Route](Input.md#inputgateroute)
 - [InputGate](Input.md#inputgate)
+- [InputGate.Route](Input.md#inputgateroute)
 - [InputMode](Input.md#inputmode)
 - [IVehicleInput](Input.md#ivehicleinput)
 - [IVehicleInputReset](Input.md#ivehicleinputreset)
@@ -37,6 +37,8 @@ Reads configured Unity Input System actions.
 
 | Member | Meaning |
 | --- | --- |
+| `public InputActionReference airPitch` | Signed airborne rider pitch action: positive nose-down, negative nose-up. Independent of throttle and aircraft Pitch. |
+| `public InputActionReference airRoll` | Signed airborne rider roll action: positive right, negative left. Independent of steering and aircraft Roll. |
 | `public InputActionReference brake` | Input System action used for brake. Assign the action from your input asset. |
 | `public InputMode brakeMode` | Selects the brake mode policy for this configuration. Options: `Auto`, `Analog`, `Digital`. |
 | `public InputActionReference burnout` | Optional Burnout InputAction reference, or a PlayerInput action named Burnout. No default gamepad button is reserved. |
@@ -90,6 +92,8 @@ Value type carrying normalized driving axes, pending actions and analog/digital 
 
 | Member | Meaning |
 | --- | --- |
+| `public float AirPitch` | Independent airborne rider pitch demand, -1 nose-up to +1 nose-down. |
+| `public float AirRoll` | Independent airborne rider roll demand, -1 left to +1 right. |
 | `public InputChannels AnalogControls` | Analog controls. |
 | `public bool Burnout` | Held optional Drive burnout launch request; requires enabled Burnout settings. |
 | `public float Clutch` | Pedal amount: 0 couples the engine, 1 releases the optional clutch. Clutch pedal amount: zero couples and one releases the engine. |
@@ -202,7 +206,7 @@ Provides the buffered command API for external control.
 
 ## IDirectInput
 
-**Runtime/Controller/Input/DirectController.cs**
+**Runtime/Contracts/Core/IDirectInput.cs**
 
 Optional authoritative world-pose capability for an input source. Existing IVehicleInput implementations remain physical command sources.
 
@@ -247,6 +251,7 @@ Buffers axes and pending one-shot actions for fixed-step consumption.
 | `public virtual Command ReadCommand()` | Returns a sanitized sampled command and consumes this provider's pending one-shot actions where buffered. | **Returns:** Returned Command; ownership remains as specified by the creating/lookup operation. |
 | `public virtual void ResetInput()` | Clears held input and pending one-shot requests for a vehicle reset. | — |
 | `public virtual void SelectGear(int gear)` | Queues an explicit gear-selection action in the input buffer. | `gear` — Signed gear index: -1 reverse, 0 neutral, positive forward. |
+| `public virtual void SetAirAxes(float pitch, float roll)` | Stores independent airborne rider pitch and roll demands, clamped to -1..1; non-finite input becomes zero. | `pitch` — Positive nose-down, negative nose-up. `roll` — Positive right, negative left. |
 | `public virtual void SetAnalogAxes(float throttle, float steering, float brake = 0, bool handbrake = false)` | Sets proportional driving axes and marks the corresponding channels analog. | `throttle` — Normalized propulsion/throttle request. `steering` — Normalized steering input, or bool steering participation when declared bool. `brake` — Normalized brake request. Default: `0`. |
 | `public virtual void SetAxes(float throttle, float steering, float brake = 0, bool handbrake = false)` | Updates buffered drive-axis values and their input metadata without replacing all pending actions. | `throttle` — Normalized propulsion/throttle request. `steering` — Normalized steering input, or bool steering participation when declared bool. `brake` — Normalized brake request. Default: `0`. |
 | `public virtual void SetBurnout(bool held)` | Stores a continuous Drive burnout request; false releases it. ClearControls releases both requests.  `held` — true while requested; false on release. | — |
@@ -282,7 +287,8 @@ Defines the allowed input channels choices used by this topic.
 - `ServiceBrake = 4`
 - `Clutch = 8`
 - `Flight = 16`
-- `All = Throttle \| Steering \| ServiceBrake \| Clutch \| Flight`
+- `AirControl = 32`
+- `All = Throttle \| Steering \| ServiceBrake \| Clutch \| Flight \| AirControl`
 
 ## InputGate
 
@@ -316,7 +322,7 @@ Controller routing configuration and its selection callback.
 
 | Member | Meaning |
 | --- | --- |
-| `public UnityEvent selected` | Inspector callback when this controller route is selected; no payload. |
+| `public UnityEvent onSelected` | Inspector callback when this controller route is selected; no payload. |
 
 
 ### State and configuration
@@ -340,7 +346,7 @@ Defines the allowed input mode choices used by this topic.
 
 ## IVehicleInput
 
-**Runtime/Core/Command.cs**
+**Runtime/Contracts/Core/IVehicleInput.cs**
 
 Input-provider contract sampled by the controller for one vehicle tick.
 
@@ -352,7 +358,7 @@ Input-provider contract sampled by the controller for one vehicle tick.
 
 ## IVehicleInputReset
 
-**Runtime/Core/IVehicleResetHandler.cs**
+**Runtime/Contracts/Core/IVehicleResetHandler.cs**
 
 Presentation or lifecycle contract for independent vehicle components.
 
@@ -404,18 +410,26 @@ Configuration/implementation type for keyboard drive input within input and comm
 
 | Member | Meaning |
 | --- | --- |
+| `public Key airPitchBackwardAlternateKey` | Independent airborne rider alternative nose-up key; defaults to DownArrow. |
+| `public Key airPitchBackwardKey` | Independent airborne rider nose-up key; defaults to S. |
+| `public Key airPitchForwardAlternateKey` | Independent airborne rider alternative nose-down key; defaults to UpArrow. |
+| `public Key airPitchForwardKey` | Independent airborne rider nose-down key; defaults to W. |
+| `public Key airRollLeftAlternateKey` | Independent airborne rider alternative left lean key; defaults to LeftArrow. |
+| `public Key airRollLeftKey` | Independent airborne rider left lean key; defaults to A. |
+| `public Key airRollRightAlternateKey` | Independent airborne rider alternative right lean key; defaults to RightArrow. |
+| `public Key airRollRightKey` | Independent airborne rider right lean key; defaults to D. |
 | `public Key[] alternateGearKeys` | Keys indexed by requested gear: index 0 is neutral; higher indices select forward gears. `Key.None` leaves an index unbound. |
 | `public Key ascendAlternateKey` | Configurable keyboard binding. Default: `Key.RightShift`; `Key.None` leaves it unbound. |
 | `public Key ascendKey` | Configurable keyboard binding. Default: `Key.LeftShift`; `Key.None` leaves it unbound. |
 | `public Key burnoutKey` | Held burnout request key. Default LeftCtrl; effective only when Drive burnout is enabled. Camera navigation reserves keypad bindings only. |
 | `public Key clutchKey` | Configurable keyboard binding. Default: `Key.LeftShift`; `Key.None` leaves it unbound. |
+| `public bool cycleHeadlights` | Use the headlights key for low beams → high beams → off; ignore the separate high-beam key. Default: `true`. |
 | `public Key descendKey` | Configurable keyboard binding. Default: `Key.LeftCtrl`; `Key.None` leaves it unbound. |
 | `public Key forwardAlternateKey` | Configurable keyboard binding. Default: `Key.UpArrow`; `Key.None` leaves it unbound. |
 | `public Key forwardKey` | Configurable keyboard binding. Default: `Key.W`; `Key.None` leaves it unbound. |
 | `public Key[] gearKeys` | Keys indexed by requested gear: index 0 is neutral; higher indices select forward gears. `Key.None` leaves an index unbound. |
 | `public Key handbrakeKey` | Configurable keyboard binding. Default: `Key.Space`; `Key.None` leaves it unbound. |
 | `public Key hazardsKey` | Configurable keyboard binding. Default: `Key.V`; `Key.None` leaves it unbound. |
-| `public bool cycleHeadlights` | Use the headlights key for low beams → high beams → off; ignore the separate high-beam key. Default: `true`. |
 | `public Key headlightsKey` | Configurable keyboard binding. Default: `Key.L`; `Key.None` leaves it unbound. |
 | `public Key highBeamsKey` | Configurable keyboard binding. Default: `Key.None`; `Key.None` leaves it unbound. |
 | `public Key hornKey` | Held horn keyboard binding. Default Key.H; None disables it. |
@@ -450,8 +464,8 @@ Configuration/implementation type for keyboard drive input within input and comm
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
-| `public virtual void CycleHeadlights()` | Queues the next low/high/off state through the normal command path. | No arguments; no returned value. |
 | `public virtual float AdvanceSteering(float target, float deltaTime)` | Advances keyboard steering shaping for elapsed time rather than reading a separate mechanical steering state. | `target` — Configured target object/point; see declared type and owner. `deltaTime` — Elapsed time in seconds supplied by the owning loop. **Returns:** Computed float in the operation's documented unit/domain. |
+| `public virtual void CycleHeadlights()` | Queues the next low/high/off state through the normal command path. | No arguments; no returned value. |
 | `public virtual Command ReadCommand()` | Returns a sanitized sampled command and consumes this provider's pending one-shot actions where buffered. | **Returns:** Returned Command; ownership remains as specified by the creating/lookup operation. |
 | `public override void ResetBindings()` | Restores this adapter's default keys and clears retained controls. | No arguments; no returned value. |
 
@@ -542,31 +556,39 @@ Shared runtime configuration API for the built-in keyboard inputs.
 
 **Inherits / implements:** `KeyboardInput`, `IVehicleInput`.
 
+### State and configuration
+
 | Member | Meaning |
 | --- | --- |
-| `public Key forwardKey` | Increase retained forward thrust, like airplane throttle. |
-| `public Key reverseKey` | Decrease retained forward thrust to zero. |
-| `public Key strafeLeftKey` | Left translation in the spacecraft frame. |
-| `public Key strafeRightKey` | Right translation in the spacecraft frame. |
+| `public ActionInput analogInput` | Optional analog action adapter; unassigned creates one during startup. |
 | `public Key ascendKey` | Upward translation in the spacecraft frame. |
+| `public Key backwardThrustKey` | Backward thrust without changing retained throttle. |
+| `public Key brakeKey` | Powered braking against world velocity. |
+| `public Key burnoutKey` | Optional secondary propulsion boost. |
+| `public bool CameraNavigationActive { get; set; }` | Allows an external application to reserve keyboard movement. The demo free-camera modes leave this false so vehicle controls stay active. |
 | `public Key descendKey` | Downward translation in the spacecraft frame. |
-| `public Key pitchUpKey` | Pitch the nose up. |
+| `public Key forwardKey` | Increase retained forward thrust, like airplane throttle. |
+| `public Key ignitionKey` | Toggle ignition. |
+| `public Key nitroKey` | Optional propulsion boost. |
 | `public Key pitchDownKey` | Pitch the nose down. |
-| `public Key yawLeftKey` | Yaw left. |
-| `public Key yawRightKey` | Yaw right. |
+| `public Key pitchUpKey` | Pitch the nose up. |
+| `public Key reverseKey` | Decrease retained forward thrust to zero. |
 | `public Key rollLeftKey` | Roll left. |
 | `public Key rollRightKey` | Roll right. |
-| `public Key brakeKey` | Powered braking against world velocity. |
-| `public Key nitroKey` | Optional propulsion boost. |
-| `public Key burnoutKey` | Optional secondary propulsion boost. |
-| `public Key ignitionKey` | Toggle ignition. |
-| `public ActionInput analogInput` | Optional analog action adapter; unassigned creates one during startup. |
-| `public float throttleChangeRate` | Retained throttle change per second. |
+| `public Key strafeLeftKey` | Left translation in the spacecraft frame. |
+| `public Key strafeRightKey` | Right translation in the spacecraft frame. |
 | `public float throttle` | Retained forward thrust, from zero to one. |
-| `public Key backwardThrustKey` | Backward thrust without changing retained throttle. |
-| `public bool CameraNavigationActive { get; set; }` | Allows an external application to reserve keyboard movement. The demo free-camera modes leave this false so vehicle controls stay active. |
-| `public virtual Command ReadCommand()` | Reads current six-axis input and consumes latched ignition. |
-| `public override void ResetBindings()` | Restores the default keyboard bindings. |
+| `public float throttleChangeRate` | Retained throttle change per second. |
+| `public Key yawLeftKey` | Yaw left. |
+| `public Key yawRightKey` | Yaw right. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public virtual Command ReadCommand()` | Reads current six-axis input and consumes latched ignition. | — |
+| `public override void ResetBindings()` | Restores the default keyboard bindings. | — |
 
 ## KeyboardSubmarineInput
 

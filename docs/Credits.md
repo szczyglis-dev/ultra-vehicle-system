@@ -101,7 +101,7 @@ Paths refer to the demo Audio folder or the listed Resources location. Recording
 
 ## Original credit notices
 
-The imported Demo contains the asset-local notices; the package sample retains the same notices under `Samples~/Demo`:
+Asset-local notices are included under `Demo`:
 
 - `Art/Credits.md`, including the individual model and animation files.
 - `Art/Asphalt/Credits.md` and `Art/Desert Sand/Credits.md`, including texture preparation details.

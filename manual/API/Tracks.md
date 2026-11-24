@@ -160,14 +160,9 @@ Configuration/implementation type for belt within tracked movement.
 | --- | --- |
 | `public Transform[] links` | Assign the links references used by TrackVisuals.Belt. Entries are processed in list order. Initial value: `Array.Empty<Transform>()`. |
 | `public Transform[] path` | Assign the path references used by TrackVisuals.Belt. Entries are processed in list order. Initial value: `Array.Empty<Transform>()`. |
+| `public bool reverse` | Reverse belt travel along its authored path. |
 | `public float Travel { get; }` | Read-only/resolved travel for Belt. |
 | `public float travelDirection` | Path travel direction relative to positive wheel rim speed. |
-
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool reverse` | Reverse belt travel along its authored path. |
 
 ## TrackVisuals.Roller
 
@@ -182,9 +177,5 @@ Configuration/implementation type for roller within tracked movement.
 | `public bool left` | Uses the left belt speed rather than the right when rotating this visible roller. |
 | `public Vector3 localAxis` | Local axis around which the configured motion or operation takes place. Initial value: `Vector3.right`. |
 | `public float radius` | Physical radius in metres; use half the outside diameter of the represented shape. Initial value: `.5f`. |
-| `public Transform transform` | Assign the transform reference used by TrackVisuals.Roller. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
-
-
-| Declaration | Usage |
-| --- | --- |
 | `public bool reverse` | Reverse the visible roller spin. |
+| `public Transform transform` | Assign the transform reference used by TrackVisuals.Roller. Leave unassigned only when this feature is optional or the component can resolve it automatically. |

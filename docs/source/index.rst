@@ -193,7 +193,6 @@ Contents
    Distribution
    DemoResources
    ThirdParty
-   Credits
 
 
 .. toctree::

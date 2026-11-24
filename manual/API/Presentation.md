@@ -8,9 +8,9 @@ Read [the system explanation](../Scripting/Presentation.md) for composition, set
 - [EffectsCore](Presentation.md#effectscore)
 - [EffectsModule](Presentation.md#effectsmodule)
 - [ExhaustSmoke](Presentation.md#exhaustsmoke)
-- [ParticleFactory](Presentation.md#particlefactory)
 - [JetBlast](Presentation.md#jetblast)
 - [JetBlastActivation](Presentation.md#jetblastactivation)
+- [ParticleFactory](Presentation.md#particlefactory)
 - [PropulsionJets](Presentation.md#propulsionjets)
 - [SkidmarkBuffer](Presentation.md#skidmarkbuffer)
 - [Skidmarks](Presentation.md#skidmarks)
@@ -139,6 +139,57 @@ Controls emission from configured exhaust outlets.
 | `public float response` | Response rate toward the requested state. Higher values generally follow changes faster; consult the component for zero behavior. Initial value: `12`. |
 | `public VehicleController vehicle` | Assign the vehicle VehicleController component/asset used by ExhaustSmoke. |
 
+## JetBlast
+
+**Runtime/Effects/Forces/JetBlast.cs**
+
+Base type: `EffectsModule`. See [configuration and usage](../Particles.md#jet-blast).
+
+### Events and Inspector callbacks
+
+| Member | Meaning |
+| --- | --- |
+| `public event Action<Rigidbody, Vector3> BodyPushed` | Target body and applied force in newtons, once per outlet and step. |
+
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public JetBlastActivation activation` | EngineRunning includes idle; ThrottleOnly requires a throttle request. |
+| `public LayerMask affectedLayers` | Target collision layers. |
+| `public int contactCapacity` | Query capacity reserved at configuration. |
+| `public float endRadius` | Radius at maximum reach in metres. |
+| `public float forceMultiplier` | Overall multiplier for idle and full-power forces. |
+| `public float idleStrength` | Running idle fraction. |
+| `public float length` | Plume reach in metres. |
+| `public float maximumForce` | Force at full power, in newtons per outlet. |
+| `public float minimumThrottle` | Minimum throttle in ThrottleOnly mode. |
+| `public Transform[] outlets` | Exhaust origins; local +Z points outward. |
+| `public bool showGizmos` | Selected range preview. |
+| `public float startRadius` | Radius at the nozzle in metres. |
+| `public float Strength { get; private set; }` | Resolved engine demand and spool fraction. |
+| `public override bool SupportsReleasedForces { get; }` | False; released vehicle-force mode does not emit a powered blast. |
+
+
+### Methods
+
+| Signature | Role and behavior | Arguments and result |
+| --- | --- | --- |
+| `public override void Configure(VehicleController vehicle)` | Bind engine and propulsion; prepare buffers. | — |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Vehicle scheduler entry for physical exhaust. | — |
+
+## JetBlastActivation
+
+**Runtime/Effects/Forces/JetBlast.cs**
+
+
+
+| Value | Meaning |
+| --- | --- |
+| EngineRunning | `EngineRunning` — Emit with a running engine, including configured idle strength. Vehicle selection does not affect activation. |
+| ThrottleOnly | `ThrottleOnly` — Require positive throttle above Minimum Throttle. |
+
 ## ParticleFactory
 
 **Runtime/Effects/Particles/ParticleFactory.cs**
@@ -254,6 +305,25 @@ Consumes contact state and controls trail history.
 | --- | --- | --- |
 | `public virtual void ClearMarks()` | Clears this vehicle's recorded mark history and breaks existing trails. | No arguments; no returned value. |
 
+## TireBurnoutSmokeSettings
+
+**Runtime/Effects/Particles/TireBurnoutSmoke.cs**
+
+Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip.
+
+### State and configuration
+
+| Member | Meaning |
+| --- | --- |
+| `public float buildupSeconds` | Seconds for the dense cloud to build up. Smoke already emitted remains in world space. |
+| `public bool enabled` | Allows the separate burnout cloud to emit when the selected smoke mode requests it. |
+| `public Vector2 lifetime` | Minimum and maximum emitted particle lifetime in seconds. |
+| `public float maximumRate` | Maximum burnout cloud emission rate in particles per second. |
+| `public float maximumTravelSpeed` | Maximum road-relative wheel travel speed for automatic tire-ring smoke. |
+| `public float minimumIntensity` | Minimum surface particle activity required by Automatic mode, normalized 0..1. |
+| `public float minimumSpinSpeed` | Minimum excess tire circumference speed over road travel. Locked wheels do not qualify. |
+| `public Vector2 size` | Minimum and maximum starting particle size in metres. |
+
 ## TireSmoke
 
 **Runtime/Effects/Particles/TireSmoke.cs**
@@ -262,18 +332,27 @@ Manages wheel smoke and granular emission.
 
 **Inherits / implements:** [EffectsModule](Presentation.md#effectsmodule).
 
+### Events and Inspector callbacks
+
+| Member | Meaning |
+| --- | --- |
+| `public event System.Action<TireSmokeMode> SmokeModeChanged` | After selecting a different tire-smoke presentation mode. |
+| `public event System.Action<int, bool> WheelBurnoutChanged` | When a wheel enters or leaves burnout smoke presentation; carries wheel index and active flag. |
+
+
 ### State and configuration
 
 | Member | Meaning |
 | --- | --- |
+| `public TireBurnoutSmokeSettings burnoutSmoke` | Appearance and activation settings for the separate burnout cloud. |
 | `public bool createDefaultParticles` | Enables create default particles behavior for this system. Initial value: `true`. |
 | `public virtual float CurrentIntensity { get; protected set; }` | Read-only/resolved current intensity for `TireSmoke`. |
-| `public Material defaultMaterial` | Assign the default material reference used by TireSmoke. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
+| `public Material defaultMaterial` | Fallback material for built-in smoke and granular particles when the active Tire Surface Profile has no Particle Material. |
 | `public float emissionResponse` | Response of smoke density to changing slip. Zero follows slip immediately. |
 | `public float maximumRate` | Largest permitted particle emission rate, in particles per second. |
 | `public float minimumIntensity` | Minimum normalized tire-effect activity required to emit smoke. Initial value: `.12f`. |
 | `public ParticleSystem particlePrefab` | Assign the particle prefab reference used by TireSmoke. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
-| `public Material sandMaterial` | Assign the sand material reference used by TireSmoke. Leave unassigned only when this feature is optional or the component can resolve it automatically. |
+| `public TireSmokeMode smokeMode` | Automatic selects tire-ring smoke from physical wheelspin; Contact Patch keeps ordinary skid smoke; Tire Ring requests the dense cloud while the tire is slipping. |
 | `public TireFeedback tireFeedback` | Assign the feedback TireFeedback component/asset used by TireSmoke. |
 | `public ParticleSystem[] wheelParticles` | Assign the wheel particles references used by TireSmoke. Entries are processed in list order. |
 
@@ -282,19 +361,22 @@ Manages wheel smoke and granular emission.
 
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
+| `public ParticleSystem GetBurnoutParticles(int index)` | Returns the indexed wheel burnout particle system, or null when unavailable. | — |
 | `public virtual ParticleSystem GetWheelParticles(int index)` | Returns the smoke/granular particle systems owned for a configured wheel. | `index` — Zero-based configured-entry index; use the owner's current list ordering. **Returns:** Returned `ParticleSystem`; ownership remains as specified by the creating/lookup operation. |
+| `public bool IsWheelBurningOut(int index)` | Returns whether the indexed wheel currently requests burnout smoke; false for an invalid index. | — |
+| `public void SetSmokeMode(TireSmokeMode mode)` | Switches the smoke presentation mode without changing the mechanical Burnout request. | — |
 
+## TireSmokeMode
 
+**Runtime/Effects/Particles/TireBurnoutSmoke.cs**
 
-| Declaration | Usage |
-| --- | --- |
-| `public event System.Action<int, bool> WheelBurnoutChanged` | When a wheel enters or leaves burnout smoke presentation; carries wheel index and active flag. |
-| `public event System.Action<TireSmokeMode> SmokeModeChanged` | After selecting a different tire-smoke presentation mode. |
-| `public TireSmokeMode smokeMode` | Automatic selects tire-ring smoke from physical wheelspin; Contact Patch keeps ordinary skid smoke; Tire Ring requests the dense cloud while the tire is slipping. |
-| `public TireBurnoutSmokeSettings burnoutSmoke` | Appearance and activation settings for the separate burnout cloud. |
-| `public bool IsWheelBurningOut(int index)` | Returns whether the indexed wheel currently requests burnout smoke; false for an invalid index. |
-| `public ParticleSystem GetBurnoutParticles(int index)` | Returns the indexed wheel burnout particle system, or null when unavailable. |
-| `public void SetSmokeMode(TireSmokeMode mode)` | Switches the smoke presentation mode without changing the mechanical Burnout request. |
+Selects whether tire effects follow ordinary slip, the separate burnout presentation, or both. Mechanical burnout requests still belong to the Burnout module.
+
+### Values
+
+- `Automatic`
+- `ContactPatch`
+- `TireRing`
 
 ## WaterParticleFactory
 
@@ -307,66 +389,3 @@ Configuration/implementation type for water particle factory within particles an
 | Signature | Role and behavior | Arguments and result |
 | --- | --- | --- |
 | `public static ParticleSystem Create(Transform parent, string name, Material material, bool foam, int budget)` | Creates an owned water-particle presentation system with the requested style/material context. | `parent` — Owner transform for a newly created presentation resource. `name` — Diagnostic name for the generated source/object. `material` — Assigned presentation material; ownership is not transferred implicitly. `foam` — Foam, interpreted by this operation in the declared type. `budget` — Budget, interpreted by this operation in the declared type. **Returns:** Returned `ParticleSystem`; ownership remains as specified by the creating/lookup operation. |
-
-## TireSmokeMode
-
-**Runtime/Effects/Particles/TireBurnoutSmoke.cs**
-
-Selects whether tire effects follow ordinary slip, the separate burnout presentation, or both. Mechanical burnout requests still belong to the Burnout module.
-
-
-### Values
-
-- `Automatic`
-- `ContactPatch`
-- `TireRing`
-
-## TireBurnoutSmokeSettings
-
-**Runtime/Effects/Particles/TireBurnoutSmoke.cs**
-
-Independent particle appearance and activation thresholds for tire burnout smoke. This changes presentation, not drivetrain torque, slip or grip.
-
-
-| Declaration | Usage |
-| --- | --- |
-| `public bool enabled` | Allows the separate burnout cloud to emit when the selected smoke mode requests it. |
-| `public float maximumTravelSpeed` | Maximum road-relative wheel travel speed for automatic tire-ring smoke. |
-| `public float minimumSpinSpeed` | Minimum excess tire circumference speed over road travel. Locked wheels do not qualify. |
-| `public float minimumIntensity` | Minimum surface particle activity required by Automatic mode, normalized 0..1. |
-| `public float buildupSeconds` | Seconds for the dense cloud to build up. Smoke already emitted remains in world space. |
-| `public float maximumRate` | Maximum burnout cloud emission rate in particles per second. |
-| `public Vector2 lifetime` | Minimum and maximum emitted particle lifetime in seconds. |
-| `public Vector2 size` | Minimum and maximum starting particle size in metres. |
-
-## JetBlast
-
-**Runtime/Effects/Forces/JetBlast.cs**
-
-Base type: `EffectsModule`. See [configuration and usage](../Particles.md#jet-blast).
-
-| Member | Purpose |
-| --- | --- |
-| `event Action<Rigidbody, Vector3> BodyPushed` | Target body and applied force in newtons, once per outlet and step. |
-| `JetBlastActivation activation` | EngineRunning includes idle; ThrottleOnly requires a throttle request. |
-| `float minimumThrottle` | Minimum throttle in ThrottleOnly mode. |
-| `Transform[] outlets` | Exhaust origins; local +Z points outward. |
-| `float length` | Plume reach in metres. |
-| `float startRadius`, `float endRadius` | Plume radii in metres. |
-| `float maximumForce` | Force at full power, in newtons per outlet. |
-| `float forceMultiplier` | Overall multiplier for idle and full-power forces. |
-| `float idleStrength` | Running idle fraction. |
-| `LayerMask affectedLayers` | Target collision layers. |
-| `int contactCapacity` | Query capacity reserved at configuration. |
-| `bool showGizmos` | Selected range preview. |
-| `float Strength { get; private set; }` | Resolved engine demand and spool fraction. |
-| `bool SupportsReleasedForces` | False; released vehicle-force mode does not emit a powered blast. |
-| `void Configure(VehicleController vehicle)` | Bind engine and propulsion; prepare buffers. |
-| `void Step(VehicleController vehicle, Command command, float deltaTime)` | Vehicle scheduler entry for physical exhaust. |
-
-## JetBlastActivation
-
-| Value | Behavior |
-| --- | --- |
-| `EngineRunning` | Emit with a running engine, including configured idle strength. Vehicle selection does not affect activation. |
-| `ThrottleOnly` | Require positive throttle above Minimum Throttle. |

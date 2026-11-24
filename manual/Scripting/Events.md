@@ -10,6 +10,14 @@ For collision and landing sound, configure Audio/Damage Audio using [collision a
 
 Typed C# events listed below are not automatically Inspector UnityEvent fields. Custom subscribers require code (or an application adapter); assigning a clip to Event Audio needs no custom subscription script.
 
+## Signal names, hooks and saved Inspector listeners
+
+Typed C# events use PascalCase without an `on` prefix or an `Event` suffix: `SinkingChanged`, `Entered`, `Completed`. Inspector `UnityEvent` fields keep lowercase `on...` names. For example, `DamageFeedback.onImpact` is the Inspector callback and `DamageFeedback.Impacted` is the typed C# event. `PassengerSeat.onEntered` is a `UnityEvent`, while `PassengerSeat.Entered` is subscribed with `+=` and `-=`. These distinct names avoid collisions. Inspector started/completed callbacks remain `onStarted`, `onCompleted` and `onCancelled`.
+
+Subclass notification hooks use uppercase `On` names, such as `Engine.OnEngineStateChanged` and `PassengerSeat.OnEntered`. Call `base.On...` exactly once in an override to retain the ordinary notifications. A subscriber may also name its own handler `OnImpact`; this is an application method, distinct from the component's `onImpact` field. See [extending an existing component](CustomModules.md#extend-an-existing-component-at-a-state-notification).
+
+Serialized Inspector callbacks use their current field names directly. There are no legacy field-name aliases. Saved scenes and prefabs must use the current keys, and C# subscriptions, overrides and custom Inspector property paths must use the current API names. Runtime listeners added with `AddListener` belong to their subscriber and should be removed during its normal cleanup.
+
 ## Effect event ownership
 
 Subscribe directly to the component that owns a mechanic. Collision contacts are published by VehicleController.Impacted as Impact; qualified wheel touchdowns by Suspension.Landed as LandingEvent. DamageAudio listens to both and keeps sound thresholds independent of damage. Nonphysical scripted damage can also use Damage.Hit.
@@ -205,7 +213,7 @@ When implementing a derived component, preserve the relationship between state m
 | `Suspension` | `Landed(LandingEvent)` at first wheel contact; `LandingCompleted(LandingEvent)` at all-wheel support |
 | `VehicleController` | Configuration, input source, module membership, drive profile, teleport and sampled command |
 
-Use named handlers or retain delegate references when unsubscribing. A protected Raise helper emits a notification; it does not implement the corresponding state change for a replacement.
+Use named handlers or retain delegate references when unsubscribing. A protected On hook emits a notification; it does not implement the corresponding state change for a replacement.
 
 ## Opening and closing operations
 
@@ -222,6 +230,26 @@ Use a handler such as `void OnLanding(LandingEvent value)` and pair `suspension.
 ## Events reference
 
 For event names, arguments and firing conditions grouped by declaring class, see [Events reference](EventsReference.md).
+
+## Configure telemetry capture
+
+Open **Vehicle Controller > Setup > Telemetry**. **Per-wheel diagnostics > Wheel Details** defaults off; **Vehicle diagnostics > Controls**, **Motion**, **Body**, **Powertrain**, **Fuel** and **Ground** default on. These switches stop the corresponding optional capture work and apply on the next fixed-step publication, including runtime edits.
+
+| Group | Captured diagnostics | Disabled behavior |
+| --- | --- | --- |
+| Controls | Input command, throttle, service brake, steering and handbrake | No copied command/control readings; input and mechanics continue |
+| Motion | Acceleration, local motion, angular velocity, attitude, airspeed and G-force | Optional calculations/readings omitted; the live motion sensors retain their history for mechanics |
+| Body | Chassis mass and world centre of mass | Native body-property capture omitted |
+| Powertrain | RPM, running state, torque, gearbox and clutch | Diagnostic drivetrain reads omitted; drivetrain simulation continues |
+| Fuel | Tank presence, quantity, capacity and consumption | Diagnostic tank lookup omitted; consumption continues |
+| Ground | Grounded-wheel count and chassis ground clearance | Diagnostic chassis-height ray and aggregate ground count omitted; physical wheel support queries continue |
+| Wheel Details | Full copied per-wheel list | Wheels is empty and no wheel pose, name, slip or torque snapshot is collected |
+
+World **Position**, **Rotation**, **Velocity**, **SpeedKph**, **ForwardSpeed**, **FixedTime**, **DeltaTime**, **IsDirectControl** and configured **WheelCount** remain available. Pose and timing support mechanics such as overturn detection independently of the optional display groups. Sensor contact/impact history is mechanic-owned and is not switched off here.
+
+Inspect `snapshot.Sections` or call `snapshot.HasSection(TelemetrySections.Wheels)` before consuming optional data. Disabled readings are zero/false/null and must not be interpreted as real measurements. **Live** shows an explanation for disabled groups and never enables collection automatically. HUDs and custom consumers of a disabled group no longer receive its readings. A retained older snapshot keeps both its values and its original Sections flags.
+
+Set fields through `vehicle.telemetry`, for example `wheelDetails`, at runtime; no Apply Configuration or module rebuild is needed. A null options object falls back to the defaults.
 
 ## Complete public method and event index
 
@@ -255,16 +283,16 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
+| `public virtual void ClearSurfaceCache()` | Invalidates cached collider-to-effect-surface resolutions so later feedback can resolve again. |
 | `public override void Configure(VehicleController v)` | Resizes contact storage and clears surface caches for the configured wheel set. |
 | `public override void Step(VehicleController v, Command c, float dt)` | Samples wheel contact/activity and resolves presentation surfaces, then publishes changes and Sampled. |
-| `public virtual void ClearSurfaceCache()` | Invalidates cached collider-to-effect-surface resolutions so later feedback can resolve again. |
 
 | Event / callback | Role |
 | --- | --- |
 | `public event Action Sampled` | After TireFeedback updates its wheel/contact classification. No payload; read the component's current cached feedback. |
+| `public event Action<bool> SkiddingChanged` | When aggregate feedback skid state changes. Payload: bool. |
 | `public event Action<int, bool> WheelGroundedChanged` | When a wheel's feedback grounded state changes. Payload: wheel index and grounded bool. |
 | `public event Action<int, TireSurfaceProfile> WheelSurfaceChanged` | When a wheel's selected presentation surface changes. Payload: wheel index and `TireSurfaceProfile`, possibly `null`. |
-| `public event Action<bool> SkiddingChanged` | When aggregate feedback skid state changes. Payload: bool. |
 
 ### VehicleModule
 
@@ -273,14 +301,14 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
 
 ### WheelTelemetryCollection
@@ -291,26 +319,6 @@ See [WheelTelemetryCollection](../API/Events.md#wheeltelemetrycollection) for im
 
 ### WheelTelemetryCollection.Enumerator
 
+- **WheelTelemetryCollection.Enumerator** — `public void Dispose()` — No resources are owned by the value enumerator.
 - **WheelTelemetryCollection.Enumerator** — `public bool MoveNext()` — Advances to the next captured wheel.
 - **WheelTelemetryCollection.Enumerator** — `public void Reset()` — Restarts enumeration before the first entry.
-- **WheelTelemetryCollection.Enumerator** — `public void Dispose()` — No resources are owned by the value enumerator.
-
-## Configure telemetry capture
-
-Open **Vehicle Controller > Setup > Telemetry**, directly below **Configuration**. **Per-wheel diagnostics > Wheel Details** defaults off; **Vehicle diagnostics > Controls**, **Motion**, **Body**, **Powertrain**, **Fuel** and **Ground** default on. These switches stop the corresponding optional capture work and apply on the next fixed-step publication, including runtime edits.
-
-| Group | Captured diagnostics | Disabled behavior |
-| --- | --- | --- |
-| Controls | Input command, throttle, service brake, steering and handbrake | No copied command/control readings; input and mechanics continue |
-| Motion | Acceleration, local motion, angular velocity, attitude, airspeed and G-force | Optional calculations/readings omitted; the live motion sensors retain their history for mechanics |
-| Body | Chassis mass and world centre of mass | Native body-property capture omitted |
-| Powertrain | RPM, running state, torque, gearbox and clutch | Diagnostic drivetrain reads omitted; drivetrain simulation continues |
-| Fuel | Tank presence, quantity, capacity and consumption | Diagnostic tank lookup omitted; consumption continues |
-| Ground | Grounded-wheel count and chassis ground clearance | Diagnostic chassis-height ray and aggregate ground count omitted; physical wheel support queries continue |
-| Wheel Details | Full copied per-wheel list | Wheels is empty and no wheel pose, name, slip or torque snapshot is collected |
-
-World **Position**, **Rotation**, **Velocity**, **SpeedKph**, **ForwardSpeed**, **FixedTime**, **DeltaTime**, **IsDirectControl** and configured **WheelCount** remain available. Pose and timing support mechanics such as overturn detection independently of the optional display groups. Sensor contact/impact history is mechanic-owned and is not switched off here.
-
-Inspect `snapshot.Sections` or call `snapshot.HasSection(TelemetrySections.Wheels)` before consuming optional data. Disabled readings are zero/false/null and must not be interpreted as real measurements. **Live** shows an explanation for disabled groups and never enables collection automatically. HUDs and custom consumers of a disabled group no longer receive its readings. A retained older snapshot keeps both its values and its original Sections flags.
-
-Set fields through `vehicle.telemetry`, for example `wheelDetails`, at runtime; no Apply Configuration or module rebuild is needed. A null options object falls back to the defaults.

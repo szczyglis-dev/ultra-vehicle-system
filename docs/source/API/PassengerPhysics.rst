@@ -14,7 +14,10 @@ Types
 -  :ref:`PassengerBodyPart <uvs-api-passengerphysics--passengerbodypart>`
 -  :ref:`PassengerBodyPartConfig <uvs-api-passengerphysics--passengerbodypartconfig>`
 -  :ref:`PassengerBodyPartMode <uvs-api-passengerphysics--passengerbodypartmode>`
+-  :ref:`PassengerCollisionEjection <uvs-api-passengerphysics--passengercollisionejection>`
+-  :ref:`PassengerCollisionSample <uvs-api-passengerphysics--passengercollisionsample>`
 -  :ref:`PassengerCollisionSurface <uvs-api-passengerphysics--passengercollisionsurface>`
+-  :ref:`PassengerEjectionCause <uvs-api-passengerphysics--passengerejectioncause>`
 -  :ref:`PassengerFootConfig <uvs-api-passengerphysics--passengerfootconfig>`
 -  :ref:`PassengerGForceLimits <uvs-api-passengerphysics--passengergforcelimits>`
 -  :ref:`PassengerHandConfig <uvs-api-passengerphysics--passengerhandconfig>`
@@ -48,6 +51,8 @@ State and configuration
 +-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform leftHand``       | Left-hand bone/contact configuration used by the character or handle.                                                                                        |
 +-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Transform leftKneeHint``   | Optional knee pole shared by direct IK and physical leg-pose solving; controls bend without moving the foot.                                                 |
++-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform leftLowerArm``   | Assign the left lower arm reference used by HumanoidIK. Leave unassigned only when this feature is optional or the component can resolve it automatically.   |
 +-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform leftLowerLeg``   | Assign the left lower leg reference used by HumanoidIK. Leave unassigned only when this feature is optional or the component can resolve it automatically.   |
@@ -65,6 +70,8 @@ State and configuration
 | ``public Transform rightFoot``      | Right-foot bone/contact configuration used by the character or seat.                                                                                         |
 +-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform rightHand``      | Right-hand bone/contact configuration used by the character or handle.                                                                                       |
++-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Transform rightKneeHint``  | Optional right knee pole; null retains the original solver preference.                                                                                       |
 +-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public Transform rightLowerArm``  | Assign the right lower arm reference used by HumanoidIK. Leave unassigned only when this feature is optional or the component can resolve it automatically.  |
 +-------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -95,13 +102,13 @@ Methods
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void Solve(PassengerSeat seat, bool initializeFreeArms, HandleLimbs limbs)``                                 | Solves only the selected limb chains, leaving the other chains unchanged.                                  | ``limbs`` is a mask of hands/feet to solve.                                                                                                                                                                                                                                                                                                                                                                                                    |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public virtual void SolveHands(PassengerSeat seat, bool initializeFreeArms, HandleLimbs limbs)``                            | Solves only selected hands, including their configured rest/free initialization policy.                    | Feet and unselected hands are untouched.                                                                                                                                                                                                                                                                                                                                                                                                       |
-+-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SolveFootPosition(bool left, Vector3 position, Vector3 bend)``                                          | Solves a leg toward the requested ankle/foot target while respecting its mapped frames.                    | ``left`` — ``true`` selects the left hand; ``false`` selects the right. ``position`` — Requested point or switch detent; see its declared type and owning operation. ``bend`` — Bend, interpreted by this operation in the declared type.                                                                                                                                                                                                      |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SolveHands(PassengerSeat seat)``                                                                        | Solves the selected hand targets using the character's mapped arm/palm frames.                             | ``seat`` — Seat context whose admission/occupancy rules remain authoritative.                                                                                                                                                                                                                                                                                                                                                                  |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual void SolveHands(PassengerSeat seat, bool initializeFreeArms)``                                               | Solves the selected hand targets using the character's mapped arm/palm frames.                             | ``seat`` — Seat context whose admission/occupancy rules remain authoritative. ``initializeFreeArms`` — Whether to establish an initial pose for otherwise free arms.                                                                                                                                                                                                                                                                           |
++-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public virtual void SolveHands(PassengerSeat seat, bool initializeFreeArms, HandleLimbs limbs)``                            | Solves only selected hands, including their configured rest/free initialization policy.                    | Feet and unselected hands are untouched.                                                                                                                                                                                                                                                                                                                                                                                                       |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public virtual bool TryArmPose(PassengerSeat seat, bool left, out Quaternion upperRotation, out Quaternion lowerRotation)`` | Solves a candidate arm pose for the supplied target; ``false`` leaves the caller responsible for fallback. | ``seat`` — Seat context whose admission/occupancy rules remain authoritative. ``left`` — ``true`` selects the left hand; ``false`` selects the right. ``upperRotation`` — Upper rotation, interpreted by this operation in the declared type. ``lowerRotation`` — Lower rotation, interpreted by this operation in the declared type. **Returns:** ``true`` if admitted/applied; inspect the described completion boundary and any out values. |
 +-------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -146,6 +153,8 @@ State and configuration
 +=========================================================+===================================================================================================================================================================+
 | ``public Transform anchor``                             | Assign the anchor reference used by PassengerBodyPartConfig. Leave unassigned only when this feature is optional or the component can resolve it automatically.   |
 +---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public PassengerLimbDamageFeedback damageFeedback``   | Independent collision and tilt release policy for this hand or foot.                                                                                              |
++---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public PassengerBodyPartMode EffectiveMode { get; }`` | Read-only/resolved effective mode for ``PassengerBodyPartConfig``.                                                                                                |
 +---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool enableSelfCollidersOnRelease``            | Enable contacts between this Free limb and the ragdoll's own body. Neighboring skeletal bodies keep collisions disabled.                                          |
@@ -154,13 +163,15 @@ State and configuration
 +---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public VehicleHandle handle``                         | Assign the handle VehicleHandle component/asset used by PassengerBodyPartConfig.                                                                                  |
 +---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool IsIKForced { get; }``                     | Whether the assigned IK/Animator + IK handle or an active temporary request enables IK for this limb. Damage release and explicit Free ownership take precedence. |
-+---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool IsControlled { get; }``                   | Whether this body part uses an IK handle rather than animation or free motion.                                                                                    |
++---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool IsIKForced { get; }``                     | Whether the assigned IK/Animator + IK handle or an active temporary request enables IK for this limb. Damage release and explicit Free ownership take precedence. |
 +---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool IsReleasedByDamage { get; }``             | Current is released by damage predicate; read it instead of maintaining a second application flag.                                                                |
 +---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public PassengerBodyPartMode mode``                   | Selects the operating policy; see the listed options and the owning component guide. Options: ``IKHandle``, ``Animator``, ``Free``.                               |
++---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public PassengerCollisionSurface[] releaseColliders`` | Cabin surfaces admitted only for this limb when it is Free.                                                                                                       |
 +---------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-api-passengerphysics--methods-1:
@@ -173,14 +184,6 @@ Methods
 +====================================================================+============================================================================+==============================================================================================================================================================================+
 | ``public virtual Transform ResolveTarget(PassengerBodyPart part)`` | Resolves this limb configuration's effective direct/handle contact target. | ``part`` — Selected body-part enum or part configuration, as declared. **Returns:** Returned ``Transform``; ownership remains as specified by the creating/lookup operation. |
 +--------------------------------------------------------------------+----------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-+---------------------------------------------------------+----------------------------------------------------------------------+
-| Declaration                                             | Usage                                                                |
-+=========================================================+======================================================================+
-| ``public PassengerLimbDamageFeedback damageFeedback``   | Independent collision and tilt release policy for this hand or foot. |
-+---------------------------------------------------------+----------------------------------------------------------------------+
-| ``public PassengerCollisionSurface[] releaseColliders`` | Cabin surfaces admitted only for this limb when it is Free.          |
-+---------------------------------------------------------+----------------------------------------------------------------------+
 
 .. _uvs-api-passengerphysics--passengerbodypartmode:
 
@@ -200,6 +203,153 @@ Values
 -  ``Animator = 1``
 -  ``Free = 2``
 
+.. _uvs-api-passengerphysics--passengercollisionejection:
+
+PassengerCollisionEjection
+--------------------------
+
+**Runtime/World/Passengers/Seats/PassengerCollisionEjection.cs**
+
+Per-seat collision release policy. Thresholds are independent of limb damage and do not depend on the physics timestep. Replace ``seat.restraints.collisionEjection`` with a derived policy from application code to override evaluation or the animated release correction.
+
+.. _uvs-api-passengerphysics--state-and-configuration-2:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                           | Meaning                                                                                                                                                                                         |
++==================================================+=================================================================================================================================================================================================+
+| ``public bool allowKinematicStrikers``           | Allow moving kinematic bodies, such as scripted vehicles, to qualify as external strikers.                                                                                                      |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public LayerMask collisionLayers``             | External collider layers allowed to trigger automatic collision ejection.                                                                                                                       |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool externalStrike``                   | Allow another rigidbody striking the vehicle to eject this occupant, including while the vehicle is stationary.                                                                                 |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float frontalConeAngle``                | Maximum contact-normal deviation from a head-on impact, in degrees.                                                                                                                             |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool frontalDeceleration``              | Eject when a frontal collision removes a substantial part of the vehicle's forward motion.                                                                                                      |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float inertiaTransfer``                 | Preserves pre-impact normal motion. Physical bones restore their sampled velocity component; animated occupants correct post-impact vehicle inheritance. Zero keeps uncorrected backend motion. |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumInheritedVelocityChange``  | Maximum pre-impact normal velocity correction applied to any occupant, in m/s. The seat's additional ejection velocity is configured separately.                                                |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float maximumVerticalNormal``           | Largest absolute contact-normal component along gravity up (world up when gravity is zero). Rejects road/ceiling support independently of vehicle lean; one admits every orientation.           |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumClosingSpeed``             | Minimum relative speed into the contact normal, in m/s. Tangential sliding speed is excluded.                                                                                                   |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumExternalApproachSpeed``    | Minimum contribution of the other body's approach along the contact normal, in m/s. Driving into a parked body does not qualify through this path.                                              |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumExternalVelocityChange``   | Minimum normal impulse / chassis mass for an external strike, in m/s. Fast lightweight debris cannot eject a heavy vehicle's occupant from speed alone.                                         |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumForwardSpeed``             | Minimum forward seat-point speed immediately before collision, in m/s.                                                                                                                          |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumForwardSpeedLoss``         | Minimum measured forward seat-point speed loss across the physics solve, in m/s.                                                                                                                |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumForwardSpeedLossFraction`` | Minimum fraction of pre-impact forward speed lost across the physics solve. Helps reject glancing impacts at high road speed.                                                                   |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumNormalImpulse``            | Optional minimum normal impulse in N·s. Zero leaves admission to the mass-normalized thresholds below.                                                                                          |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumOtherVelocityChange``      | Minimum normal impulse / chassis mass for other admitted collisions, in m/s.                                                                                                                    |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool otherImpacts``                     | Also admit severe static side/rear impacts. Disabled by default; frontal stops and external strikes remain independent.                                                                         |
++--------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-passengerphysics--methods-2:
+
+Methods
+~~~~~~~
+
++----------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| Signature                                                                              | Role and behavior                                                                                                                                                                                                 | Arguments and result |
++========================================================================================+===================================================================================================================================================================================================================+======================+
+| ``public virtual Vector3 AnimatedVelocityCorrection(PassengerCollisionSample sample)`` | Returns bounded chassis-local pre-impact normal motion to restore for animated occupants. ``sample`` supplies the contact measurements. Physical bone correction uses the sampled per-bone velocities instead.    | —                    |
++----------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+| ``public virtual PassengerEjectionCause Evaluate(PassengerCollisionSample sample)``    | Returns None or the first admitted cause: frontal deceleration, external strike, then optional other impact. ``sample`` supplies normal, speed, impulse-derived velocity change and external-body classification. | —                    |
++----------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+
+
+.. _uvs-api-passengerphysics--passengercollisionsample:
+
+PassengerCollisionSample
+------------------------
+
+**Runtime/World/Passengers/Seats/PassengerCollisionEjection.cs**
+
+Immutable chassis-local contact measurements passed to the ejection policy. Normal points from the obstacle into the vehicle; Velocity is the pre-impact seat-point velocity. VelocityChange is the estimated chassis normal delta from impulse / mass. ExternalApproachSpeed subtracts the chassis's own linear contribution, so driving into a parked body is not an external strike.
+
+.. _uvs-api-passengerphysics--state-and-configuration-3:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| Member                                          | Meaning                                                                         |
++=================================================+=================================================================================+
+| ``public readonly float ClosingSpeed``          | Magnitude of relative normal contact speed, in m/s.                             |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly float ExternalApproachSpeed`` | Approach contribution from the other body, in m/s.                              |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly bool HasExternalBody``        | Whether the contact belongs to another rigidbody.                               |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly Vector3 Normal``              | Normalized contact normal in chassis axes.                                      |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly float NormalImpulse``         | Magnitude of normal collision impulse, in N·s.                                  |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly bool OtherBodyIsKinematic``   | Whether that other body is kinematic.                                           |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly Vector3 SeatVelocityChange``  | Measured post-solve minus pre-solve seat-point velocity, in chassis-local m/s.  |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly Vector3 Velocity``            | Pre-impact velocity at the seat, in chassis-local m/s.                          |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly Vector3 VelocityChange``      | Normal impulse / chassis mass, directed into the vehicle, in chassis-local m/s. |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+| ``public readonly float VerticalNormal``        | Absolute normal component along gravity up, or world up in zero gravity.        |
++-------------------------------------------------+---------------------------------------------------------------------------------+
+
+.. _uvs-api-passengerphysics--methods-3:
+
+Methods
+~~~~~~~
+
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+----------------------+
+| Signature                                                                                                                                                                                                                                                              | Role and behavior                                                           | Arguments and result |
++========================================================================================================================================================================================================================================================================+=============================================================================+======================+
+| ``public PassengerCollisionSample(Vector3 normal, Vector3 velocity, Vector3 velocityChange, Vector3 seatVelocityChange, float closingSpeed, float externalApproachSpeed, float normalImpulse, float verticalNormal, bool hasExternalBody, bool otherBodyIsKinematic)`` | Copies the chassis-local contact measurements without querying Unity state. | —                    |
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+----------------------+
+
+.. _uvs-api-passengerphysics--passengercollisionsurface:
+
+PassengerCollisionSurface
+-------------------------
+
+**Runtime/World/Passengers/Seats/PassengerBodyPartConfig.cs** One serialized entry in a limb's ``releaseColliders`` or the seat's ``ejectColliders``. Inspector paths and ownership are described in :ref:`Seat contact exclusions <uvs-seats--contact-exclusions>`.
+
+Flags merge by collider identity across lists: true wins over false for each flag. They do not toggle Collider.enabled. Limb lists admit only their Free limb; the eject list admits the entire ejected body. Subsequent damage activations retain admitted contacts until explicit restoration/reset. Use ``seat.RefreshCollisionSettings()`` after direct runtime list/entry edits.
+
+.. _uvs-api-passengerphysics--state-and-configuration-4:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
++-----------------------------------------+--------------------------------------------------------------------------------+
+| Member                                  | Meaning                                                                        |
++=========================================+================================================================================+
+| ``public Collider collider``            | Existing cabin/door surface; null.                                             |
++-----------------------------------------+--------------------------------------------------------------------------------+
+| ``public bool ignoreVehicleCollisions`` | Ignore eligible contacts between this surface and vehicle surfaces; false.     |
++-----------------------------------------+--------------------------------------------------------------------------------+
+| ``public bool ignoreWorldCollisions``   | Ignore eligible physical contacts between this surface and environment; false. |
++-----------------------------------------+--------------------------------------------------------------------------------+
+
+.. _uvs-api-passengerphysics--passengerejectioncause:
+
+PassengerEjectionCause
+----------------------
+
+**Runtime/World/Passengers/Seats/PassengerCollisionEjection.cs**
+
+Classifies an admitted collision release. Values: ``None``, ``FrontalDeceleration``, ``ExternalStrike``, ``OtherImpact``.
+
 .. _uvs-api-passengerphysics--passengerfootconfig:
 
 PassengerFootConfig
@@ -211,7 +361,7 @@ Per-foot mode, target and pinning/rotation configuration used by the seat.
 
 **Inherits / implements:** :ref:`PassengerBodyPartConfig <uvs-api-passengerphysics--passengerbodypartconfig>`.
 
-.. _uvs-api-passengerphysics--state-and-configuration-2:
+.. _uvs-api-passengerphysics--state-and-configuration-5:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -244,7 +394,7 @@ State and configuration
 | ``public bool UsesTargetRotation { get; }`` | Effective rotation policy: explicit Align Rotation or the assigned handle's rotation requirement.                                                                                                                                                                              |
 +---------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. _uvs-api-passengerphysics--methods-2:
+.. _uvs-api-passengerphysics--methods-4:
 
 Methods
 ~~~~~~~
@@ -268,7 +418,7 @@ PassengerGForceLimits
 
 Serialized per-seat emergency settings. All thresholds are live. See :ref:`G-force limits <uvs-seats--g-force-limits>` for activation and cleanup.
 
-.. _uvs-api-passengerphysics--state-and-configuration-3:
+.. _uvs-api-passengerphysics--state-and-configuration-6:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -310,7 +460,7 @@ Configuration/implementation type for passenger hand config within physical pass
 
 **Inherits / implements:** :ref:`PassengerBodyPartConfig <uvs-api-passengerphysics--passengerbodypartconfig>`.
 
-.. _uvs-api-passengerphysics--state-and-configuration-4:
+.. _uvs-api-passengerphysics--state-and-configuration-7:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -374,40 +524,26 @@ PassengerLimbDamageFeedback
 
 **Runtime/World/Passengers/Seats/PassengerBodyPartConfig.cs** Serialized independently at ``seat.leftHand.damageFeedback``, ``rightHand.damageFeedback``, ``leftFoot.damageFeedback`` and ``rightFoot.damageFeedback``. Inspector: **Passenger Seat > Hands, feet and head > [limb] > Damage feedback**.
 
+.. _uvs-api-passengerphysics--state-and-configuration-8:
+
+State and configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
 +----------------------------------------+-----------------------------------------------------------------------------+
-| Member                                 | Meaning / default                                                           |
+| Member                                 | Meaning                                                                     |
 +========================================+=============================================================================+
-| ``public bool releaseOnCollision``     | Release this limb after qualifying contact; false.                          |
-+----------------------------------------+-----------------------------------------------------------------------------+
-| ``public bool releaseOnSpin``          | Release this limb after sustained gravity-relative tilt; false.             |
+| ``public float minimumAngle``          | Vehicle tilt against gravity up, degrees; 90. Not ordinary yaw.             |
 +----------------------------------------+-----------------------------------------------------------------------------+
 | ``public float minimumCollisionForce`` | Average collision force threshold, N; 20000. Both force/speed must qualify. |
 +----------------------------------------+-----------------------------------------------------------------------------+
 | ``public float minimumCollisionSpeed`` | Relative contact speed threshold, m/s; 3.                                   |
 +----------------------------------------+-----------------------------------------------------------------------------+
-| ``public float minimumAngle``          | Vehicle tilt against gravity up, degrees; 90. Not ordinary yaw.             |
+| ``public bool releaseOnCollision``     | Release this limb after qualifying contact; false.                          |
++----------------------------------------+-----------------------------------------------------------------------------+
+| ``public bool releaseOnSpin``          | Release this limb after sustained gravity-relative tilt; false.             |
 +----------------------------------------+-----------------------------------------------------------------------------+
 | ``public float tiltDelay``             | Continuous time beyond the angle before release, seconds; 0.1.              |
 +----------------------------------------+-----------------------------------------------------------------------------+
-
-.. _uvs-api-passengerphysics--passengercollisionsurface:
-
-PassengerCollisionSurface
--------------------------
-
-**Runtime/World/Passengers/Seats/PassengerBodyPartConfig.cs** One serialized entry in a limb's ``releaseColliders`` or the seat's ``ejectColliders``. Inspector paths and ownership are described in :ref:`Seat contact exclusions <uvs-seats--contact-exclusions>`.
-
-+-----------------------------------------+--------------------------------------------------------------------------------+
-| Member                                  | Meaning / default                                                              |
-+=========================================+================================================================================+
-| ``public Collider collider``            | Existing cabin/door surface; null.                                             |
-+-----------------------------------------+--------------------------------------------------------------------------------+
-| ``public bool ignoreWorldCollisions``   | Ignore eligible physical contacts between this surface and environment; false. |
-+-----------------------------------------+--------------------------------------------------------------------------------+
-| ``public bool ignoreVehicleCollisions`` | Ignore eligible contacts between this surface and vehicle surfaces; false.     |
-+-----------------------------------------+--------------------------------------------------------------------------------+
-
-Flags merge by collider identity across lists: true wins over false for each flag. They do not toggle Collider.enabled. Limb lists admit only their Free limb; the eject list admits the entire ejected body. Subsequent damage activations retain admitted contacts until explicit restoration/reset. Use ``seat.RefreshCollisionSettings()`` after direct runtime list/entry edits.
 
 .. _uvs-api-passengerphysics--passengerrestraints:
 
@@ -418,74 +554,74 @@ PassengerRestraints
 
 Stores harness, release, damping and ejection configuration.
 
-.. _uvs-api-passengerphysics--state-and-configuration-5:
+.. _uvs-api-passengerphysics--state-and-configuration-9:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Member                                         | Meaning                                                                                                                                                                                                       |
-+================================================+===============================================================================================================================================================================================================+
-| ``public float chestSupportStrength``          | Scales chest support independently of the pelvis. Reapply seated tuning or re-enter the seat after editing. One preserves the original support.                                                               |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float ejectionTiltDelay``             | Time in seconds that the ejection tilt must be sustained before releasing the occupant. Initial value: ``.1f``.                                                                                               |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool ejectPassengerOnCollision``      | Whole occupant release after a sufficiently strong new contact.                                                                                                                                               |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool ejectPassengerOnSpin``           | Whole occupant release after sustained roll/pitch tilt.                                                                                                                                                       |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool enablePassengerEjection``        | Allow the whole occupant to detach from the seat into a free ragdoll. Removes every hand, foot, pelvis and chest restraint. Independent of the limb-only options above.                                       |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessAngularDamper``          | Damping for harness angular damper. Higher values oppose relative motion more strongly. Initial value: ``3``.                                                                                                 |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessAngularSpring``          | Restoring stiffness for harness angular spring. Higher values resist displacement more strongly. Initial value: ``16``.                                                                                       |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessChestTravel``            | Harness chest travel in metres in the owning system's space. Initial value: ``.06f``.                                                                                                                         |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessDampingRatio``           | Multiplier/fraction controlling harness damping ratio. Increasing it increases this contribution relative to the unscaled value. Initial value: ``1``.                                                        |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessForwardLean``            | Seat-relative forward/backward angular travel in degrees around the captured seated pose. Initial value: ``22``.                                                                                              |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessFrequency``              | Natural frequency used to derive compliant harness spring strength, in Hz. Initial value: ``3``.                                                                                                              |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessLimitDamperPerKg``       | Angular travel-limit damping scaled by supported mass. Initial value: ``6``.                                                                                                                                  |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessLimitSpringPerKg``       | Angular travel-limit stiffness scaled by supported mass. Initial value: ``60``.                                                                                                                               |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessMaximumAcceleration``    | Force/torque budget for harness maximum acceleration; this limits or scales how strongly the mechanism changes physical motion. See the owning system guide for its application frame. Initial value: ``80``. |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessMaximumTorquePerKg``     | Maximum angular support torque per kilogram of supported mass. Initial value: ``8``.                                                                                                                          |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessSideLean``               | Soft angular travel around the captured seated pose, measured in seat axes.                                                                                                                                   |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float harnessTwist``                  | Seat-relative twist travel in degrees around the captured seated pose. Initial value: ``28``.                                                                                                                 |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool limitHarnessTravel``             | Keep the pelvis inside Seat Travel and the chest inside Chest Travel using native joint limits. Angular sway stays physical.                                                                                  |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float minimumEjectionAngle``          | Gravity-relative tilt angle in degrees required for the spin/overturn ejection policy. Initial value: ``90``.                                                                                                 |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float minimumEjectionCollisionForce`` | Minimum average contact force in N: impulse divided by the physics timestep.                                                                                                                                  |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float minimumEjectionCollisionSpeed`` | Minimum relative collision speed in m/s; force and speed thresholds must both be met.                                                                                                                         |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public Vector3 passengerEjectionVelocity``   | Optional additional velocity in vehicle-local m/s. Existing ragdoll linear/angular motion is preserved.                                                                                                       |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool reseatEjectedOnReset``           | Allows vehicle reset to restore an eligible occupant previously ejected from this seat. Initial value: ``true``.                                                                                              |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float seatDamper``                    | Damping for seat damper. Higher values oppose relative motion more strongly. Initial value: ``1300``.                                                                                                         |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float seatSpring``                    | Restoring stiffness for seat spring. Higher values resist displacement more strongly. Initial value: ``14000``.                                                                                               |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float seatTravel``                    | Seat travel in metres in the owning system's space. Initial value: ``.025f``.                                                                                                                                 |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public bool softHarness``                    | Bounded native spring drives support pelvis and chest without bone pose overrides. Foot pins are configured separately on each foot.                                                                          |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public int solverIterations``                | Minimum solver iterations on seated bones only. Zero preserves the body's setting; higher authored values are retained. Restored on release.                                                                  |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public int solverVelocityIterations``        | Minimum velocity solver iterations while seated; higher per-body settings are preserved. Initial value: ``4``.                                                                                                |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``public float torsoSwayDegrees``              | Torso sway degrees in degrees, relative to the owning mechanism's reference frame. Initial value: ``12``.                                                                                                     |
-+------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Member                                                  | Meaning                                                                                                                                                                                                       |
++=========================================================+===============================================================================================================================================================================================================+
+| ``public float chestSupportStrength``                   | Scales chest support independently of the pelvis. Reapply seated tuning or re-enter the seat after editing. One preserves the original support.                                                               |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public PassengerCollisionEjection collisionEjection`` | Directional impulse, deceleration and external-striker configuration for whole-occupant release.                                                                                                              |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float ejectionTiltDelay``                      | Time in seconds that the ejection tilt must be sustained before releasing the occupant. Initial value: ``.1f``.                                                                                               |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool ejectPassengerOnCollision``               | Whole occupant release after a sufficiently strong new contact.                                                                                                                                               |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool ejectPassengerOnSpin``                    | Whole occupant release after sustained roll/pitch tilt.                                                                                                                                                       |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool enablePassengerEjection``                 | Allow the whole occupant to detach from the seat into a free ragdoll. Removes every hand, foot, pelvis and chest restraint. Independent of the limb-only options above.                                       |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessAngularDamper``                   | Damping for harness angular damper. Higher values oppose relative motion more strongly. Initial value: ``3``.                                                                                                 |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessAngularSpring``                   | Restoring stiffness for harness angular spring. Higher values resist displacement more strongly. Initial value: ``16``.                                                                                       |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessChestTravel``                     | Harness chest travel in metres in the owning system's space. Initial value: ``.06f``.                                                                                                                         |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessDampingRatio``                    | Multiplier/fraction controlling harness damping ratio. Increasing it increases this contribution relative to the unscaled value. Initial value: ``1``.                                                        |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessForwardLean``                     | Seat-relative forward/backward angular travel in degrees around the captured seated pose. Initial value: ``22``.                                                                                              |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessFrequency``                       | Natural frequency used to derive compliant harness spring strength, in Hz. Initial value: ``3``.                                                                                                              |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessLimitDamperPerKg``                | Angular travel-limit damping scaled by supported mass. Initial value: ``6``.                                                                                                                                  |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessLimitSpringPerKg``                | Angular travel-limit stiffness scaled by supported mass. Initial value: ``60``.                                                                                                                               |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessMaximumAcceleration``             | Force/torque budget for harness maximum acceleration; this limits or scales how strongly the mechanism changes physical motion. See the owning system guide for its application frame. Initial value: ``80``. |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessMaximumTorquePerKg``              | Maximum angular support torque per kilogram of supported mass. Initial value: ``8``.                                                                                                                          |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessSideLean``                        | Soft angular travel around the captured seated pose, measured in seat axes.                                                                                                                                   |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float harnessTwist``                           | Seat-relative twist travel in degrees around the captured seated pose. Initial value: ``28``.                                                                                                                 |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool limitHarnessTravel``                      | Keep the pelvis inside Seat Travel and the chest inside Chest Travel using native joint limits. Angular sway stays physical.                                                                                  |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float minimumEjectionAngle``                   | Gravity-relative tilt angle in degrees required for the spin/overturn ejection policy. Initial value: ``90``.                                                                                                 |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public Vector3 passengerEjectionVelocity``            | Optional additional velocity in vehicle-local m/s. Existing ragdoll linear/angular motion is preserved.                                                                                                       |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool pinPelvisToSeat``                         | Native positional constraint keeps the pelvis on its seat point while torso angular sway and limb physics remain active. Disable for compliant translation. Initial value: ``true``.                          |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool reseatEjectedOnReset``                    | Allows vehicle reset to restore an eligible occupant previously ejected from this seat. Initial value: ``true``.                                                                                              |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float seatDamper``                             | Damping for seat damper. Higher values oppose relative motion more strongly. Initial value: ``1300``.                                                                                                         |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float seatSpring``                             | Restoring stiffness for seat spring. Higher values resist displacement more strongly. Initial value: ``14000``.                                                                                               |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float seatTravel``                             | Seat travel in metres in the owning system's space. Initial value: ``.025f``.                                                                                                                                 |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool softHarness``                             | Bounded native spring drives support pelvis and chest without bone pose overrides. Foot pins are configured separately on each foot.                                                                          |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public int solverIterations``                         | Minimum solver iterations on seated bones only. Zero preserves the body's setting; higher authored values are retained. Restored on release.                                                                  |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public int solverVelocityIterations``                 | Minimum velocity solver iterations while seated; higher per-body settings are preserved. Initial value: ``4``.                                                                                                |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public float torsoSwayDegrees``                       | Torso sway degrees in degrees, relative to the owning mechanism's reference frame. Initial value: ``12``.                                                                                                     |
++---------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _uvs-api-passengerphysics--ragdollcollisionhelper:
 
@@ -496,9 +632,9 @@ RagdollCollisionHelper
 
 Standing-character knockdown and bounded physical response to moving bodies. Contact impulses permit normal closing speed plus the configured additional budget; world-speed safety limits temporarily permit the contacting surface speed. Before the solve, nearby moving colliders are tested at their predicted pose over two physics steps; a predicted bone overlap can activate the ragdoll early, avoiding the one-step kinematic delay. This does not prescribe a roll animation. Zero-feedback chassis sweep filtering remains in place so vehicle panels do not separate at CCD time of impact. Early knockdown predicts geometry before the solve; the dynamic ragdoll retains its configured native collision mode. While moving contacts are active, solver iterations are raised to at least 32 position / 12 velocity iterations and restored afterwards (also on helper disable). Only the standing-to-ragdoll impact arms hood recovery, for at most two seconds and only for the vehicle that knocked the character down. Contacts with an already fallen ragdoll never arm or extend this upward recovery, so repeated run-overs keep native contact response. Within that initial window, if a bone remains over 5 cm inside an upright vehicle collider for at least 0.04 s, a bounded depenetration fallback moves the complete live skeleton towards the exterior together. Per-step displacement is capped by Maximum Depenetration Speed times the fixed timestep; joint angles and velocities are preserved. It uses native physics poses, includes articulated body panels, and releases its hull cache after the contact clears. No authored pose reset or launch impulse is applied.
 
-**Inherits / implements:** ``MonoBehaviour``, :ref:`ICollisionDamageResponse <uvs-api-damage--icollisiondamageresponse>`.
+**Inherits / implements:** :ref:`VehicleCollisionHandler <uvs-api-collisionsandstabilization--vehiclecollisionhandler>`, :ref:`ICollisionDamageResponse <uvs-api-damage--icollisiondamageresponse>`.
 
-.. _uvs-api-passengerphysics--state-and-configuration-6:
+.. _uvs-api-passengerphysics--state-and-configuration-10:
 
 State and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -528,6 +664,8 @@ State and configuration
 +-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public CollisionDetectionMode ragdollCollisionDetection`` | Native collision detection mode used by the dynamic ragdoll. Initial value: ``CollisionDetectionMode.ContinuousDynamic``.                                                                                            |
 +-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``public bool switchImpactAudioOnKnockdown``                | Default true. Requests the owning Damage Surface audio sequence's secondary state after knockdown; recovery rearms it. Configure/enable the sequence on Damage Surface. Does not own audio sources or banks.         |
++-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public bool useSpeculativeContacts``                      | Speculative contacts while standing/animated. Dynamic ragdolls keep Ragdoll Collision Detection to avoid ghost contacts at rest and preserve vehicle panel sweeps.                                                   |
 +-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float vehicleContactFriction``                     | Friction used for the helper's bounded contacts with external dynamic bodies. Initial value: ``.45f``.                                                                                                               |
@@ -536,6 +674,17 @@ State and configuration
 +-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``public float vehicleResponse``                            | Inverse-mass/inertia response of the other dynamic body for this contact only. Zero makes the contact one-way.                                                                                                       |
 +-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _uvs-api-passengerphysics--methods-5:
+
+Methods
+~~~~~~~
+
++---------------------------------------------------------------+------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------+
+| Signature                                                     | Role and behavior                                                                                    | Arguments and result                                                       |
++===============================================================+======================================================================================================+============================================================================+
+| ``public override bool ExcludeWheelSupport(Collider target)`` | Excludes standing or still-tall mannequin bones; restores wheel support after the ragdoll collapses. | False for a low fallen ragdoll; true while standing, seated or still tall. |
++---------------------------------------------------------------+------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------+
 
 .. _uvs-api-passengerphysics--ragdollcollisionrelay:
 

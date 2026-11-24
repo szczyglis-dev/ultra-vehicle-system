@@ -67,7 +67,7 @@ Call `body.GetPart(partId)` once for the operation, check the result, then read 
 | `part.IsImpactUnlatched` | Impact loosened the latch while the part may still be attached. This is separate from detachment. |
 | `part.usePhysics` | Physical hinge policy, used in Rotation mode. |
 
-For a gameplay action such as allowing boarding after a door opens, subscribe to `OpeningCompleted` rather than waiting a guessed duration or testing IsOpen immediately after Open. For a blocked physical door, the request and actual angle can remain different. See the [operation lifecycle](#body-part-operation-lifecycle) and [subscription example](MovingParts.md#subscribe-to-operation-events-and-configure-cues).
+For a gameplay action such as allowing boarding after a door opens, subscribe to `onOpeningCompleted` rather than waiting a guessed duration or testing IsOpen immediately after Open. For a blocked physical door, the request and actual angle can remain different. See the [operation lifecycle](#body-part-operation-lifecycle) and [subscription example](MovingParts.md#subscribe-to-operation-events-and-configure-cues).
 
 ## Choose the impact notification
 
@@ -180,7 +180,7 @@ namespace VehicleDocumentationExamples
 - **Add a reaction:** keep built-in Damage enabled and subscribe to Hit as above. `hit.Amount` is already scaled gameplay severity. Do not apply it again to the part from the observer. Hit runs after its part's counter update and the built-in detachment decision; visual mesh upload can still be pending.
 - **Read physical measurements:** test `hit.HasPhysicalImpact` before using `ImpactSpeed` (normal collision speed in m/s), `Impulse` (magnitude in N·s) or `Force` (average impulse/timestep in N). A simple scripted hit has no such metadata. Use `HasTelemetry` before reading its cached vehicle snapshot.
 - **Scale collisions against a particular target:** implement `ICollisionDamageResponse` on the external struck collider's hierarchy. Its `CollisionDamageScale` (0..1) scales collision speed before the built-in threshold. It does not change native collision forces, raw Impact notifications, or scripted ApplyImpact amounts. See [the response interface](../API/Damage.md#icollisiondamageresponse).
-- **Own the damage calculation:** disable/remove the built-in Damage module and handle root Impacted notifications yourself, to supply your complete policy. Root Impacted alone does not replace child-rigidbody relays; preserve the needed collision collection explicitly. To replace only the processing of already admitted hits, derive from Damage and override its protected virtual `ApplyImpactCore(...)`; the built-in collision admission/thresholds still apply before this hook. Use protected `RaiseHit` when your replacement should publish Damage.Hit notifications. Keep one damage owner per impact.
+- **Own the damage calculation:** disable/remove the built-in Damage module and handle root Impacted notifications yourself, to supply your complete policy. Root Impacted alone does not replace child-rigidbody relays; preserve the needed collision collection explicitly. To replace only the processing of already admitted hits, derive from Damage and override its protected virtual `ApplyImpactCore(...)`; the built-in collision admission/thresholds still apply before this hook. Use protected `OnHit` when your replacement should publish Damage.Hit notifications. Keep one damage owner per impact.
 - **Inject a projectile/explosion hit:** call `Damage.ApplyImpact(point, direction, amount)` on the enabled registered Damage module. The amount is application severity, not an automatic force or speed. The module still applies its configured multiplier, radius/part admission and gates, so it may affect several parts or none. Use the physical-metadata overload only when those measurements are known. `ReceiveImpact(Impact)` instead runs the collision policy and thresholds. Do not forward a root collision that the built-in Damage subscription already receives.
 
 Full signatures and repair operations remain in the [public index](#complete-public-method-and-event-index). Damage.Hit is a C# event; use a small observer such as DamageObserver to bridge it to your own Inspector UnityEvent when needed. The motion components' Inspector callbacks do not imply that Damage exposes the same serialized event fields.
@@ -236,7 +236,7 @@ VehicleBodyPart.openingMotionCurve and closingMotionCurve independently shape no
 
 ## Body-part operation lifecycle
 
-VehicleBodyPart exposes `OpeningStarted`, `OpeningCompleted`, `ClosingStarted` and `ClosingCompleted` as C# events and matching Inspector callbacks at the bottom of the component in this order: **Motion Events → Signals and callbacks → Gizmos**. See the existing [complete subscription example](MovingParts.md#subscribe-to-operation-events-and-configure-cues), rather than installing another independent movement timer.
+VehicleBodyPart exposes `OpeningStarted`, `OpeningCompleted`, `ClosingStarted` and `ClosingCompleted` as C# events, with matching `on...` Inspector callbacks in `motionEvents`. See the existing [complete subscription example](MovingParts.md#subscribe-to-operation-events-and-configure-cues), rather than installing another independent movement timer.
 
 `OpenChanged(bool)` reports the requested open/closed state, `PhysicsChanged(bool)` a physics-policy change, and `Released` the end of hinge ownership. `MotionOccurred(PartMotionEvent)` provides the four start/arrival cues through one event. `Signals` exposes the common lifecycle, including stop/cancel; its complete [callback table](../MovingParts.md#lifecycle-and-inspector-callbacks) also covers Animation and Custom.
 
@@ -281,14 +281,14 @@ The lists below cover public methods and events for this topic and their package
 
 | Method | Role |
 | --- | --- |
+| `public virtual bool Close(string id)` | Requests closure of this part or the body part selected by ID. |
+| `public virtual void CloseAll()` | Requests closure of every eligible authored body part. |
 | `public virtual VehicleBodyPart GetPart(string id)` | Finds the authored body part by its case-sensitive ID. |
 | `public virtual bool Open(string id)` | Requests opening of this part or the body part selected by ID. |
-| `public virtual bool Close(string id)` | Requests closure of this part or the body part selected by ID. |
-| `public virtual bool Toggle(string id)` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. |
-| `public virtual bool SetPhysics(string id, bool enabled)` | Looks up the case-sensitive part ID and requests that part's physics policy, returning `false` when no eligible target exists. |
-| `public virtual bool SetOpen(string id, bool open)` | Requests a body part's open/closed target. |
 | `public virtual void OpenAll()` | Requests opening of every eligible authored body part. |
-| `public virtual void CloseAll()` | Requests closure of every eligible authored body part. |
+| `public virtual bool SetOpen(string id, bool open)` | Requests a body part's open/closed target. |
+| `public virtual bool SetPhysics(string id, bool enabled)` | Looks up the case-sensitive part ID and requests that part's physics policy, returning `false` when no eligible target exists. |
+| `public virtual bool Toggle(string id)` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. |
 
 ### Damage
 
@@ -297,14 +297,14 @@ The lists below cover public methods and events for this topic and their package
 - `public event Action<DamageHit, float> DeformationRequested` — Accepted hit and radius before part detachment; optional deformation receivers process it synchronously.
 - `public event Action EffectsCleared` — Requests clearing optional impact presentation.
 - `public event Action FullyRepaired` — Current fully repaired.
-- `public event Action<DamageHit> Hit` — // Reports each accepted copied damage hit after its target part and severity are resolved.
+- `public event Action<DamageHit> Hit` — Reports each accepted copied damage hit after its target part and severity are resolved.
 - `public event Action PartsChanged` — Reports that the damage boundary list has been refreshed.
 - `public virtual void ApplyImpact(Vector3 point, Vector3 direction, float amount)` — Current apply impact.
 - `public virtual void ApplyImpact(Vector3 point, Vector3 direction, float amount, float impactSpeed, float impulse, float force)` — Current apply impact.
 - `public virtual void ClearEffects()` — Stops all pooled impact effects.
 - `public override void Configure(VehicleController vehicle)` — Binds the component to its configured owner and selected source.
 - `public virtual DamagePart GetPart(string id)` — Current get part.
-- `public virtual void ReceiveImpact(Impact impact)` — // Accepts a copied impact snapshot and routes it through this component's damage policy.
+- `public virtual void ReceiveImpact(Impact impact)` — Accepts a copied impact snapshot and routes it through this component's damage policy.
 - `public virtual void RefreshParts()` — Current refresh parts.
 - `public virtual void RepairAll()` — Current repair all.
 - `public virtual bool RepairPart(DamagePart part)` — Current repair part.
@@ -314,25 +314,25 @@ The lists below cover public methods and events for this topic and their package
 
 See [setup and examples](../DamageFeedback.md) and the [full API](../API/DamageFeedback.md#damagefeedback).
 
-- `public event Action<DamageContact> Impacted`
-- `public event Action<DamageContact> Scraped`
 - `public event Action Cleared`
 - `public event Action<DamageContact> Contacted`
 - `public event Action<DamageHit, DamageImpactProfile> EffectPlayed`
-- `public void SetImpactEffectsEnabled(bool value)`
-- `public void WarmUpEffects()`
-- `public DamageImpactProfile ResolveImpactProfile(DamagePart part)`
-- `public DamageImpactProfile ResolveImpactProfile(DamageHit hit)`
-- `public bool TryPlayEffect(DamageHit hit)`
-- `public override void Configure(VehicleController owner)`
+- `public event Action<DamageContact> Impacted`
+- `public event Action<DamageContact> Scraped`
 - `public void ClearEffects()`
+- `public void ClearState()`
+- `public override void Configure(VehicleController owner)`
 - `public static DamageContact FromDamageHit(DamageHit hit)`
 - `public void ResetVehicleState(VehicleResetReason reason)`
-- `public void ClearState()`
-- `public bool SubmitContact(DamageContact sample)`
-- `public DamageSurfaceType ClassifyContact(DamageSurfaceQuery contact)`
 - `public DamageFeedbackProfile ResolveContactResponse(DamageSurfaceQuery query)`
+- `public DamageImpactProfile ResolveImpactProfile(DamageHit hit)`
+- `public DamageImpactProfile ResolveImpactProfile(DamagePart part)`
+- `public void SetImpactEffectsEnabled(bool value)`
 - `public override void Step(VehicleController owner, Command command, float dt)`
+- `public bool SubmitContact(DamageContact sample)`
+- `public bool TryPlayEffect(DamageHit hit)`
+- `public void WarmUpEffects()`
+- `public DamageSurfaceType ClassifyContact(DamageSurfaceQuery contact)`
 
 ### DamageImpactProfile
 
@@ -346,13 +346,13 @@ See [setup and examples](../DamageFeedback.md) and the [full API](../API/DamageF
 [DamagePart](../API/Damage.md#damagepart) gives the full declared contract.
 
 - `public event Action<DamagePart, float> Damaged` — Current damaged.
-- `public event Action<DamagePart> Detached` — // Reports this part after it becomes independent physical debris.
+- `public event Action<DamagePart> Detached` — Reports this part after it becomes independent physical debris.
 - `public event Action<DamagePart, float> Repaired` — Current repaired.
 - `public event Action<DamagePart> Restored` — Current restored.
 - `public virtual bool Detach(Rigidbody vehicleBody)` — Current detach.
-- `public virtual void ReceiveDamage(float amount)` — // Accumulates finite positive damage only while the part is attached and then publishes the accepted amount.
+- `public virtual void ReceiveDamage(float amount)` — Accumulates finite positive damage only while the part is attached and then publishes the accepted amount.
 - `public virtual float Repair(float amount)` — Current repair.
-- `public virtual bool RepairFully()` — // Full repair is deliberately separate from incremental Repair(amount).
+- `public virtual bool RepairFully()` — Full repair is deliberately separate from incremental Repair(amount).
 
 ### IDamageImpactEffect
 
@@ -374,40 +374,43 @@ See [setup and examples](../DamageFeedback.md) and the [full API](../API/DamageF
 
 [VehicleBodyPart](../API/Damage.md#vehiclebodypart) gives the full declared contract.
 
-- `public event System.Action ClosingCompleted` — Current closing completed.
-- `public event System.Action ClosingStarted` — Current closing started.
-- `public event System.Action MotionAudioStopped` — Requests stopping movement audio after interruption or disable.
-- `public event System.Action<PartMotionEvent> MotionOccurred` — Reports an admitted movement phase to optional presentation receivers.
-- `public event System.Action<bool> OpenChanged` — // Reports a changed open/closed request rather than physical hinge arrival.
-- `public event System.Action OpeningCompleted` — Current opening completed.
-- `public event System.Action OpeningStarted` — Current opening started.
-- `public event System.Action<bool> PhysicsChanged` — Current physics changed.
-- `public event System.Action Released` — // Notifies observers after hinge ownership is permanently released.
-- `public virtual void Close()` — Current close.
-- `public virtual void Open()` — Current open.
-- `public virtual void RefreshIgnoredCollisions()` — Current refresh ignored collisions.
-- `public virtual void Release()` — Current release.
-- `public virtual void RepairFully()` — Current repair fully.
-- `public virtual void SetOpen(bool value)` — Current set open.
-- `public virtual void SetPhysics(bool value)` — Current set physics.
-- `public virtual void StartMotion(float value)` — Requests open for values at least 0.5, otherwise closed; BodyPart still has two requested endpoints.
-- `public virtual void ReportProgress(float value)` — Reports actual normalized Custom progress without writing the pose.
-- `public virtual void CompleteCustomMotion()` — Publishes successful Custom completion after the external implementation arrives.
-- `public virtual void Stop()` — Stops the current operation at its reported position, without completion.
-- `public virtual void Cancel()` — Cancels the current operation at its reported position, without completion.
-- `public virtual void Tick(float deltaTime)` — Owner-supplied motion step; do not add another Tick loop beside the component's normal FixedUpdate.
-- `public virtual void GetTranslationFrame(out Vector3 origin, out Vector3 direction)` — Returns the neutral world origin and axis used by translational body panels.
-- `public virtual void Toggle()` — Current toggle.
-- `public virtual bool TryUnlatchFromImpact(float force, float speed)` — // force: average contact force in N; speed: approach speed along the impact normal in m/s.
+| Member | Behavior |
+| --- | --- |
+| `public virtual void Cancel()` | Cancels active movement and releases its operation ownership. |
+| `public virtual void Close()` | Requests closure of this part or the body part selected by ID. |
+| `public event System.Action ClosingCompleted` | Once after the actual pose reaches the requested closing target. No payload. |
+| `public event System.Action ClosingStarted` | Once before a closing operation moves the pose. No payload. |
+| `public virtual void CompleteCustomMotion()` | Completes the current custom movement operation successfully. |
+| `public virtual void GetHingeFrame(out Vector3 position, out Vector3 axis)` | The inspector and physical hinge use the same independent axis/pivot. |
+| `public virtual void GetTranslationFrame(out Vector3 origin, out Vector3 direction)` | Returns the world-space origin and direction of the authored translation. |
+| `public event System.Action MotionAudioStopped` | Requests stopping movement audio after interruption or disable. |
+| `public event System.Action<PartMotionEvent> MotionOccurred` | Reports an admitted movement phase to optional presentation receivers. |
+| `public virtual void Open()` | Requests opening of this part or the body part selected by ID. |
+| `public event System.Action<bool> OpenChanged` | When the part's requested open state changes. Payload: bool; this is not a generic arrival event. |
+| `public event System.Action OpeningCompleted` | Once after the actual pose reaches the requested opening target. No payload; physical hinges use Completion Tolerance. |
+| `public event System.Action OpeningStarted` | Once before an opening operation moves the pose. No payload; interruptions never imply completion. |
+| `public event System.Action<bool> PhysicsChanged` | When the part's `usePhysics` policy changes. Payload: bool. |
+| `public virtual void RefreshIgnoredCollisions()` | Refreshes collision pairs for a body part after ownership/geometry changes. |
+| `public virtual void Release()` | Releases this part or hand pose through its declaring type's ownership boundary. |
+| `public event System.Action Released` | After the body part is released from vehicle-owned motion. No payload. |
+| `public virtual void RepairFully()` | Closes the retained panel, clears release/unlatch/motion state, restores its captured closed pose and rebuilds the physical hinge if enabled. Does not recreate a destroyed panel or clear a separate DamagePart accumulator. |
+| `public virtual void ReportProgress(float value)` | Reports actual normalized progress from a custom pose owner. |
+| `public virtual void SetOpen(bool value)` | Requests a body part's open/closed target. |
+| `public virtual void SetPhysics(bool value)` | Changes `usePhysics` for an unreleased part and emits `PhysicsChanged` only on an actual policy change; released parts ignore it. |
+| `public virtual void StartMotion(float value)` | Requests movement to a normalized destination using the selected motion mode. |
+| `public virtual void Stop()` | Stops the current movement operation without reporting successful completion. |
+| `public virtual void Tick(float deltaTime)` | Advances the active movement using elapsed seconds. |
+| `public virtual void Toggle()` | Requests the opposite current body/switch/wiper/profile/gear state through the declaring component. |
+| `public virtual bool TryUnlatchFromImpact(float force, float speed)` | Apply the same configured latch policy from a custom impact system. Returns false for disabled, animated, already-open/released/unlatched parts or rejected thresholds. |
 
 ### VehicleMeshDeformation
 
 [VehicleMeshDeformation](../API/Damage.md#vehiclemeshdeformation) gives the full declared contract.
 
-- `public event System.Action DeformationChanged` — // Notifies observers after accumulated vertex changes are uploaded.
-- `public event System.Action Restored` — // Notifies observers after original mesh shapes are restored.
+- `public event System.Action DeformationChanged` — Notifies observers after accumulated vertex changes are uploaded.
+- `public event System.Action Restored` — Notifies observers after original mesh shapes are restored.
 - `public override void Configure(VehicleController owner)` — Binds the component to its configured owner and selected source.
-- `public virtual void Deform(DamageHit hit, float radius, float dentPerDamage, float maximumDent)` — // Displaces vertices near the damage point, caps displacement from their rest positions and defers mesh upload.
+- `public virtual void Deform(DamageHit hit, float radius, float dentPerDamage, float maximumDent)` — Displaces vertices near the damage point, caps displacement from their rest positions and defers mesh upload.
 - `public virtual void FlushPendingDeformation()` — Current flush pending deformation.
 - `public virtual void RestoreShape()` — Current restore shape.
 - `public virtual void RestoreShape(DamagePart part)` — Current restore shape.
@@ -419,14 +422,14 @@ See [setup and examples](../DamageFeedback.md) and the [full API](../API/DamageF
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
 
 ### WheelPart

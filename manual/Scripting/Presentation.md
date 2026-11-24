@@ -32,7 +32,7 @@ A replacement renderer can consume the same classification without modifying tir
 
 `TireSmoke` owns per-wheel emission for smoke and granular material. `ExhaustSmoke` follows configured outlets and engine activity. `PropulsionJets` presents the selected aircraft/hover propulsion outlets. Their source data differs even when each eventually drives a `ParticleSystem`.
 
-Vehicle creation assigns shared presets from `Resources/Effects`: tire smoke, exhaust smoke and their materials, loose-ground material, and the skidmark material. These assets do not depend on Demo. The package presets retain built-in contact-normal orientation, surface smoke/sand switching and engine-load animation; a user-supplied prefab retains its existing custom-artwork behavior. Repeating setup fills empty references without replacing custom assignments.
+Vehicle creation assigns shared presets from `Resources/Effects`: tire smoke, exhaust smoke and their fallback materials, and the skidmark material. These assets do not depend on Demo. The package presets retain built-in contact-normal orientation, surface smoke/sand switching and engine-load animation; a user-supplied prefab retains its existing custom-artwork behavior. Repeating setup fills empty references without replacing custom assignments.
 
 Choose between generated systems and assigned artwork deliberately. A generated system needs owned material/instance cleanup. An assigned system should keep its authored appearance unless the configured integration explicitly allows the module to animate those properties. An external particle framework can replace the renderer while using the same resolved source activity.
 
@@ -83,6 +83,40 @@ namespace VehicleDocumentationExamples
 
 `ClearMarks` breaks prior trails and publishes Cleared. It is different from repairing damaged parts or deleting world debris. See [performance](../Performance.md) for workload-based budgeting and [asset bindings](../DemoResources.md) for supplied materials.
 
+## Physical jet exhaust
+
+Add the optional `JetBlast` to a configured vehicle and assign its outward-facing outlets. Read `Strength`, or observe forces without replacing vehicle physics:
+
+<!-- example: DocumentationPresentation11Example.cs -->
+```csharp
+using UnityEngine;
+using UltraVehicleSystem;
+
+public sealed class DocumentationPresentation11Example : MonoBehaviour
+{
+    public JetBlast blast;
+
+    private void OnEnable()
+    {
+        if (!blast) return;
+        blast.BodyPushed += OnBodyPushed;
+        blast.SetEnabled(true);
+    }
+
+    private void OnDisable()
+    {
+        if (blast) blast.BodyPushed -= OnBodyPushed;
+    }
+
+    private void OnBodyPushed(Rigidbody body, Vector3 force)
+    {
+        // Apply your own feedback here; avoid logging every physics step.
+    }
+}
+```
+
+The event runs once for each affected body per outlet and physics step. Avoid logging every call in production. See [Jet Blast setup](../Particles.md#jet-blast).
+
 ## Complete public method and event index
 
 The lists below cover public methods and events for this topic and their package base contracts. Signatures include overloads. See [the detailed particles and tire marks API](../API/Presentation.md) for arguments, return semantics, state and configuration. An override replaces the matching inherited implementation; it is not an additional call to make.
@@ -106,14 +140,24 @@ The lists below cover public methods and events for this topic and their package
 | `void Configure(VehicleController vehicle)` | Repeatable setup contract supplied with the owning `VehicleController`. |
 | `void Step(VehicleController vehicle, Command command, float deltaTime)` | Contract for one owner-supplied fixed tick; implement only the module responsibility and use the supplied Command/timestep. |
 
+### JetBlast
+
+[JetBlast](../API/Presentation.md#jetblast) gives the full declared contract.
+
+| Member | Behavior |
+| --- | --- |
+| `public event Action<Rigidbody, Vector3> BodyPushed` | Target body and applied force in newtons, once per outlet and step. |
+| `public override void Configure(VehicleController vehicle)` | Bind engine and propulsion; prepare buffers. |
+| `public override void Step(VehicleController vehicle, Command command, float deltaTime)` | Vehicle scheduler entry for physical exhaust. |
+
 ### ParticleFactory
 
 [ParticleFactory](../API/Presentation.md#particlefactory) gives the full declared contract.
 
 | Method | Role |
 | --- | --- |
-| `public static ParticleSystem CreateSmoke(string name, Transform parent, Material material, bool exhaust)` | Creates a smoke particle system using the supplied material and owned parent. |
 | `public static ParticleSystem CreateSand(string name, Transform parent, Material material)` | Creates a granular tire-particle system using the supplied material and owned parent. |
+| `public static ParticleSystem CreateSmoke(string name, Transform parent, Material material, bool exhaust)` | Creates a smoke particle system using the supplied material and owned parent. |
 | `public static void SetRate(ParticleSystem system, float rate)` | Sets a particle emission rate on an existing system. |
 
 ### PropulsionJets
@@ -161,11 +205,11 @@ The lists below cover public methods and events for this topic and their package
 
 | Method / event / callback | Role |
 | --- | --- |
-| `public event System.Action<int, bool> WheelBurnoutChanged` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
-| `public event System.Action<TireSmokeMode> SmokeModeChanged` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
-| `public bool IsWheelBurningOut(int index)` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
 | `public ParticleSystem GetBurnoutParticles(int index)` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
+| `public bool IsWheelBurningOut(int index)` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
 | `public void SetSmokeMode(TireSmokeMode mode)` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
+| `public event System.Action<TireSmokeMode> SmokeModeChanged` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
+| `public event System.Action<int, bool> WheelBurnoutChanged` | See [TireSmoke](../API/Presentation.md#tiresmoke) for configuration and lifecycle. |
 
 ### VehicleModule
 
@@ -174,14 +218,14 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public virtual void Configure(VehicleController vehicle)` | Empty base setup hook. Derived components may cache references/apply persistent settings; the controller owns lifecycle notifications. |
-| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual void SetEnabled(bool value)` | Changes module enabled state and publishes an actual requested-flag change. |
+| `public virtual void Step(VehicleController vehicle, Command command, float deltaTime)` | Empty base extension point. The controller schedules derived work and emits lifecycle notifications around it. |
 | `public virtual bool SupportsProfile(DriveProfile profile)` | Checks movement-family compatibility; this is independent of the Unity enabled flag. |
 
 | Event / callback | Role |
 | --- | --- |
-| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController> Configured` | After controller-driven module configuration. Payload: the owning `VehicleController`. |
+| `public event System.Action<bool> EnabledChanged` | After `SetEnabled` changes the module flag. Payload: requested enabled bool; no event for an unchanged request. |
 | `public event System.Action<VehicleController, Command, float> Stepped` | After this registered module has stepped. Payload: vehicle, sampled Command, timestep in seconds. |
 
 ### WaterParticleFactory
@@ -191,15 +235,3 @@ The lists below cover public methods and events for this topic and their package
 | Method | Role |
 | --- | --- |
 | `public static ParticleSystem Create(Transform parent, string name, Material material, bool foam, int budget)` | Creates an owned water-particle presentation system with the requested style/material context. |
-
-## Physical jet exhaust
-
-Add the optional `JetBlast` to a configured vehicle and assign its outward-facing outlets. Read `Strength`, or observe forces without replacing vehicle physics:
-
-```csharp
-var blast = vehicle.GetComponent<JetBlast>();
-blast.BodyPushed += (body, force) => Debug.Log($"Jet exhaust pushed {body.name}: {force.magnitude} N");
-blast.SetEnabled(true);
-```
-
-The event runs once for each affected body per outlet and physics step. Avoid logging every call in production. See [Jet Blast setup](../Particles.md#jet-blast).

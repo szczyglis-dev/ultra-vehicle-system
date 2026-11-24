@@ -5,19 +5,21 @@
 | Component or data block | Settings declared here |
 | --- | --- |
 | [Coasting](#coasting) | 3 |
-| [Collisions](#collisions) | 28 |
-| [Damage](#damage) | 9 |
+| [Collisions](#collisions) | 35 |
+| [Damage](#damage) | 7 |
 | [DamageCollisionRelay](#damagecollisionrelay) | 0 |
+| [DebrisMotion](#debrismotion) | 0 |
 | [DynamicObstacle](#dynamicobstacle) | 5 |
 | [Friction](#friction) | 1 |
 | [PhysicsModule](#physicsmodule) | 0 |
-| [Stabilization](#stabilization) | 18 |
+| [Stabilization](#stabilization) | 28 |
 | [Surface](#surface) | 1 |
 | [TireCollision](#tirecollision) | 4 |
 | [VehicleMeshDeformation](#vehiclemeshdeformation) | 5 |
 | [Wheel](#wheel) | 16 |
 | [WheelDynamics](#wheeldynamics) | 1 |
-| [WheelLift](#wheellift) | 24 |
+| [WheelLift](#wheellift) | 25 |
+| [WheelLiftPitchSupport](#wheelliftpitchsupport) | 4 |
 | [WheelSetup](#wheelsetup) | 17 |
 
 ## Coasting
@@ -36,53 +38,53 @@ Configuration/implementation type for coasting within wheel definitions and cont
 
 ## Collisions
 
-See [Collisions and stabilization](../CollisionsAndStabilization.md) for tuning and contact policy.
+See [the handling guide](../CollisionsAndStabilization.md). Component enable/disable controls participation; direct control is excluded.
 
 **Source:** `Runtime/Physics/Stability/Collisions.cs`. Component / asset.
 
-**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule).
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `bodyFriction` | `float` | Additional body friction coefficient, limited by the normal contact impulse. | `.8f`; Range(0, 1) |
+| `bodyFriction` | `float` | Additional body friction coefficient, limited by the normal contact impulse. | `.8`; Range: 0 to 1 |
 | `coordinateLandingResponse` | `bool` | Coordinate grip loss and sway with active smooth suspension landing: retain the impact speed before absorption and wait briefly for all tires to carry load. When suspension landing is disabled, use the ordinary immediate response. | `true` |
-| `crashDamperMultiplier` | `float` | Fraction of normal suspension damping retained just after a hard crash. Recovers smoothly through the suspension response window. | `.25f` |
-| `crashMaximumRotation` | `float` | Maximum additional chassis rotation rate in degrees/s per crash. | `100` |
-| `crashMinimumLeverage` | `float` | Minimum effective pitch/roll leverage in severe supported impacts. | `.6f` |
-| `crashGroundPivot` | `float` | Blend severe-crash direction toward the struck-end ground pivot; zero follows the real contact lever. | `.8f` |
-| `crashMaximumLiftSpeed` | `float` | Maximum additional upward chassis speed in m/s; zero disables lift. | `2` |
-| `crashEnergyFraction` | `float` | Maximum fraction of normal impact energy for the additional rotation/lift, including a movable partner. | `.08f` |
-| `crashCentredYaw` | `float` | Optional yaw target in degrees/s for severe near-centred impacts; alternates sides. Zero disables this presentation effect. | `12` |
-| `crashMinimumSpeed` | `float` | Normal collision speed in m/s required for chassis weight transfer. | `6` |
-| `crashRotationPerSpeed` | `float` | Pitch/roll target in degrees/s per m/s of closing speed, scaled by real normal impulse and contact leverage. Native rotation counts toward the target. | `4` |
-| `crashSuspensionRecovery` | `float` | Seconds for suspension damping to recover after the impact. | `.7f` |
-| `crashAttackTime` | `float` | Seconds to peak crash force; zero starts immediately on the next physics step. | `0` |
-| `crashReleaseTime` | `float` | Seconds for crash force to fade from peak to zero, without increasing impulse budget. | `.14f` |
-| `crashFromWheelImpacts` | `bool` | Include supported tire impacts into near-vertical obstacles in Crash Weight Transfer. Excludes wheel landings and ordinary ground contact; native tire restitution is unchanged. | `false` |
-| `crashWeightTransfer` | `bool` | Deliver a bounded pitch/roll response during a supported impact. Supported pitch/roll and lift response, with configurable ground-pivot bias. Native rotation counts toward the target. | `true` |
-| `crashYawVariation` | `float` | Maximum contact-directed yaw-rate target in degrees/s after a hard crash. Centred hits add no random yaw; zero disables it. | `3` |
-| `impactCooldown` | `float` | Minimum seconds between additional crash impulses. | `.12f`; Min(0) |
+| `crashAttackTime` | `float` | Seconds for the crash impulse strength to reach its peak. Zero starts at full strength on the next physics step; does not add a waiting period. | `0`; Minimum: 0 |
+| `crashCentredYaw` | `float` | Additional yaw target in degrees/s for severe, nearly centred impacts. Alternates direction between crashes to break perfect symmetry; zero disables this presentation effect. | `12`; Minimum: 0 |
+| `crashDamperMultiplier` | `float` | Fraction of normal suspension damping retained just after a hard crash. Recovers smoothly through the suspension response window. | `.25`; Range: 0 to 1 |
+| `crashEnergyFraction` | `float` | Maximum fraction of normal impact energy converted into additional chassis rotation, including a movable collision partner. | `.08`; Range: 0 to .25f |
+| `crashFromWheelImpacts` | `bool` | Also transfer a supported crash through a tire hitting a near-vertical obstacle. Requires Crash Weight Transfer. Ground contacts and wheel landings are excluded; native tire restitution is unchanged. | `false` |
+| `crashGroundPivot` | `float` | Blend the supplemental severe-crash direction toward a ground pivot: the struck end stays low while the opposite end rises. Zero follows the actual contact lever only. | `.8`; Range: 0 to 1 |
+| `crashMaximumLiftSpeed` | `float` | Maximum additional upward chassis speed in m/s from the supported crash pivot. Couples lift to the pitching response so the struck end stays low. Zero disables lift. | `2`; Minimum: 0 |
+| `crashMaximumRotation` | `float` | Maximum additional chassis rotation rate in degrees/s per crash. | `100`; Minimum: 0 |
+| `crashMinimumLeverage` | `float` | Minimum effective pitch/roll leverage for severe supported crashes. Prevents a contact near the centre-of-mass height from suppressing the chassis response. Blends in between one and two times Crash Minimum Speed. | `.6`; Range: 0 to 1 |
+| `crashMinimumSpeed` | `float` | Normal collision speed in m/s required for chassis weight transfer. | `6`; Minimum: 0 |
+| `crashReleaseTime` | `float` | Seconds for crash impulse strength to fade from its peak to zero. Attack and release shape the same bounded impulse budget; longer times do not add energy. | `.14`; Minimum: 0 |
+| `crashRotationPerSpeed` | `float` | Pitch/roll target in degrees/s per m/s of closing speed. Scaled by the real normal impulse and contact leverage; native rotation counts toward the target. | `4`; Minimum: 0 |
+| `crashSuspensionRecovery` | `float` | Seconds for suspension damping to recover after the impact. | `.7`; Minimum: .05f |
+| `crashWeightTransfer` | `bool` | Deliver a short, bounded pitch/roll and lift response during a supported body impact. Ground Pivot can bias the direction; native rotation counts toward the target. | `true` |
+| `crashYawVariation` | `float` | Maximum additional yaw-rate target in degrees/s after a hard crash. Direction follows the contact lever; centred impacts add no random yaw. Zero disables it. | `3`; Minimum: 0 |
+| `impactCooldown` | `float` | Minimum seconds between additional crash impulses. | `.12`; Minimum: 0 |
 | `impactResponse` | `bool` | Supply missing collision restitution after the native solver resolves the impact. | `true` |
-| `landingContactHoldTime` | `float` | Maximum seconds after first tire contact to hold grip recovery and defer the sway while the remaining tires acquire load. Zero disables the contact wait; pre-absorption impact strength is still retained. | `.45f` |
-| `landingForwardGrip` | `float` | Forward grip retained at full landing response, before other grip modifiers. | `.45f` |
-| `landingFullResponseSpeed` | `float` | Normal landing speed producing full grip loss and sway, in m/s. | `4.5f` |
-| `landingGripRecoveryTime` | `float` | Seconds for tire grip and stability assistance to smoothly recover. | `.85f` |
-| `landingLateralSway` | `float` | Maximum added sideways speed in m/s at a directional landing. Delivered over a short ground-contact push. | `.45f` |
-| `landingMinimumAirTime` | `float` | Minimum unsupported flight time before a wheel landing is eligible, in seconds. | `.15f` |
-| `landingMinimumSpeed` | `float` | Minimum normal landing speed relative to the surface, in m/s. | `1.5f` |
-| `landingRearGripBias` | `float` | Additional sideways grip reduction on wheels behind the centre of mass during recovery. | `.2f` |
-| `landingSidewaysGrip` | `float` | Sideways grip retained at full landing response, before other grip modifiers. | `.3f` |
+| `landingContactHoldTime` | `float` | Maximum seconds after first tire contact to hold grip recovery and defer the sway while the remaining tires acquire load. Zero disables the contact wait; pre-absorption impact strength is still retained. | `.45`; Minimum: 0 |
+| `landingForwardGrip` | `float` | Forward grip retained at full landing response, before other grip modifiers. | `.45`; Range: .05f to 1 |
+| `landingFullResponseSpeed` | `float` | Normal landing speed producing full grip loss and sway, in m/s. | `4.5`; Minimum: .1f |
+| `landingGripRecoveryTime` | `float` | Seconds for tire grip and stability assistance to smoothly recover. | `.85`; Minimum: .05f |
+| `landingLateralSway` | `float` | Maximum added sideways speed in m/s at a directional landing. Delivered over a short ground-contact push. | `.45`; Minimum: 0 |
+| `landingMinimumAirTime` | `float` | Minimum unsupported flight time before a wheel landing is eligible, in seconds. | `.15`; Minimum: 0 |
+| `landingMinimumSpeed` | `float` | Minimum normal landing speed relative to the surface, in m/s. | `1.5`; Minimum: 0 |
+| `landingRearGripBias` | `float` | Additional sideways grip reduction on wheels behind the centre of mass during recovery. | `.2`; Range: 0 to .8f |
+| `landingSidewaysGrip` | `float` | Sideways grip retained at full landing response, before other grip modifiers. | `.3`; Range: .05f to 1 |
 | `landingTractionLoss` | `bool` | Briefly reduce tire grip after an airborne wheel landing and allow a small directional sway. | `true` |
-| `landingYawSway` | `float` | Maximum additional yaw-rate change in degrees/s. Direction follows the landing's lateral motion, bank and first wheel contacts. | `7` |
-| `maximumAngularKick` | `float` | Maximum angular speed change per impact, in degrees/s. Off-centre contacts naturally pitch, yaw or roll. | `55`; Min(0) |
-| `maximumReboundSpeed` | `float` | Maximum additional separation speed, in m/s. | `3`; Min(0) |
-| `minimumBodyTilt` | `float` | Minimum gravity-relative tilt for additional body sliding friction. | `45`; Range(0, 180) |
-| `minimumImpactSpeed` | `float` | Normal closing speed required for an additional response, in m/s. | `4`; Min(0) |
-| `restitution` | `float` | Target separation speed as a fraction of normal closing speed. Existing PhysX bounce is counted. | `.12f`; Range(0, .5f) |
+| `landingYawSway` | `float` | Maximum additional yaw-rate change in degrees/s. Direction follows the landing's lateral motion, bank and first wheel contacts. | `7`; Minimum: 0 |
+| `maximumAngularKick` | `float` | Maximum angular speed change per impact, in degrees/s. Off-centre contacts naturally pitch, yaw or roll. | `55`; Minimum: 0 |
+| `maximumReboundSpeed` | `float` | Maximum additional separation speed, in m/s. | `3`; Minimum: 0 |
+| `minimumBodyTilt` | `float` | Minimum gravity-relative tilt for additional body sliding friction. | `45`; Range: 0 to 180 |
+| `minimumImpactSpeed` | `float` | Normal closing speed required for an additional response, in m/s. | `4`; Minimum: 0 |
+| `restitution` | `float` | Target separation speed as a fraction of normal closing speed. Existing PhysX bounce is counted. | `.12`; Range: 0 to .5f |
 
 ## Damage
 
-Custom glass, lamps and audio behaviours subscribe to Hit without changing impact routing.
+### State and configuration
 
 **Source:** `Runtime/Physics/Damage/Damage.cs`. Component / asset.
 
@@ -92,7 +94,7 @@ Custom glass, lamps and audio behaviours subscribe to Hit without changing impac
 | --- | --- | --- | --- |
 | `damageEnabled` | `bool` | Allows this module to accept damage. Turn off to stop its damage accumulation, mesh dents and damage-driven detachment. | `true` |
 | `damageMultiplier` | `float` | Multiplies accepted impact damage before it is applied to nearby parts. Higher values make the same collision damage parts more and reach detach thresholds sooner. | `1`; Minimum: 0 |
-| `deformationEnabled` | `bool` | Allows accepted impacts to bend the affected meshes through VehicleMeshDeformation. Turn off to retain damage and detachment while leaving mesh shapes unchanged. | `true` |
+| `deformationEnabled` | `bool` | Allows accepted impacts to bend the affected meshes through MeshDeformation. Turn off to retain damage and detachment while leaving mesh shapes unchanged. | `true` |
 | `detachmentEnabled` | `bool` | Allows damaged parts to break away when their detach threshold is reached. Turn off to keep parts attached even if they accumulate damage. | `true` |
 | `impactRadius` | `float` | Distance in metres around the hit point that can receive damage and dents. Damage falls off toward the edge; increase to spread a hit over a larger area. | `.9`; Minimum: .01f |
 | `minimumImpactSpeed` | `float` | Minimum relative collision speed in m/s required for collision-driven damage. | `3`; Minimum: 0 |
@@ -106,17 +108,27 @@ Relays relevant native collisions into damage handling.
 
 No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
 
+## DebrisMotion
+
+Exists only on released debris. Snapshot before the solver and remove excess contact-generated motion afterwards; airborne and inherited motion are retained.
+
+**Source:** `Runtime/Physics/Damage/DebrisMotion.cs`. Component / asset.
+
+No additional Inspector settings are declared on this type. Use the inherited settings above and the component enabled checkbox where available.
+
 ## DynamicObstacle
 
-Movable world obstacle native settings; applied on enable or ApplySettings and restored on disable. No per-frame work, forces or ordinary velocity clamps. Defaults preserve solver iteration counts.
+Opt-in native settings for movable world props pushed by heavier vehicles. Enabled on the five Demo/Samples dynamic crates. No forces, velocity clamps, pose corrections or per-frame updates. Disabling restores captured Rigidbody settings; re-enable captures fresh ownership. Reapply after editing fields or switching kinematic mode.
+
+**Source:** `Runtime/Physics/Stability/DynamicObstacle.cs`. Component / asset.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `collisionDetection` | `CollisionDetectionMode` | Native contact detection; kinematic non-Discrete uses Speculative. | `CollisionDetectionMode.ContinuousSpeculative` |
-| `interpolation` | `RigidbodyInterpolation` | Native display interpolation. | `RigidbodyInterpolation.Interpolate` |
-| `maximumDepenetrationSpeed` | `float` | Native overlap recovery speed cap in m/s, retaining lower original. | `2` |
-| `solverIterations` | `int` | Optional minimum solver passes; zero preserves original, higher original retained. | `0` |
-| `solverVelocityIterations` | `int` | Optional minimum velocity solver passes; zero preserves original, higher original retained. | `0` |
+| `collisionDetection` | `CollisionDetectionMode` | Collision detection used while this component owns the dynamic obstacle. Speculative contacts cover angular motion and contacts with the vehicle's physical panels. | `CollisionDetectionMode.ContinuousSpeculative` |
+| `interpolation` | `RigidbodyInterpolation` | Display interpolation for the obstacle. Interpolate matches the default vehicle display and avoids visible relative stepping. | `RigidbodyInterpolation.Interpolate` |
+| `maximumDepenetrationSpeed` | `float` | Maximum native speed for separating overlapping contacts, m/s. Limits penetration recovery kicks, not ordinary collision speed or momentum. | `2`; Minimum: .1f |
+| `solverIterations` | `int` | Optional minimum native position solver iterations. Zero preserves the original setting; higher existing values are retained. | `0`; Range: 0 to 255 |
+| `solverVelocityIterations` | `int` | Optional minimum native velocity solver iterations. Zero preserves the original setting; higher existing values are retained. | `0`; Range: 0 to 255 |
 
 ## Friction
 
@@ -142,32 +154,42 @@ No additional Inspector settings are declared on this type. Use the inherited se
 
 ## Stabilization
 
-See [Collisions and stabilization](../CollisionsAndStabilization.md) for tuning and contact policy.
+See [the handling guide](../CollisionsAndStabilization.md). Component enable/disable controls participation; direct control is excluded.
 
 **Source:** `Runtime/Physics/Stability/Stabilization.cs`. Component / asset.
 
-**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule).
+**Inherited settings:** [PhysicsModule](Physics.md#physicsmodule). These settings also appear on this type.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
 | `affectOtherProfiles` | `bool` | Opt in for air/water/hover profiles. Normally only grounded profiles are supported. | `false` |
-| `airborneDamping` | `Vector3` | Local pitch/yaw/roll damping rates in 1/s while airborne. | `new Vector3(.65f, .2f, .65f)` |
-| `airborneDelay` | `float` | Wait after losing wheel support before applying damping, in seconds. | `.12f`; Min(0) |
+| `airborneDamping` | `Vector3` | Local pitch/yaw/roll damping rates in 1/s while airborne. | `new Vector3(.65, .2, .65)` |
+| `airborneDelay` | `float` | Delay before airborne damping, in seconds. Airborne leveling instead builds smoothly through this interval. | `.12`; Minimum: 0 |
+| `airborneLevelDamping` | `float` | Roll damping in 1/s for optional airborne leveling. | `8`; Minimum: 0 |
+| `airborneLevelMaximumAcceleration` | `float` | Maximum airborne leveling acceleration in degrees/s squared. | `360`; Minimum: 0 |
+| `airborneLevelMaximumTilt` | `float` | Largest gravity-relative bank angle eligible for airborne leveling. Angles beyond this range retain their physical tumble. | `170`; Range: 0 to 179 |
+| `airborneLevelStrength` | `float` | Angular spring strength in 1/s squared for optional airborne leveling. | `16`; Minimum: 0 |
+| `autoLevelAirborne` | `bool` | Apply bounded local-Z roll torque toward gravity-relative upright bank during free flight. Does not correct local pitch or yaw; yields to active rider steering unless Prevent Outward Air Roll is enabled. Disabled after driver ejection when motorcycle balance is suppressed. | `false` |
 | `autoRighting` | `bool` | Smoothly push a slow vehicle on its side back onto its wheels using torque while the body touches the ground. | `false` |
 | `detectOverturn` | `bool` | Monitors chassis tilt and publishes overturn/recovery events. It does not itself right the vehicle or eject passengers. | `true` |
-| `maximumDeceleration` | `float` | Maximum angular deceleration in degrees/s squared. | `540`; Min(0) |
-| `maximumSpin` | `float` | Soft angular speed threshold in degrees/s; does not hard-clamp velocity. | `180`; Min(0) |
-| `overspeedDamping` | `float` | Additional damping above Maximum Spin, in 1/s. | `3`; Min(0) |
+| `maximumDeceleration` | `float` | Maximum angular deceleration in degrees/s squared. | `540`; Minimum: 0 |
+| `maximumSpin` | `float` | Soft angular speed threshold in degrees/s; does not hard-clamp velocity. | `180`; Minimum: 0 |
+| `overspeedDamping` | `float` | Additional damping above Maximum Spin, in 1/s. | `3`; Minimum: 0 |
 | `overturnAngle` | `float` | Tilt from gravity-up, in degrees, that must persist for Overturn Delay before an overturn event is published. Lower values report overturn sooner. | `70`; Range: 10 to 180 |
-| `overturnDelay` | `float` | Time continuously tilted before reporting overturn, in seconds. | `.25`; Minimum: 0 |
+| `overturnDelay` | `float` | Seconds the excessive-tilt condition must persist before publishing an overturn. | `.25`; Minimum: 0 |
+| `preventOutwardAirRoll` | `bool` | When airborne leveling is enabled, block rider roll input away from upright and keep automatic roll recovery active during corrective input. Pitch control is unchanged. | `true` |
 | `recoveryAngle` | `float` | Tilt below which an overturned vehicle is considered upright again and the event detector resets. Keep below Overturn Angle to avoid repeated state changes near the boundary. | `40`; Range: 0 to 170 |
-| `rightingDamping` | `float` | Angular damping in 1/s during recovery. | `7`; Min(0) |
-| `rightingDelay` | `float` | Seconds continuously overturned and touching the ground before recovery starts. | `1.5f`; Min(0) |
-| `rightingMaximumAcceleration` | `float` | Recovery angular acceleration limit in degrees/s squared. | `1440`; Min(0) |
-| `rightingMaximumSpeed` | `float` | Maximum chassis speed in m/s during assisted recovery. | `3`; Min(0) |
-| `rightingMaximumTilt` | `float` | Maximum tilt eligible for side recovery. Roof landings are excluded. | `125`; Range(90, 135) |
-| `rightingMinimumTilt` | `float` | Tilt in degrees required to begin recovery. | `55`; Range(1, 180) |
-| `rightingStrength` | `float` | Angular spring strength in 1/s squared. | `12`; Min(0) |
+| `rightingBuildTime` | `float` | Seconds for recovery torque to build smoothly after Righting Delay. Zero preserves immediate full-strength assistance. | `0`; Minimum: 0 |
+| `rightingContactGrace` | `float` | Seconds to continue an already active recovery across brief support gaps while lifting off the chassis onto the wheels. Longer gaps stop recovery and restart its delay and buildup. | `0`; Minimum: 0 |
+| `rightingDamping` | `float` | Angular damping in 1/s during recovery. | `7`; Minimum: 0 |
+| `rightingDelay` | `float` | Seconds continuously overturned and touching the ground before recovery starts. | `1.5`; Minimum: 0 |
+| `rightingMaximumAcceleration` | `float` | Recovery angular acceleration limit in degrees/s squared. | `1440`; Minimum: 0 |
+| `rightingMaximumSpeed` | `float` | Maximum chassis speed in m/s during assisted recovery. | `3`; Minimum: 0 |
+| `rightingMaximumTilt` | `float` | Maximum tilt eligible for side recovery. Roof landings are excluded. | `125`; Range: 90 to 135 |
+| `rightingMinimumTilt` | `float` | Tilt in degrees required to begin recovery. | `55`; Range: 1 to 180 |
+| `rightingOnWheelSupport` | `bool` | Allow recovery from excessive lean while usable wheels still touch the ground. Wall/ceiling tire contact is not standing support. | `false` |
+| `rightingRollOnly` | `bool` | Recover only sideways bank around the vehicle's longitudinal Z axis. Does not correct wheelies, nose pitch or heading. | `false` |
+| `rightingStrength` | `float` | Angular spring strength in 1/s squared. | `12`; Minimum: 0 |
 
 ## Surface
 
@@ -204,7 +226,7 @@ Owns readable mesh instances, dent buffers and geometry restoration.
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `damage` | `Damage` ([fields](Physics.md#damage)) | Accepted damage source. Empty resolves Damage on the same GameObject. | `None / unassigned` |
+| `damage` | `Damage` ([fields](Physics.md#damage)) | Damage source publishing accepted pre-detachment deformation requests. | `None / unassigned` |
 | `dentPerDamage` | `float` | Visual displacement per accepted damage unit, in metres. | `.008`; Minimum: 0 |
 | `maximumDent` | `float` | Largest total vertex displacement from its rest pose, in metres. | `.35`; Minimum: 0 |
 | `meshUploadIntervalFrames` | `int` | Rendered LateUpdate calls with pending dents before uploading changed meshes. Higher values batch more impacts and normal rebuilds, but dents and DeformationChanged appear later. Damage calculation still runs for every hit. Default 1. | `1`; Range: 1 to 16 |
@@ -222,7 +244,7 @@ When registered in Vehicle Controller → Wheels → Wheel Setup, the copied geo
 | --- | --- | --- | --- |
 | `brake` | `bool` | Allows service-brake torque on this wheel. Disable for a wheel that should free-roll under the main brake pedal. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `true` |
 | `brakeMultiplier` | `float` | Multiplies this wheel's service-brake torque. Use lower front/rear values to tune brake balance; zero removes its service-brake contribution. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `1`; Minimum: 0 |
-| `caliper` | `Transform` | Optional brake-caliper visual; follows suspension and steering without spinning with the tire. | `None / unassigned` |
+| `caliper` | `Transform` | Optional brake-caliper mesh following suspension/steering without spinning with the tire. | `None / unassigned` |
 | `caliperRotationOffset` | `Quaternion` | Rotation correcting the brake-caliper mesh's axes in the non-spinning hub frame. It aligns the visual without changing brake strength. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `Quaternion.identity` |
 | `driven` | `bool` | Includes this wheel among wheels receiving propulsion. Enable only on driven axles; Drive Weight controls its relative share of the base torque budget. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `true` |
 | `driveWeight` | `float` | Relative share of base motor torque among driven wheels. At 2 a wheel receives twice the weight of a wheel set to 1; zero excludes it from base allocation. Grip/differential logic can change the final split. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `1`; Minimum: 0 |
@@ -231,8 +253,8 @@ When registered in Vehicle Controller → Wheels → Wheel Setup, the copied geo
 | `radius` | `float` | Tire's rolling radius in metres, used by native wheel contact and wheel-speed calculations. Match half the outside tire diameter; registered wheels take this value from Wheel Setup. | `.34`; Minimum: .05f |
 | `showGizmos` | `bool` | Show this component's scene guides and editing handles. Does not change gameplay or physics. Expand **Gizmos** for independent visibility controls; see [Scene gizmo visibility](../Configuration.md#scene-gizmo-visibility) for the controls available on this component. | `true` |
 | `steering` | `bool` | Allows this wheel to receive vehicle steering. Enable for steering axles; disable for fixed wheels. Steering Multiplier controls its direction and share of the angle. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `false` |
-| `steeringMultiplier` | `float` | Scales this wheel's steering angle. Negative values produce counter-steering. | `1` |
-| `visual` | `Transform` | Wheel visual transform moved to the solved hub pose and rotated for steering and tire spin. Keep it separate from the collider mount. | `None / unassigned` |
+| `steeringMultiplier` | `float` | Per-wheel scale of steering angle; negative values enable opposite-direction steering. | `1` |
+| `visual` | `Transform` | Visible wheel mesh rotated and positioned from native suspension and wheel spin. | `None / unassigned` |
 | `visualRotationOffset` | `Quaternion` | Rotation correcting the tire mesh's axes relative to the solved wheel pose. Use it for imported meshes whose axle direction differs from the native wheel frame. When registered, edit this value in Vehicle Controller → Wheels → Wheel Setup. | `Quaternion.identity` |
 | `visualSuspensionSmoothTime` | `float` | Visual suspension settling time in seconds. Zero follows the native hub directly; tire forces are unaffected. | `.045`; Minimum: 0 |
 | `width` | `float` | Full tire width in metres. Used by tire contact sampling, supplemental tire collisions and Scene previews. For a registered wheel, edit Width in Vehicle Controller → Wheels → Wheel Setup and apply configuration. | `.2`; Minimum: .02f |
@@ -251,7 +273,7 @@ Applies wheel rotational behavior including airborne losses.
 
 ## WheelLift
 
-Raises the selected front wheels and holds a configurable nose-up angle using bounded force and pitch feedback. It is an optional action: without a request, an idle module applies no force or torque.
+See [Wheel Lift](../DrivingActions.md#wheel-lift-wheelie) for defaults, units and activation guards.
 
 **Source:** `Runtime/Physics/Wheels/WheelLift.cs`. Component / asset.
 
@@ -259,30 +281,44 @@ Raises the selected front wheels and holds a configurable nose-up angle using bo
 
 | Setting | Type | Description | Declared default and constraints |
 | --- | --- | --- | --- |
-| `angleDamping` | `float` | Damps pitch angular velocity while lifting and holding. Increase to reduce overshoot; excessive damping slows the response. | `18`; Minimum: 0 |
-| `angleStrength` | `float` | Pitch feedback gain. Higher values approach the target more quickly, subject to the force and acceleration limits. | `60`; Minimum: 0 |
-| `compensateGravity` | `bool` | Offsets the weight moment about the supporting axle while contact is available, reducing steady pitch error. | `true` |
-| `forceCurve` | `AnimationCurve` | Shapes normalized assistance during build-up and release. Its result is clamped to zero through one. | `AnimationCurve.EaseInOut(0, 0, 1, 1)` |
-| `groundContactGraceTime` | `float` | Seconds to retain the requested angle through brief support loss. After this interval the active controller levels the chassis for landing. No upward force is applied without support. | `.75`; Minimum: 0 |
-| `landingTime` | `float` | Seconds to smoothly lower the pitch target to zero after release or an activation guard. Pitch control and necessary weight support remain available through touchdown. | `1`; Minimum: .1f |
-| `landingTimeout` | `float` | Maximum lowering interval before assistance is cleared. The effective timeout is at least Landing Time. ResetState and disabling the component stop immediately. | `3`; Minimum: .1f |
-| `liftPoint` | `Transform` | Optional force point in world space. Overrides the average selected-wheel position. Place ahead of the supporting axle for front-wheel lift. | `None / unassigned` |
-| `localLiftPoint` | `Vector3` | Force point relative to the vehicle when no operational lift wheels are available and no Lift Point is assigned. | `new Vector3(0, 0, 1)` |
-| `maximumForce` | `float` | Maximum upward force in newtons. Maximum Lift Acceleration imposes an additional mass-dependent cap. | `12000`; Minimum: 0 |
-| `maximumLiftAcceleration` | `float` | Maximum upward assistance acceleration in m/s². Limits the force relative to chassis mass to help retain supporting-wheel contact. | `8`; Minimum: 0 |
-| `maximumRecoveryAcceleration` | `float` | Maximum corrective pitch acceleration in rad/s². Bounded torque arrests excessive rise or a forward dive without adding vertical force. | `300`; Minimum: 0 |
-| `maximumRoll` | `float` | Maximum lateral tilt for assistance, in degrees. Exceeding the guard clears assistance immediately. | `60`; Range: 0 to 89 |
-| `maximumSpeed` | `float` | Maximum absolute forward speed in m/s for lifting. Exceeding it initiates controlled lowering and requires releasing the held request before restarting. | `55`; Minimum: 0 |
-| `maximumSupportDampingAcceleration` | `float` | Maximum chassis acceleration from rebound damping at the supporting tires, in m/s². The contact impulse is also limited so it cannot reverse separation velocity. | `15`; Minimum: 0 |
-| `minimumSpeed` | `float` | Minimum absolute forward speed in m/s required for assistance. Zero permits lifting at rest. | `0`; Minimum: 0 |
-| `releaseTime` | `float` | Seconds for the held force request to fade after release. Zero clears that ramp immediately. Necessary support is retained until the front approaches the road; Landing Time controls lowering. | `.35`; Minimum: 0 |
-| `requireGroundContact` | `bool` | Requires an operational grounded wheel outside the lift selection to start and apply upward force. An already active action retains pitch control during contact loss and levels after Ground Contact Grace Time. | `true` |
-| `requireRunningEngine` | `bool` | Requires an enabled Engine with its engine-running state on. | `true` |
-| `riseTime` | `float` | Seconds for the normalized request ramp to build from zero to full. Force Curve shapes the response. | `.5`; Minimum: 0 |
-| `safetyAngle` | `float` | Absolute pitch limit in degrees. The effective target stays at least ten degrees below this limit. Excessive pitch stops assistance. | `75`; Range: 0 to 89 |
-| `supportReboundDamping` | `float` | Response in 1/s opposing upward separation at the supporting tire contact while Wheel Lift is active. Uses native and solid-tire contact normals and motion relative to the surface; airborne and descending motion are unchanged. Zero disables this damping. | `10`; Minimum: 0 |
-| `targetAngle` | `float` | Requested nose-up pitch relative to gravity, in degrees. Also bounded by the safety-angle margin. | `30`; Range: 0 to 75 |
-| `wheels` | `Wheel[]` | Wheels to lift; force acts at their average operational position. Empty selects steering wheels. Other grounded wheels provide support. Assign wheels owned by this vehicle. | `Empty list` |
+| `angleDamping` | `float` | Damping opposing pitch angular velocity while lift control is active. | `18`; Minimum: 0 |
+| `angleStrength` | `float` | Pitch correction strength toward the requested lift angle. | `60`; Minimum: 0 |
+| `compensateGravity` | `bool` | Add gravity compensation while lifting supported wheels so their weight does not defeat the requested pitch. | `true` |
+| `forceCurve` | `AnimationCurve` | Shape of lift force over normalized action strength. Use it to soften the initial pickup or final release. | `AnimationCurve.EaseInOut(0, 0, 1, 1)` |
+| `groundContactGraceTime` | `float` | Time to retain the wheelie angle through brief contact loss, then level for landing. No lift force is applied without support. | `.75`; Minimum: 0 |
+| `landingTime` | `float` | Duration in seconds of the controlled lowering phase after the request ends. | `1`; Minimum: .1f |
+| `landingTimeout` | `float` | Maximum allowed lowering time in seconds before the action releases its remaining support. | `3`; Minimum: .1f |
+| `liftPoint` | `Transform` | Optional world-space force point; overrides wheel selection. | `None / unassigned` |
+| `localLiftPoint` | `Vector3` | Used in vehicle local space if no lift wheels are available. | `new Vector3(0, 0, 1)` |
+| `maximumForce` | `float` | Maximum upward lift force in newtons at the configured lift point. | `12000`; Minimum: 0 |
+| `maximumLiftAcceleration` | `float` | Upward assistance acceleration cap in m/s². Keeps the support wheel loaded during lift. | `8`; Minimum: 0 |
+| `maximumRecoveryAcceleration` | `float` | Maximum corrective pitch acceleration in rad/s², including recovery during brief contact loss. | `300`; Minimum: 0 |
+| `maximumRoll` | `float` | Maximum allowed roll angle in degrees before wheel-lift assistance starts lowering. | `60`; Range: 0 to 89 |
+| `maximumSpeed` | `float` | Highest vehicle speed at which the lift request may remain active. | `55`; Speed field; stored in m/s, displayed in the selected speed unit |
+| `maximumSupportDampingAcceleration` | `float` | Maximum chassis acceleration from support rebound damping in m/s². Descending and airborne motion are not damped. | `15`; Minimum: 0 |
+| `minimumSpeed` | `float` | Lowest vehicle speed at which wheel lift can start or remain held. Slowing below it starts controlled lowering. | `2`; Speed field; stored in m/s, displayed in the selected speed unit |
+| `pitchSupport` | `WheelLiftPitchSupport` ([fields](Physics.md#wheelliftpitchsupport)) | Counter the nose-up moment of tire-driven acceleration before it produces a large wheelie-angle error. | `new WheelLiftPitchSupport()` |
+| `releaseTime` | `float` | Seconds over which the held request fades after release before controlled landing completes. | `.35`; Minimum: 0 |
+| `requireGroundContact` | `bool` | Require supporting ground contact to start the lift action. | `true` |
+| `requireRunningEngine` | `bool` | Require a running engine before a new lift request is admitted. | `true` |
+| `riseTime` | `float` | Seconds over which lift strength rises after activation. | `.5`; Minimum: 0 |
+| `safetyAngle` | `float` | Pitch safety angle in degrees beyond which the action stops lifting and requests recovery. | `75`; Range: 0 to 89 |
+| `supportReboundDamping` | `float` | Damps separation velocity at the supporting tires while this action is active. Zero disables rebound damping. | `10`; Minimum: 0 |
+| `targetAngle` | `float` | Requested front-wheel lift angle in degrees relative to the gravity-level vehicle attitude. | `30`; Range: 0 to 75 |
+| `wheels` | `Wheel[]` ([fields](Physics.md#wheel)) | Lift at the average position of these wheels. Empty selects operational steering wheels. | `Empty list` |
+
+## WheelLiftPitchSupport
+
+Bounded pitch support that damps boost-induced wheelie oscillation without replacing native contact forces.
+
+**Source:** `Runtime/Physics/Wheels/Control/WheelLiftPitchSupport.cs`. Nested configuration data; expand its owning field in the Inspector.
+
+| Setting | Type | Description | Declared default and constraints |
+| --- | --- | --- | --- |
+| `compensation` | `float` | Fraction of the pitch moment from measured tire acceleration to counter during supported wheel lift. | `1`; Range: 0 to 1.5f |
+| `enabled` | `bool` | Controls enabled for this mechanism. | `true` |
+| `maximumDriveAcceleration` | `float` | Maximum longitudinal acceleration used by pitch compensation, in m/s². Contact impulses beyond twice this value are rejected. | `20`; Minimum: 0 |
+| `responseTime` | `float` | Seconds to smooth measured acceleration. Filters contact and gear-change noise. | `.08`; Minimum: 0 |
 
 ## WheelSetup
 
